@@ -1,0 +1,38 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
+
+namespace ArchiveDex.Web;
+
+public static class ErrorHandlingSetup
+{
+    public static WebApplication UseArchiveDexErrorHandling(this WebApplication app)
+    {
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseExceptionHandler(exceptionHandlerApp =>
+            {
+                exceptionHandlerApp.Run(async context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                    context.Response.ContentType = "application/problem+json";
+
+                    var feature = context.Features.Get<IExceptionHandlerFeature>();
+                    var problem = new ProblemDetails
+                    {
+                        Type = "https://tools.ietf.org/html/rfc7807",
+                        Title = "An unexpected error occurred.",
+                        Status = StatusCodes.Status500InternalServerError,
+                        Detail = app.Environment.IsDevelopment() ? feature?.Error.Message : null
+                    };
+
+                    await context.Response.WriteAsJsonAsync(problem);
+                });
+            });
+        }
+
+        return app;
+    }
+}

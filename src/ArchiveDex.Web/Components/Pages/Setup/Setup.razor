@@ -1,0 +1,120 @@
+@page "/setup"
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject IStringLocalizer<SharedResources> Loc
+@using System.Net.Http.Json
+@using ArchiveDex.Application.Commands.Setup
+@using ArchiveDex.Application.Queries.Setup
+
+<h3>@Loc["Setup.Title"]</h3>
+
+@if (_setupAlreadyComplete)
+{
+    <p>@Loc["Setup.AlreadyComplete"] <a href="/">@Loc["Setup.GoToApp"]</a></p>
+}
+else if (_isComplete)
+{
+    <p>@Loc["Setup.Completed"] <a href="/">@Loc["Setup.GoToApp"]</a></p>
+}
+else if (!string.IsNullOrEmpty(_error))
+{
+    <div style="color:red">@_error</div>
+    <button @onclick="Reset">Back</button>
+}
+else
+{
+    <EditForm Model="@_request" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <div>
+            <label>@Loc["Setup.AdminUsername"]</label>
+            <InputText @bind-Value="_request.AdminUserName" class="form-control" />
+        </div>
+        <div>
+            <label>@Loc["Setup.AdminPassword"]</label>
+            <InputText @bind-Value="_request.AdminPassword" type="password" class="form-control" />
+        </div>
+        <div>
+            <label>@Loc["Setup.UICulture"]</label>
+            <select @bind="_request.DefaultUiCulture" class="form-control">
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+                <option value="ru">Русский</option>
+            </select>
+        </div>
+        <div>
+            <label>@Loc["Setup.Currency"]</label>
+            <InputText @bind-Value="_request.CollectionCurrency" class="form-control" placeholder="EUR" />
+        </div>
+        <button type="submit" disabled="@_isSubmitting">@Loc["Setup.Complete"]</button>
+    </EditForm>
+}
+
+@code {
+    private CompleteSetup _request = new();
+    private bool _isSubmitting;
+    private bool _isComplete;
+    private bool _setupAlreadyComplete;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var state = await Http.GetFromJsonAsync<SetupStateResponse>("/api/setup/state");
+            if (state?.IsSetupComplete == true)
+            {
+                _setupAlreadyComplete = true;
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        _isSubmitting = true;
+        _error = null;
+
+        try
+        {
+            var validate = await Http.PostAsJsonAsync("/api/setup/validate", new ValidateSetup
+            {
+                AdminUserName = _request.AdminUserName,
+                AdminPassword = _request.AdminPassword,
+                DefaultUiCulture = _request.DefaultUiCulture,
+                CollectionCurrency = _request.CollectionCurrency
+            });
+            var validateResult = await validate.Content.ReadFromJsonAsync<SetupValidateResponse>();
+            if (validateResult is not null && validateResult.Messages.Count > 0)
+            {
+                _error = string.Join("; ", validateResult.Messages);
+                return;
+            }
+
+            var complete = await Http.PostAsJsonAsync("/api/setup/complete", _request);
+            if (complete.IsSuccessStatusCode)
+            {
+                _isComplete = true;
+            }
+            else
+            {
+                _error = $"Setup failed: {complete.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private void Reset()
+    {
+        _error = null;
+    }
+}

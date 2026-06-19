@@ -1,0 +1,55 @@
+﻿@using ArchiveDex.Web.Components.Pages
+@inject IStringLocalizer<SharedResources> Loc
+@inject IJSRuntime JS
+
+<div class="sidebar-header">
+    <a class="brand" href="">ArchiveDex</a>
+    <input type="checkbox" id="nav-toggle" title="Navigation menu" class="navbar-toggler" />
+    <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle navigation">&#9776;</label>
+</div>
+
+<div class="nav-scrollable" onclick="document.querySelector('#nav-toggle').checked=false">
+    <nav class="ad-nav" aria-label="Main navigation">
+        <NavLink class="ad-nav-link" href="collection">
+            @Loc["Nav.Collection"]
+        </NavLink>
+        <NavLink class="ad-nav-link" href="scan">
+            @Loc["Nav.Scanner"]
+        </NavLink>
+        <NavLink class="ad-nav-link" href="catalog">
+            @Loc["Nav.Catalog"]
+        </NavLink>
+        <NavLink class="ad-nav-link" href="import">
+            @Loc["Nav.Import"]
+        </NavLink>
+    </nav>
+
+    <div class="nav-footer">
+        <CultureSelector />
+        <button class="theme-toggle" @onclick="ToggleTheme" title="Toggle dark/light theme" aria-label="Toggle dark/light theme">
+            @(_isDark ? "☀" : "☾")
+        </button>
+    </div>
+</div>
+
+@code {
+    private bool _isDark;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var stored = await JS.InvokeAsync<string?>("localStorage.getItem", "ad-theme");
+            _isDark = stored == "dark";
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        _isDark = !_isDark;
+        var theme = _isDark ? "dark" : "light";
+        await JS.InvokeVoidAsync("localStorage.setItem", "ad-theme", theme);
+        await JS.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", theme);
+    }
+}

@@ -1,0 +1,77 @@
+.page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: var(--ad-surface-sunk);
+}
+
+main {
+    flex: 1;
+    background: var(--ad-surface-sunk);
+}
+
+.sidebar {
+    background: var(--ad-surface);
+    border-inline-end: 1px solid var(--ad-border);
+}
+
+.top-row {
+    background: var(--ad-surface);
+    border-block-end: 1px solid var(--ad-border);
+    justify-content: flex-end;
+    height: 3.5rem;
+    display: flex;
+    align-items: center;
+    padding-inline: var(--ad-space-5);
+    gap: var(--ad-space-3);
+}
+
+.content {
+    padding: var(--ad-space-6) var(--ad-space-5);
+}
+
+@media (max-width: 640.98px) {
+    .top-row { justify-content: space-between; }
+}
+
+@media (min-width: 641px) {
+    .page { flex-direction: row; }
+
+    .sidebar {
+        width: 220px;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        flex-shrink: 0;
+    }
+
+    .top-row {
+        position: sticky;
+        top: 0;
+        z-index: var(--ad-z-sticky);
+    }
+}
+
+#blazor-error-ui {
+    color-scheme: light only;
+    background: color-mix(in srgb, var(--ad-warning) 15%, var(--ad-surface));
+    color: var(--ad-warning);
+    bottom: 0;
+    box-shadow: var(--ad-shadow-md);
+    box-sizing: border-box;
+    display: none;
+    left: 0;
+    padding: var(--ad-space-3) var(--ad-space-5);
+    position: fixed;
+    width: 100%;
+    z-index: var(--ad-z-toast);
+    font-size: var(--ad-text-sm);
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: var(--ad-space-4);
+    top: var(--ad-space-3);
+}

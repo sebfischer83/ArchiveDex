@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Setup.Title" xml:space="preserve">
+    <value>Мастер настройки</value>
+  </data>
+  <data name="Setup.AdminUsername" xml:space="preserve">
+    <value>Имя администратора</value>
+  </data>
+  <data name="Setup.AdminPassword" xml:space="preserve">
+    <value>Пароль администратора</value>
+  </data>
+  <data name="Setup.UICulture" xml:space="preserve">
+    <value>Язык интерфейса</value>
+  </data>
+  <data name="Setup.Currency" xml:space="preserve">
+    <value>Валюта коллекции</value>
+  </data>
+  <data name="Setup.StoragePath" xml:space="preserve">
+    <value>Путь хранения изображений</value>
+  </data>
+  <data name="Setup.DatabaseMode" xml:space="preserve">
+    <value>Режим базы данных</value>
+  </data>
+  <data name="Setup.Complete" xml:space="preserve">
+    <value>Завершить настройку</value>
+  </data>
+  <data name="Nav.Catalog" xml:space="preserve">
+    <value>Каталог</value>
+  </data>
+  <data name="Nav.Collection" xml:space="preserve">
+    <value>Коллекция</value>
+  </data>
+  <data name="Nav.Scanner" xml:space="preserve">
+    <value>Сканер</value>
+  </data>
+  <data name="Nav.Import" xml:space="preserve">
+    <value>Импорт</value>
+  </data>
+  <data name="Scanner.TakePhoto" xml:space="preserve">
+    <value>Сделать фото</value>
+  </data>
+  <data name="Scanner.Uploading" xml:space="preserve">
+    <value>Загрузка...</value>
+  </data>
+  <data name="Scanner.Processing" xml:space="preserve">
+    <value>Обработка...</value>
+  </data>
+  <data name="Scanner.ScanComplete" xml:space="preserve">
+    <value>Скан завершён</value>
+  </data>
+  <data name="Scanner.Candidates" xml:space="preserve">
+    <value>Кандидаты</value>
+  </data>
+  <data name="Scanner.NoCandidates" xml:space="preserve">
+    <value>Совпадений не найдено</value>
+  </data>
+  <data name="Scanner.DetectedNumber" xml:space="preserve">
+    <value>Обнаруженный номер</value>
+  </data>
+  <data name="Scanner.DetectedName" xml:space="preserve">
+    <value>Обнаруженное имя</value>
+  </data>
+  <data name="Scanner.Confidence" xml:space="preserve">
+    <value>Уверенность</value>
+  </data>
+  <data name="Scanner.AddToCollection" xml:space="preserve">
+    <value>Добавить в коллекцию</value>
+  </data>
+  <data name="Scanner.Condition" xml:space="preserve">
+    <value>Состояние</value>
+  </data>
+  <data name="Scanner.Quantity" xml:space="preserve">
+    <value>Количество</value>
+  </data>
+  <data name="Scanner.PurchasePrice" xml:space="preserve">
+    <value>Цена покупки</value>
+  </data>
+  <data name="Scanner.StorageLocation" xml:space="preserve">
+    <value>Место хранения</value>
+  </data>
+  <data name="Scanner.Notes" xml:space="preserve">
+    <value>Заметки</value>
+  </data>
+  <data name="Scanner.ScanNext" xml:space="preserve">
+    <value>Сканировать следующую</value>
+  </data>
+  <data name="Scanner.ScanAnother" xml:space="preserve">
+    <value>Сканировать ещё</value>
+  </data>
+  <data name="Scanner.ConfirmCard" xml:space="preserve">
+    <value>Подтвердить карту</value>
+  </data>
+  <data name="Scanner.AddedToCollection" xml:space="preserve">
+    <value>Добавлено в коллекцию!</value>
+  </data>
+  <data name="Scanner.CardNotFound" xml:space="preserve">
+    <value>Карта не найдена</value>
+  </data>
+  <data name="Scanner.SelectCard" xml:space="preserve">
+    <value>Нажмите на карту для выбора</value>
+  </data>
+  <data name="Scanner.Score" xml:space="preserve">
+    <value>Совпадение</value>
+  </data>
+  <data name="Setup.AlreadyComplete" xml:space="preserve">
+    <value>Настройка уже завершена.</value>
+  </data>
+  <data name="Setup.Completed" xml:space="preserve">
+    <value>Настройка успешно завершена!</value>
+  </data>
+  <data name="Setup.GoToApp" xml:space="preserve">
+    <value>Перейти в приложение</value>
+  </data>
+  <data name="App.Search" xml:space="preserve">
+    <value>Поиск</value>
+  </data>
+  <data name="App.SearchByName" xml:space="preserve">
+    <value>Поиск по имени...</value>
+  </data>
+</root>

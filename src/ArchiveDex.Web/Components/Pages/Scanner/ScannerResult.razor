@@ -1,0 +1,98 @@
+@page "/scan/result"
+@layout ArchiveDex.Web.Components.Layout.ScannerLayout
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+@inject ArchiveDex.Web.Services.ScannerSession Scanner
+@inject IStringLocalizer<SharedResources> Loc
+
+<div class="result-page">
+    @if (Scanner.LastScanId is null)
+    {
+        <div class="empty-state">
+            <p>@Loc["Scanner.CardNotFound"]</p>
+            <button class="btn-back" @onclick="GoToScanHome">
+                @Loc["Scanner.ScanAnother"]
+            </button>
+        </div>
+    }
+    else
+    {
+        <button class="btn-nav-back" @onclick="GoToScanHome">
+            <svg viewBox="0 0 24 24" class="back-icon"><path d="M15 18l-6-6 6-6"/></svg>
+            @Loc["Scanner.ScanAnother"]
+        </button>
+
+        <h2 class="result-title">@Loc["Scanner.Candidates"]</h2>
+
+        @if (!string.IsNullOrEmpty(Scanner.DetectedNumber) || !string.IsNullOrEmpty(Scanner.DetectedName))
+        {
+            <div class="ocr-info">
+                @if (!string.IsNullOrEmpty(Scanner.DetectedNumber))
+                {
+                    <span class="ocr-badge">#@Scanner.DetectedNumber</span>
+                }
+                @if (!string.IsNullOrEmpty(Scanner.DetectedName))
+                {
+                    <span class="ocr-badge name-badge">@Scanner.DetectedName</span>
+                }
+                @if (Scanner.Confidence.HasValue)
+                {
+                    <span class="ocr-badge confidence-badge">
+                        @((int)(Scanner.Confidence.Value * 100))%
+                    </span>
+                }
+            </div>
+        }
+
+        @if (Scanner.Candidates.Count == 0)
+        {
+            <div class="no-candidates">
+                <p>@Loc["Scanner.NoCandidates"]</p>
+                <button class="btn-back" @onclick="GoToScanHome">
+                    @Loc["Scanner.ScanAnother"]
+                </button>
+            </div>
+        }
+        else
+        {
+            <p class="tap-hint">@Loc["Scanner.SelectCard"]</p>
+
+            <div class="candidate-list">
+                @foreach (var candidate in Scanner.Candidates)
+                {
+                    <button class="candidate-card"
+                            @onclick="() => SelectCandidate(candidate.CardId)">
+                        <div class="card-header">
+                            <span class="card-number">@candidate.Number</span>
+                            <span class="card-score">@candidate.Score%</span>
+                        </div>
+                        <div class="card-name">@candidate.Name</div>
+                        <div class="card-meta">
+                            @if (!string.IsNullOrEmpty(candidate.Rarity))
+                            {
+                                <span class="card-rarity">@candidate.Rarity</span>
+                            }
+                            @if (!string.IsNullOrEmpty(candidate.CardLanguage))
+                            {
+                                <span class="card-lang">@candidate.CardLanguage</span>
+                            }
+                        </div>
+                    </button>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private void GoToScanHome()
+    {
+        Navigation.NavigateTo("/scan");
+    }
+
+    private void SelectCandidate(Guid cardId)
+    {
+        Scanner.SelectedCardId = cardId;
+        Navigation.NavigateTo($"/scan/confirm/{cardId}");
+    }
+}

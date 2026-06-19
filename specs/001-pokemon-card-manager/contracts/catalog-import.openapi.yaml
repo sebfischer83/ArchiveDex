@@ -1,0 +1,125 @@
+openapi: 3.1.0
+info:
+  title: ArchiveDex Catalog & Import API
+  version: 1.0.0
+  description: Catalog search/edit + TCGdex import scoped by set and card language (FR-008..FR-015).
+paths:
+  /api/import/sources:
+    get:
+      summary: List available import sources and selectable sets/languages (FR-009a)
+      responses:
+        "200":
+          description: Sources with selectable sets and card languages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sources: { type: array, items: { type: string } }
+                  cardLanguages: { type: array, items: { type: string, enum: [de, en, ja, ko, zh-Hans, zh-Hant] } }
+                  sets: { type: array, items: { $ref: "#/components/schemas/SetSummary" } }
+  /api/import/jobs:
+    post:
+      summary: Start a scoped import (FR-009/FR-009a/FR-011)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source, setIds, cardLanguages]
+              properties:
+                source: { type: string, default: TCGdex }
+                setIds: { type: array, items: { type: string } }
+                cardLanguages: { type: array, items: { type: string } }
+      responses:
+        "202": { description: Import job accepted; returns job id }
+    get:
+      summary: List import jobs
+      responses:
+        "200": { description: Import jobs }
+  /api/import/jobs/{jobId}:
+    get:
+      summary: Get import job progress + counts/errors (FR-010)
+      parameters:
+        - { name: jobId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Import job status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportJob" }
+  /api/catalog/cards:
+    get:
+      summary: Search/filter catalog by name, number, set, card language (FR-015, SC-003)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: number, in: query, schema: { type: string } }
+        - { name: setId, in: query, schema: { type: string } }
+        - { name: cardLanguage, in: query, schema: { type: string, enum: [de, en, ja, ko, zh-Hans, zh-Hant] } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+      responses:
+        "200":
+          description: Matching catalog cards (effective values incl. local corrections)
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Card" } }
+    post:
+      summary: Manually add a card not in the source (FR-014)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardInput" }
+      responses:
+        "201": { description: Card created }
+  /api/catalog/cards/{cardId}:
+    put:
+      summary: Apply a local correction to an imported card (FR-013)
+      parameters:
+        - { name: cardId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardInput" }
+      responses:
+        "200": { description: Correction stored; preserved across re-import }
+components:
+  schemas:
+    SetSummary:
+      type: object
+      properties:
+        id: { type: string }
+        code: { type: string }
+        name: { type: string }
+        cardLanguage: { type: string }
+    Card:
+      type: object
+      properties:
+        id: { type: string }
+        setId: { type: string }
+        number: { type: string }
+        name: { type: string, description: in the card's own language, untranslated }
+        cardLanguage: { type: string, enum: [de, en, ja, ko, zh-Hans, zh-Hant] }
+        rarity: { type: string, nullable: true }
+        origin: { type: string, enum: [Imported, Manual] }
+        hasLocalCorrection: { type: boolean }
+    CardInput:
+      type: object
+      required: [setId, number, name, cardLanguage]
+      properties:
+        setId: { type: string }
+        number: { type: string }
+        name: { type: string }
+        cardLanguage: { type: string, enum: [de, en, ja, ko, zh-Hans, zh-Hant] }
+        rarity: { type: string, nullable: true }
+    ImportJob:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [Pending, Running, Completed, Failed] }
+        importedCount: { type: integer }
+        updatedCount: { type: integer }
+        skippedCount: { type: integer }
+        errors: { type: array, items: { type: string } }

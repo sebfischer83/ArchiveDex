@@ -1,0 +1,429 @@
+@page "/import"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResources> Loc
+@using System.Net.Http.Json
+@implements IDisposable
+
+<div class="import-page">
+
+    <div class="import-page-header">
+        <h1 class="page-title">@Loc["Nav.Import"]</h1>
+        <button type="button" class="ad-btn ad-btn--ghost" @onclick="LoadJobs" disabled="@_isLoadingJobs">
+            @(_isLoadingJobs ? "Refreshing…" : "Refresh jobs")
+        </button>
+    </div>
+
+    @* ---- Start import form ---- *@
+    <section class="import-card">
+        <h2 class="section-title">Start import</h2>
+        <EditForm Model="@_model" OnValidSubmit="StartImport" class="import-form">
+            <div class="form-row">
+                <div class="form-field">
+                    <label class="field-label" for="imp-source">Source</label>
+                    <select id="imp-source" @bind="_model.Source" class="field-select">
+                        @foreach (var source in _sources)
+                        {
+                            <option value="@source">@source</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="field-label" for="imp-lang">Card language</label>
+                    <select id="imp-lang" @bind="_model.CardLanguage" class="field-select">
+                        @foreach (var language in _languages)
+                        {
+                            <option value="@language">@language</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field form-field--action">
+                    <label class="field-label">&nbsp;</label>
+                    <button type="button" class="ad-btn ad-btn--secondary" @onclick="LoadSets" disabled="@_isLoadingSets">
+                        @(_isLoadingSets ? "Loading sets…" : "Verify sets")
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="ad-btn ad-btn--primary" disabled="@_isStarting">
+                    @(_isStarting ? "Starting…" : "Start import")
+                </button>
+            </div>
+        </EditForm>
+
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <p class="@(IsErrorMessage(_message) ? "msg msg--error" : "msg msg--info")">@_message</p>
+        }
+    </section>
+
+    @* ---- Current job status ---- *@
+    @if (_currentJob is not null)
+    {
+        <section class="import-card">
+            <div class="job-status-header">
+                <h2 class="section-title">Current import</h2>
+                <span class="status-chip status-chip--@StatusCssClass(_currentJob.Status)">@_currentJob.Status</span>
+            </div>
+
+            <p class="job-id">Job <span class="ad-mono">@ShortId(_currentJob.Id)</span></p>
+
+            <div class="stat-grid">
+                <div class="stat">
+                    <span class="stat-value">@_currentJob.ImportedCount</span>
+                    <span class="stat-label">Imported</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">@_currentJob.UpdatedCount</span>
+                    <span class="stat-label">Updated</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">@_currentJob.MergedCount</span>
+                    <span class="stat-label">Merged</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">@_currentJob.SkippedCount</span>
+                    <span class="stat-label">Skipped</span>
+                </div>
+            </div>
+
+            <div class="job-meta">
+                <span>Started: @FormatDate(_currentJob.StartedAt)</span>
+                <span>Finished: @FormatDate(_currentJob.FinishedAt)</span>
+            </div>
+
+            @if (IsActiveStatus(_currentJob.Status))
+            {
+                <p class="msg msg--active">Import is running — refreshing every 2 s…</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(_currentJob.Errors))
+            {
+                <p class="msg msg--error">@_currentJob.Errors</p>
+            }
+        </section>
+    }
+
+    @* ---- Recent jobs ---- *@
+    <section class="import-card">
+        <h2 class="section-title">Recent jobs</h2>
+        @if (_isLoadingJobs)
+        {
+            <div class="jobs-skeleton">
+                @for (var i = 0; i < 3; i++)
+                {
+                    <div class="skeleton-row">
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line skeleton-line--short"></div>
+                    </div>
+                }
+            </div>
+        }
+        else if (_jobs.Count == 0)
+        {
+            <p class="empty-hint">No import jobs yet. Start one above.</p>
+        }
+        else
+        {
+            <ul class="jobs-list">
+                @foreach (var job in _jobs)
+                {
+                    <li class="job-row">
+                        <div class="job-row-main">
+                            <button class="job-link ad-btn ad-btn--ghost" type="button" @onclick="() => SelectJob(job.Id)">
+                                <span class="ad-mono">@ShortId(job.Id)</span>
+                            </button>
+                            <span class="status-chip status-chip--@StatusCssClass(job.Status)">@job.Status</span>
+                            <span class="job-source ad-text-muted">@job.Source</span>
+                        </div>
+                        <div class="job-row-counts">
+                            <span>&#8679; @job.ImportedCount</span>
+                            <span>&#8635; @job.UpdatedCount</span>
+                            <span>&#8644; @job.MergedCount</span>
+                            <span class="ad-text-muted">&#10006; @job.SkippedCount</span>
+                        </div>
+                        <div class="job-row-dates ad-text-muted">
+                            <span>@FormatDate(job.StartedAt)</span>
+                            @if (job.FinishedAt.HasValue)
+                            {
+                                <span>&#8594; @FormatDate(job.FinishedAt)</span>
+                            }
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(job.Errors))
+                        {
+                            <p class="job-error">@job.Errors</p>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+</div>
+
+@code {
+    private ImportModel _model = new();
+    private bool _isStarting;
+    private bool _isLoadingJobs;
+    private bool _isLoadingSets;
+    private string? _message;
+    private ImportJobStatusView? _currentJob;
+    private List<ImportJobSummaryView> _jobs = [];
+    private string[] _sources = ["TCGdex"];
+    private string[] _languages = ["de", "en", "ja", "ko", "zh-Hans", "zh-Hant"];
+    private PeriodicTimer? _statusTimer;
+    private CancellationTokenSource? _pollingCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSources();
+        await LoadJobs();
+        await LoadSets();
+    }
+
+    private async Task StartImport()
+    {
+        _isStarting = true;
+        _message = null;
+        await StopPollingAsync();
+
+        try
+        {
+            var setIds = new List<string>();
+            var langs = new List<string> { _model.CardLanguage };
+            var response = await Http.PostAsJsonAsync("/api/import/jobs", new
+            {
+                source = _model.Source,
+                setIds,
+                cardLanguages = langs
+            });
+            if (!response.IsSuccessStatusCode)
+            {
+                _message = $"Import failed: {response.StatusCode}";
+                return;
+            }
+
+            var started = await response.Content.ReadFromJsonAsync<ImportStartedResponse>();
+            if (started is null || started.Id == Guid.Empty)
+            {
+                _message = "Import started but no job id was returned.";
+                return;
+            }
+
+            _message = "Import started successfully.";
+            await RefreshStatus(started.Id);
+            await LoadJobs();
+            StartPolling(started.Id);
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _isStarting = false;
+        }
+    }
+
+    private async Task LoadSets()
+    {
+        _isLoadingSets = true;
+        _message = null;
+        try
+        {
+            var language = Uri.EscapeDataString(_model.CardLanguage);
+            var source = Uri.EscapeDataString(_model.Source);
+            await Http.GetFromJsonAsync<List<ImportSetView>>($"/api/import/sets?cardLanguage={language}&source={source}");
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _isLoadingSets = false;
+        }
+    }
+
+    private async Task LoadSources()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ImportSourcesView>("/api/import/sources");
+            if (response is null) return;
+
+            if (response.Sources.Length > 0)
+            {
+                _sources = response.Sources;
+                if (!_sources.Contains(_model.Source, StringComparer.OrdinalIgnoreCase))
+                    _model.Source = _sources[0];
+            }
+
+            if (response.CardLanguages.Length > 0)
+            {
+                _languages = response.CardLanguages;
+                if (!_languages.Contains(_model.CardLanguage, StringComparer.OrdinalIgnoreCase))
+                    _model.CardLanguage = _languages[0];
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+
+    private void StartPolling(Guid jobId)
+    {
+        _pollingCts = new CancellationTokenSource();
+        _statusTimer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+        _ = PollStatus(jobId, _pollingCts.Token);
+    }
+
+    private async Task PollStatus(Guid jobId, CancellationToken ct)
+    {
+        try
+        {
+            while (_statusTimer is not null && await _statusTimer.WaitForNextTickAsync(ct))
+            {
+                await RefreshStatus(jobId);
+                await LoadJobs();
+                if (!IsActiveStatus(_currentJob?.Status))
+                {
+                    await StopPollingAsync();
+                    break;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task RefreshStatus(Guid jobId)
+    {
+        var job = await Http.GetFromJsonAsync<ImportJobStatusView>($"/api/import/jobs/{jobId}");
+        if (job is not null)
+        {
+            _currentJob = job;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadJobs()
+    {
+        _isLoadingJobs = true;
+        try
+        {
+            var jobs = await Http.GetFromJsonAsync<List<ImportJobSummaryView>>("/api/import/jobs");
+            _jobs = jobs ?? [];
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _isLoadingJobs = false;
+        }
+    }
+
+    private async Task SelectJob(Guid jobId)
+    {
+        await StopPollingAsync();
+        await RefreshStatus(jobId);
+
+        if (IsActiveStatus(_currentJob?.Status))
+        {
+            StartPolling(jobId);
+        }
+    }
+
+    private async Task StopPollingAsync()
+    {
+        if (_pollingCts is not null)
+        {
+            await _pollingCts.CancelAsync();
+            _pollingCts.Dispose();
+            _pollingCts = null;
+        }
+
+        _statusTimer?.Dispose();
+        _statusTimer = null;
+    }
+
+    private static bool IsActiveStatus(string? status)
+    {
+        return string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(status, "Running", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string StatusCssClass(string? status) => status?.ToLowerInvariant() switch
+    {
+        "completed" => "success",
+        "failed"    => "danger",
+        "running"   => "accent",
+        _           => "warning",
+    };
+
+    private static bool IsErrorMessage(string msg) =>
+        msg.StartsWith("Import failed", StringComparison.OrdinalIgnoreCase) ||
+        msg.Contains("error", StringComparison.OrdinalIgnoreCase);
+
+    private static string FormatDate(DateTime? value)
+    {
+        return value?.ToLocalTime().ToString("g") ?? "-";
+    }
+
+    private static string ShortId(Guid value)
+    {
+        return value.ToString("N")[..8];
+    }
+
+    public void Dispose()
+    {
+        _pollingCts?.Cancel();
+        _pollingCts?.Dispose();
+        _statusTimer?.Dispose();
+    }
+
+    private class ImportModel
+    {
+        public string Source { get; set; } = "TCGdex";
+        public string CardLanguage { get; set; } = "en";
+    }
+
+    private sealed record ImportStartedResponse(Guid Id);
+
+    private sealed record ImportSourcesView(string[] Sources, string[] CardLanguages);
+
+    private sealed record ImportJobStatusView(
+        Guid Id,
+        string Status,
+        int ImportedCount,
+        int UpdatedCount,
+        int MergedCount,
+        int SkippedCount,
+        string? Errors,
+        DateTime? StartedAt,
+        DateTime? FinishedAt);
+
+    private sealed record ImportJobSummaryView(
+        Guid Id,
+        string Source,
+        string Status,
+        int ImportedCount,
+        int UpdatedCount,
+        int MergedCount,
+        int SkippedCount,
+        string? Errors,
+        DateTime? StartedAt,
+        DateTime? FinishedAt);
+
+    private sealed record ImportSetView(
+        Guid SetId,
+        string Name,
+        string Code,
+        string CardLanguage,
+        int CardCount);
+}

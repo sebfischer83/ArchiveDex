@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ArchiveDex.Api/ArchiveDex.Api.csproj" />
+    <Project Path="src/ArchiveDex.Application/ArchiveDex.Application.csproj" />
+    <Project Path="src/ArchiveDex.Domain/ArchiveDex.Domain.csproj" />
+    <Project Path="src/ArchiveDex.Infrastructure/ArchiveDex.Infrastructure.csproj" />
+    <Project Path="src/ArchiveDex.Web/ArchiveDex.Web.csproj" />
+    <Project Path="src/ArchiveDex.Tcgdex/ArchiveDex.Tcgdex.csproj" />
+    <Project Path="src/ArchiveDex.Limitless/ArchiveDex.Limitless.csproj" />
+    <Project Path="src/ArchiveDex.Serebii/ArchiveDex.Serebii.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ArchiveDex.Api.Tests/ArchiveDex.Api.Tests.csproj" />
+    <Project Path="tests/ArchiveDex.Application.Tests/ArchiveDex.Application.Tests.csproj" />
+    <Project Path="tests/ArchiveDex.Domain.Tests/ArchiveDex.Domain.Tests.csproj" />
+    <Project Path="tests/ArchiveDex.Infrastructure.Tests/ArchiveDex.Infrastructure.Tests.csproj" />
+    <Project Path="tests/ArchiveDex.Web.Tests/ArchiveDex.Web.Tests.csproj" />
+    <Project Path="tests/ArchiveDex.Tcgdex.Tests/ArchiveDex.Tcgdex.Tests.csproj" />
+    <Project Path="tests/ArchiveDex.Limitless.Tests/ArchiveDex.Limitless.Tests.csproj" />
+    <Project Path="tests/ArchiveDex.Serebii.Tests/ArchiveDex.Serebii.Tests.csproj" />
+  </Folder>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+</Solution>

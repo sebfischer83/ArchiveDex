@@ -1,0 +1,74 @@
+openapi: 3.1.0
+info:
+  title: ArchiveDex Collection API
+  version: 1.0.0
+  description: Browse, search, edit, delete personal collection entries (FR-024..FR-028).
+paths:
+  /api/collection:
+    get:
+      summary: Browse/search/filter collection (FR-026)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: setId, in: query, schema: { type: string } }
+        - { name: cardLanguage, in: query, schema: { type: string, enum: [de, en, ja, ko, zh-Hans, zh-Hant] } }
+        - { name: condition, in: query, schema: { type: string, enum: [NM, LP, MP, HP, DMG] } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+      responses:
+        "200":
+          description: Matching collection entries
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/CollectionEntry" } }
+  /api/collection/{entryId}:
+    get:
+      summary: Get a collection entry
+      parameters:
+        - { name: entryId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Collection entry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CollectionEntry" }
+    put:
+      summary: Edit condition/quantity/price/location/notes (FR-026)
+      parameters:
+        - { name: entryId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CollectionEntryInput" }
+      responses:
+        "200": { description: Updated }
+    delete:
+      summary: Delete entry; underlying catalog card is retained (FR-027)
+      parameters:
+        - { name: entryId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted }
+components:
+  schemas:
+    CollectionEntry:
+      type: object
+      properties:
+        id: { type: string }
+        cardId: { type: string }
+        cardName: { type: string, description: in the card's own language }
+        cardLanguage: { type: string, enum: [de, en, ja, ko, zh-Hans, zh-Hant] }
+        condition: { type: string, enum: [NM, LP, MP, HP, DMG] }
+        quantity: { type: integer, minimum: 1 }
+        purchasePrice: { type: number, nullable: true, description: in configured CollectionCurrency }
+        storageLocation: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        frontImageUrl: { type: string }
+        dateAdded: { type: string, format: date-time }
+    CollectionEntryInput:
+      type: object
+      required: [condition, quantity]
+      properties:
+        condition: { type: string, enum: [NM, LP, MP, HP, DMG] }
+        quantity: { type: integer, minimum: 1 }
+        purchasePrice: { type: number, nullable: true }
+        storageLocation: { type: string, nullable: true }
+        notes: { type: string, nullable: true }

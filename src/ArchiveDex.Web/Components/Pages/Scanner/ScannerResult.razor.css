@@ -1,0 +1,152 @@
+.result-page {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 16px;
+}
+
+.result-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+}
+
+/* OCR detected info */
+.ocr-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ocr-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background: rgba(102, 126, 234, 0.2);
+    color: #a8b4ff;
+}
+
+.name-badge {
+    background: rgba(118, 75, 162, 0.2);
+    color: #c9a0f0;
+}
+
+.confidence-badge {
+    background: rgba(76, 175, 80, 0.2);
+    color: #81c784;
+}
+
+/* Tap hint */
+.tap-hint {
+    font-size: 0.85rem;
+    color: #888;
+    margin: 0;
+    text-align: center;
+}
+
+/* Candidate cards */
+.candidate-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 20px;
+}
+
+.candidate-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    padding: 16px;
+    background: #1a1a2e;
+    border: 2px solid #2a2a4a;
+    border-radius: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.candidate-card:active {
+    border-color: #667eea;
+    background: #1e1e3a;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-number {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.card-score {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #667eea;
+}
+
+.card-name {
+    font-size: 1rem;
+    color: #ddd;
+    line-height: 1.3;
+}
+
+.card-meta {
+    display: flex;
+    gap: 10px;
+}
+
+.card-rarity {
+    font-size: 0.8rem;
+    color: #c9a0f0;
+    background: rgba(118, 75, 162, 0.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.card-lang {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+/* Empty states */
+.empty-state,
+.no-candidates {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 40px 20px;
+    text-align: center;
+    color: #888;
+}
+
+.btn-back,
+.btn-nav-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 0;
+    font-size: 0.95rem;
+    background: none;
+    border: none;
+    color: #667eea;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    align-self: flex-start;
+}
+
+.back-icon {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: #667eea;
+    stroke-width: 2;
+}

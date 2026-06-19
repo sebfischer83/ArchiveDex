@@ -1,0 +1,29 @@
+/* Scanner layout - mobile-first, no desktop sidebar */
+.scanner-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #0d0d0d;
+    color: #f0f0f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow-x: hidden;
+}
+
+.scanner-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* Override any Bootstrap leakage - scanner is self-contained */
+.scanner-layout .page,
+.scanner-layout .sidebar,
+.scanner-layout .top-row {
+    display: none;
+}

@@ -1,0 +1,46 @@
+## .NET/C#
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.vs/
+*.DotSettings.user
+packages/
+*.nupkg
+
+## IDE
+.idea/
+.vscode/
+*.swp
+*.sln.docstates
+
+## Build
+[Bb]uild/
+*.msbuild
+*.log
+
+## NuGet
+**/[Ww]eb/[Ss]taticWebAssets/
+**/[Ww]eb/**/wwwroot/dist/
+
+## OS
+.DS_Store
+Thumbs.db
+*.tmp
+
+## Docker
+deploy/.docker/
+
+## Environment
+.env*
+!.env.example
+
+## Test
+TestResults/
+coverage/
+*.lcov
+*.cobertura.xml
+
+## Runtime data
+src/ArchiveDex.Web/images/

@@ -1,0 +1,318 @@
+@page "/catalog"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResources> Loc
+@using System.Net.Http.Json
+
+<div class="catalog-page">
+
+    @* ── Header ── *@
+    <div class="catalog-header">
+        <h1 class="page-title">@Loc["Nav.Catalog"]</h1>
+        <button class="ad-btn ad-btn--ghost" type="button" @onclick="LoadSets" disabled="@_isLoadingSets">
+            @(_isLoadingSets ? "Refreshing…" : "Refresh sets")
+        </button>
+    </div>
+
+    @* ── Set browser ── *@
+    <section class="sets-section">
+
+        @* language filter tabs *@
+        <div class="lang-tabs" role="tablist" aria-label="Filter by card language">
+            <button class="lang-tab @(_selectedLanguage == "" ? "lang-tab--active" : "")"
+                    role="tab" type="button" @onclick='() => SelectLanguage("")'>
+                All
+            </button>
+            @foreach (var lang in _languages)
+            {
+                <button class="lang-tab @(_selectedLanguage == lang ? "lang-tab--active" : "")"
+                        role="tab" type="button" @onclick="() => SelectLanguage(lang)">
+                    @lang
+                </button>
+            }
+        </div>
+
+        @* set name search *@
+        <div class="set-search-bar">
+            <input class="set-search-input" type="search"
+                   placeholder="Filter sets…"
+                   @bind="_setFilter" @bind:event="oninput" />
+            @if (_selectedSet is not null)
+            {
+                <button class="ad-btn ad-btn--ghost" type="button" @onclick="ShowAll">
+                    Clear selection
+                </button>
+            }
+        </div>
+
+        @if (_isLoadingSets)
+        {
+            <div class="sets-grid">
+                @for (var i = 0; i < 12; i++)
+                {
+                    <div class="set-card set-card--skeleton">
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line skeleton-line--short"></div>
+                    </div>
+                }
+            </div>
+        }
+        else if (_sets.Count == 0)
+        {
+            <div class="sets-empty">
+                <p>No sets imported yet.</p>
+                <a class="ad-btn ad-btn--primary" href="/import">Go to Import</a>
+            </div>
+        }
+        else
+        {
+            var visible = VisibleSets.ToList();
+            @if (visible.Count == 0)
+            {
+                <p class="no-match-hint">No sets match the current filter.</p>
+            }
+            else
+            {
+                <div class="sets-grid">
+                    @foreach (var set in visible)
+                    {
+                        <button class="set-card @(set.SetId == _selectedSet?.SetId ? "set-card--selected" : "")"
+                                type="button" @onclick="() => SelectSet(set.SetId)">
+                            <span class="set-name">@set.Name</span>
+                            <span class="set-meta">
+                                <span class="set-lang-chip">@set.CardLanguage</span>
+                                <span class="set-count">@set.CardCount cards</span>
+                            </span>
+                        </button>
+                    }
+                </div>
+            }
+        }
+    </section>
+
+    @* ── Card results ── *@
+    <section class="cards-section">
+
+        <div class="cards-header">
+            <h2 class="cards-section-title">
+                @if (_selectedSet is not null)
+                {
+                    @_selectedSet.Name
+                    <span class="cards-section-lang">@_selectedSet.CardLanguage</span>
+                }
+                else
+                {
+                    @:All catalog cards
+                }
+            </h2>
+
+            <div class="card-search-bar">
+                <InputText @bind-Value="_searchQuery" class="card-search-input"
+                           placeholder="@Loc["App.SearchByName"]" />
+                <InputText @bind-Value="_searchNumber" class="card-search-input card-search-input--narrow"
+                           placeholder="Number…" />
+                <button class="ad-btn ad-btn--primary" @onclick="Search" disabled="@_isLoading">
+                    @Loc["App.Search"]
+                </button>
+            </div>
+        </div>
+
+        <div class="catalog-grid">
+            @if (_isLoading)
+            {
+                @for (var i = 0; i < 10; i++)
+                {
+                    <div class="catalog-card catalog-card--skeleton">
+                        <div class="card-art-skel"></div>
+                        <div class="card-body-skel">
+                            <div class="skeleton-line"></div>
+                            <div class="skeleton-line skeleton-line--short"></div>
+                        </div>
+                    </div>
+                }
+            }
+            else if (_cards is not null && _cards.Count > 0)
+            {
+                @foreach (var card in _cards)
+                {
+                    <a class="catalog-card" href="/catalog/card/@card.Id" title="@card.Name">
+                        <div class="card-art-wrap">
+                            @if (!string.IsNullOrWhiteSpace(card.ImageUrl))
+                            {
+                                <img class="card-art" src="@card.ImageUrl" alt="@card.Name" loading="lazy" />
+                            }
+                            else
+                            {
+                                <img class="card-art-placeholder" src="/card-placeholder.svg" alt="" />
+                            }
+                            <span class="card-num-badge">@card.Number</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-name">@card.Name</div>
+                            <div class="card-meta">
+                                @if (!string.IsNullOrWhiteSpace(card.Rarity))
+                                {
+                                    <span class="rarity-chip">@card.Rarity</span>
+                                }
+                            </div>
+                        </div>
+                    </a>
+                }
+            }
+            else if (!string.IsNullOrEmpty(_error))
+            {
+                <div class="error-state">@_error</div>
+            }
+            else if (_cards is not null)
+            {
+                <div class="empty-state">
+                    <p class="empty-state-title">No cards found</p>
+                    <p class="empty-state-desc">Try a different set or search term.</p>
+                </div>
+            }
+        </div>
+
+        @if (_hasMore)
+        {
+            <div class="load-more-row">
+                <button class="ad-btn ad-btn--secondary load-more-btn"
+                        type="button" @onclick="LoadMore" disabled="@_isLoadingMore">
+                    @(_isLoadingMore ? "Loading…" : "Load more cards")
+                </button>
+            </div>
+        }
+
+    </section>
+
+</div>
+
+@code {
+    private string _searchQuery = string.Empty;
+    private string _searchNumber = string.Empty;
+    private string _setFilter = string.Empty;
+    private string _selectedLanguage = string.Empty;
+    private List<CardDto>? _cards;
+    private List<CatalogSetDto> _sets = [];
+    private CatalogSetDto? _selectedSet;
+    private string? _error;
+    private bool _isLoading;
+    private bool _isLoadingMore;
+    private bool _isLoadingSets;
+    private bool _hasMore;
+    private int _page = 1;
+    private const int PageSize = 20;
+    private readonly string[] _languages = ["de", "en", "ja", "ko", "zh-Hans", "zh-Hant"];
+
+    private IEnumerable<CatalogSetDto> VisibleSets => _sets
+        .Where(s => string.IsNullOrWhiteSpace(_selectedLanguage) ||
+                    string.Equals(s.CardLanguage, _selectedLanguage, StringComparison.OrdinalIgnoreCase))
+        .Where(s => string.IsNullOrWhiteSpace(_setFilter) ||
+                    s.Name.Contains(_setFilter, StringComparison.OrdinalIgnoreCase))
+        .OrderBy(s => s.Name);
+
+    private void SelectLanguage(string lang)
+    {
+        _selectedLanguage = lang;
+        _setFilter = string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSets();
+        await Search();
+    }
+
+    private async Task LoadSets()
+    {
+        _isLoadingSets = true;
+        try
+        {
+            _sets = await Http.GetFromJsonAsync<List<CatalogSetDto>>("/api/catalog/sets") ?? [];
+            if (_selectedSet is not null)
+            {
+                _selectedSet = _sets.FirstOrDefault(s => s.SetId == _selectedSet.SetId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isLoadingSets = false;
+        }
+    }
+
+    private async Task ShowAll()
+    {
+        _selectedSet = null;
+        await Search();
+    }
+
+    private async Task SelectSet(Guid setId)
+    {
+        _selectedSet = _sets.FirstOrDefault(s => s.SetId == setId);
+        await Search();
+    }
+
+    private async Task Search()
+    {
+        _error = null;
+        _page = 1;
+        _hasMore = false;
+        _isLoading = true;
+        try
+        {
+            var result = await FetchPage(_page);
+            _cards = result;
+            _hasMore = result.Count == PageSize;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadMore()
+    {
+        _isLoadingMore = true;
+        try
+        {
+            _page++;
+            var result = await FetchPage(_page);
+            (_cards ??= []).AddRange(result);
+            _hasMore = result.Count == PageSize;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            _page--;
+        }
+        finally
+        {
+            _isLoadingMore = false;
+        }
+    }
+
+    private async Task<List<CardDto>> FetchPage(int page)
+    {
+        var url = $"/api/catalog/cards?page={page}";
+        if (_selectedSet is not null) url += $"&setId={_selectedSet.SetId}";
+        if (!string.IsNullOrWhiteSpace(_searchQuery)) url += $"&q={Uri.EscapeDataString(_searchQuery)}";
+        if (!string.IsNullOrWhiteSpace(_searchNumber)) url += $"&number={Uri.EscapeDataString(_searchNumber)}";
+        return await Http.GetFromJsonAsync<List<CardDto>>(url) ?? [];
+    }
+
+    private record CardDto(Guid Id, string Number, string Name, string CardLanguage, string? Rarity, string Origin, string? ImageUrl);
+
+    private record CatalogSetDto(
+        Guid SetId,
+        string Name,
+        string CardLanguage,
+        int CardCount);
+}
