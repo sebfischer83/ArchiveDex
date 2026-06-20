@@ -3,15 +3,13 @@ using ArchiveDex.Application.Queries.Import;
 using Wolverine.Http;
 using ApplicationGetImportJobsHandler = ArchiveDex.Application.Queries.Import.GetImportJobsHandler;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class ImportJobsListHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverineGet("/api/import/jobs")]
-    public static Task<IReadOnlyList<ImportJobSummaryResponse>> Handle(
-        IImportJobStore jobs,
-        CancellationToken ct)
+    public static class ImportJobsListHandler
     {
-        return ApplicationGetImportJobsHandler.Handle(new GetImportJobs(), jobs, ct);
+        [WolverineGet("/api/import/jobs")]
+        public static Task<IReadOnlyList<ImportJobSummaryResponse>> Handle(
+            IImportJobStore jobs,
+            CancellationToken ct) => ApplicationGetImportJobsHandler.Handle(new GetImportJobs(), jobs, ct);
     }
 }

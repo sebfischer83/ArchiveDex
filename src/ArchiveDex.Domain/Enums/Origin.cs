@@ -1,7 +1,8 @@
-namespace ArchiveDex.Domain.Enums;
-
-public enum Origin
+namespace ArchiveDex.Domain.Enums
 {
-    Imported = 0,
-    Manual = 1
+    public enum Origin
+    {
+        Imported = 0,
+        Manual = 1
+    }
 }

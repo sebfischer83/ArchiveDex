@@ -1,8 +1,9 @@
 using ArchiveDex.Domain.Entities;
 
-namespace ArchiveDex.Application.Abstractions;
-
-public interface IOcrEngine
+namespace ArchiveDex.Application.Abstractions
 {
-    Task<OcrResult> ProcessAsync(Guid scanJobId, string imagePath, string? cardLanguageHint, CancellationToken ct = default);
+    public interface IOcrEngine
+    {
+        Task<OcrResult> ProcessAsync(Guid scanJobId, string imagePath, string? cardLanguageHint, CancellationToken ct = default);
+    }
 }

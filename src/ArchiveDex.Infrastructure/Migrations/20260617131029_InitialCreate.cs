@@ -1,4 +1,3 @@
-﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,7 +11,7 @@ namespace ArchiveDex.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "ApplicationConfigurations",
                 columns: table => new
                 {
@@ -30,10 +29,10 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ApplicationConfigurations", x => x.Id);
+                    _ = table.PrimaryKey("PK_ApplicationConfigurations", x => x.Id);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "AspNetRoles",
                 columns: table => new
                 {
@@ -44,10 +43,10 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetRoles", x => x.Id);
+                    _ = table.PrimaryKey("PK_AspNetRoles", x => x.Id);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "AspNetUsers",
                 columns: table => new
                 {
@@ -70,10 +69,10 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                    _ = table.PrimaryKey("PK_AspNetUsers", x => x.Id);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "ImageAssets",
                 columns: table => new
                 {
@@ -85,10 +84,10 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ImageAssets", x => x.Id);
+                    _ = table.PrimaryKey("PK_ImageAssets", x => x.Id);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "ImportJobs",
                 columns: table => new
                 {
@@ -106,10 +105,10 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ImportJobs", x => x.Id);
+                    _ = table.PrimaryKey("PK_ImportJobs", x => x.Id);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "Sets",
                 columns: table => new
                 {
@@ -122,10 +121,10 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Sets", x => x.Id);
+                    _ = table.PrimaryKey("PK_Sets", x => x.Id);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
@@ -137,8 +136,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetRoleClaims", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_AspNetRoleClaims", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_AspNetRoleClaims_AspNetRoles_RoleId",
                         column: x => x.RoleId,
                         principalTable: "AspNetRoles",
@@ -146,7 +145,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "AspNetUserClaims",
                 columns: table => new
                 {
@@ -158,8 +157,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetUserClaims", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_AspNetUserClaims", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_AspNetUserClaims_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
@@ -167,7 +166,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "AspNetUserLogins",
                 columns: table => new
                 {
@@ -178,8 +177,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetUserLogins", x => new { x.LoginProvider, x.ProviderKey });
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_AspNetUserLogins", x => new { x.LoginProvider, x.ProviderKey });
+                    _ = table.ForeignKey(
                         name: "FK_AspNetUserLogins_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
@@ -187,7 +186,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "AspNetUserRoles",
                 columns: table => new
                 {
@@ -196,14 +195,14 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetUserRoles", x => new { x.UserId, x.RoleId });
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_AspNetUserRoles", x => new { x.UserId, x.RoleId });
+                    _ = table.ForeignKey(
                         name: "FK_AspNetUserRoles_AspNetRoles_RoleId",
                         column: x => x.RoleId,
                         principalTable: "AspNetRoles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
+                    _ = table.ForeignKey(
                         name: "FK_AspNetUserRoles_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
@@ -211,7 +210,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "AspNetUserTokens",
                 columns: table => new
                 {
@@ -222,8 +221,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetUserTokens", x => new { x.UserId, x.LoginProvider, x.Name });
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_AspNetUserTokens", x => new { x.UserId, x.LoginProvider, x.Name });
+                    _ = table.ForeignKey(
                         name: "FK_AspNetUserTokens_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
@@ -231,7 +230,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "ScanJobs",
                 columns: table => new
                 {
@@ -244,8 +243,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ScanJobs", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_ScanJobs", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_ScanJobs_ImageAssets_ImageAssetId",
                         column: x => x.ImageAssetId,
                         principalTable: "ImageAssets",
@@ -253,7 +252,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "CardPrints",
                 columns: table => new
                 {
@@ -289,8 +288,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CardPrints", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_CardPrints", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_CardPrints_Sets_SetId",
                         column: x => x.SetId,
                         principalTable: "Sets",
@@ -298,7 +297,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "SetExternalIds",
                 columns: table => new
                 {
@@ -310,8 +309,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SetExternalIds", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_SetExternalIds", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_SetExternalIds_Sets_SetId",
                         column: x => x.SetId,
                         principalTable: "Sets",
@@ -319,7 +318,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "OcrResults",
                 columns: table => new
                 {
@@ -335,8 +334,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_OcrResults", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_OcrResults", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_OcrResults_ScanJobs_ScanJobId",
                         column: x => x.ScanJobId,
                         principalTable: "ScanJobs",
@@ -344,7 +343,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "CardExternalIds",
                 columns: table => new
                 {
@@ -356,8 +355,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CardExternalIds", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_CardExternalIds", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_CardExternalIds_CardPrints_CardPrintId",
                         column: x => x.CardPrintId,
                         principalTable: "CardPrints",
@@ -365,7 +364,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "CollectionEntries",
                 columns: table => new
                 {
@@ -381,8 +380,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CollectionEntries", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_CollectionEntries", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_CollectionEntries_CardPrints_CardPrintId",
                         column: x => x.CardPrintId,
                         principalTable: "CardPrints",
@@ -390,7 +389,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "LocalCorrections",
                 columns: table => new
                 {
@@ -404,8 +403,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_LocalCorrections", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_LocalCorrections", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_LocalCorrections_CardPrints_CardPrintId",
                         column: x => x.CardPrintId,
                         principalTable: "CardPrints",
@@ -413,158 +412,158 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
                 column: "RoleId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "RoleNameIndex",
                 table: "AspNetRoles",
                 column: "NormalizedName",
                 unique: true);
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserClaims_UserId",
                 table: "AspNetUserClaims",
                 column: "UserId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserLogins_UserId",
                 table: "AspNetUserLogins",
                 column: "UserId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserRoles_RoleId",
                 table: "AspNetUserRoles",
                 column: "RoleId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "EmailIndex",
                 table: "AspNetUsers",
                 column: "NormalizedEmail");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "UserNameIndex",
                 table: "AspNetUsers",
                 column: "NormalizedUserName",
                 unique: true);
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_CardExternalIds_CardPrintId",
                 table: "CardExternalIds",
                 column: "CardPrintId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_CardExternalIds_Source_ExternalId_Language",
                 table: "CardExternalIds",
-                columns: new[] { "Source", "ExternalId", "Language" },
+                columns: ["Source", "ExternalId", "Language"],
                 unique: true);
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_CardPrints_CardLanguage_Number",
                 table: "CardPrints",
-                columns: new[] { "CardLanguage", "Number" });
+                columns: ["CardLanguage", "Number"]);
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_CardPrints_Name",
                 table: "CardPrints",
                 column: "Name");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_CardPrints_SetId",
                 table: "CardPrints",
                 column: "SetId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_CollectionEntries_CardPrintId",
                 table: "CollectionEntries",
                 column: "CardPrintId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_LocalCorrections_CardPrintId",
                 table: "LocalCorrections",
                 column: "CardPrintId",
                 unique: true);
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_OcrResults_ScanJobId",
                 table: "OcrResults",
                 column: "ScanJobId",
                 unique: true);
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_ScanJobs_ImageAssetId",
                 table: "ScanJobs",
                 column: "ImageAssetId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_SetExternalIds_SetId",
                 table: "SetExternalIds",
                 column: "SetId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_SetExternalIds_Source_ExternalId_Language",
                 table: "SetExternalIds",
-                columns: new[] { "Source", "ExternalId", "Language" },
+                columns: ["Source", "ExternalId", "Language"],
                 unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "ApplicationConfigurations");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "AspNetUserClaims");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "AspNetUserLogins");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "AspNetUserRoles");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "AspNetUserTokens");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "CardExternalIds");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "CollectionEntries");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "ImportJobs");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "LocalCorrections");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "OcrResults");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "SetExternalIds");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "AspNetUsers");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "CardPrints");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "ScanJobs");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "Sets");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "ImageAssets");
         }
     }

@@ -2,37 +2,35 @@ using ArchiveDex.Application.Abstractions;
 using Microsoft.AspNetCore.Http;
 using Wolverine.Http;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class ImageGetHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverineGet("/api/images/{*fileName}")]
-    public static async Task<IResult> Handle(
-        string fileName,
-        IImageStore imageStore,
-        CancellationToken ct)
+    public static class ImageGetHandler
     {
-        if (string.IsNullOrWhiteSpace(fileName) ||
-            fileName.Contains("..") ||
-            Path.IsPathRooted(fileName))
+        [WolverineGet("/api/images/{*fileName}")]
+        public static async Task<IResult> Handle(
+            string fileName,
+            IImageStore imageStore,
+            CancellationToken ct)
         {
-            return Results.BadRequest();
+            if (string.IsNullOrWhiteSpace(fileName) ||
+                fileName.Contains("..") ||
+                Path.IsPathRooted(fileName))
+            {
+                return Results.BadRequest();
+            }
+
+            try
+            {
+                Stream stream = await imageStore.GetAsync(fileName, ct);
+                return Results.File(stream, GetContentType(fileName));
+            }
+            catch (FileNotFoundException)
+            {
+                return Results.NotFound();
+            }
         }
 
-        try
-        {
-            var stream = await imageStore.GetAsync(fileName, ct);
-            return Results.File(stream, GetContentType(fileName));
-        }
-        catch (FileNotFoundException)
-        {
-            return Results.NotFound();
-        }
-    }
-
-    private static string GetContentType(string fileName)
-    {
-        return Path.GetExtension(fileName).ToLowerInvariant() switch
+        private static string GetContentType(string fileName) => Path.GetExtension(fileName).ToLowerInvariant() switch
         {
             ".jpg" or ".jpeg" => "image/jpeg",
             ".png" => "image/png",

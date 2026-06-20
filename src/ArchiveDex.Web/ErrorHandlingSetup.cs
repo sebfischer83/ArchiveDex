@@ -1,38 +1,36 @@
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Hosting;
 
-namespace ArchiveDex.Web;
-
-public static class ErrorHandlingSetup
+namespace ArchiveDex.Web
 {
-    public static WebApplication UseArchiveDexErrorHandling(this WebApplication app)
+    public static class ErrorHandlingSetup
     {
-        if (!app.Environment.IsDevelopment())
+        public static WebApplication UseArchiveDexErrorHandling(this WebApplication app)
         {
-            app.UseExceptionHandler(exceptionHandlerApp =>
+            if (!app.Environment.IsDevelopment())
             {
-                exceptionHandlerApp.Run(async context =>
+                _ = app.UseExceptionHandler(exceptionHandlerApp =>
                 {
-                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                    context.Response.ContentType = "application/problem+json";
-
-                    var feature = context.Features.Get<IExceptionHandlerFeature>();
-                    var problem = new ProblemDetails
+                    exceptionHandlerApp.Run(async context =>
                     {
-                        Type = "https://tools.ietf.org/html/rfc7807",
-                        Title = "An unexpected error occurred.",
-                        Status = StatusCodes.Status500InternalServerError,
-                        Detail = app.Environment.IsDevelopment() ? feature?.Error.Message : null
-                    };
+                        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                        context.Response.ContentType = "application/problem+json";
 
-                    await context.Response.WriteAsJsonAsync(problem);
+                        IExceptionHandlerFeature? feature = context.Features.Get<IExceptionHandlerFeature>();
+                        var problem = new ProblemDetails
+                        {
+                            Type = "https://tools.ietf.org/html/rfc7807",
+                            Title = "An unexpected error occurred.",
+                            Status = StatusCodes.Status500InternalServerError,
+                            Detail = app.Environment.IsDevelopment() ? feature?.Error.Message : null
+                        };
+
+                        await context.Response.WriteAsJsonAsync(problem);
+                    });
                 });
-            });
-        }
+            }
 
-        return app;
+            return app;
+        }
     }
 }

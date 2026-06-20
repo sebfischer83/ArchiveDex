@@ -31,4 +31,4 @@
 
 ## Notes
 
-- All items pass. Spec is ready for `/speckit.clarify` or `/speckit.plan`.
+All items pass. The spec is ready for planning.

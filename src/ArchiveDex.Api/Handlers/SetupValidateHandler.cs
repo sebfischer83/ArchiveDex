@@ -4,17 +4,15 @@ using Microsoft.AspNetCore.Authorization;
 using Wolverine.Http;
 using ApplicationValidateSetupHandler = ArchiveDex.Application.Commands.Setup.ValidateSetupHandler;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class SetupValidateHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverinePost("/api/setup/validate")]
-    [AllowAnonymous]
-    public static Task<SetupValidateResponse> Handle(
-        ValidateSetup command,
-        IUnitOfWork unitOfWork,
-        CancellationToken ct)
+    public static class SetupValidateHandler
     {
-        return ApplicationValidateSetupHandler.Handle(command, unitOfWork, ct);
+        [WolverinePost("/api/setup/validate")]
+        [AllowAnonymous]
+        public static Task<SetupValidateResponse> Handle(
+            ValidateSetup command,
+            IUnitOfWork unitOfWork,
+            CancellationToken ct) => ApplicationValidateSetupHandler.Handle(command, unitOfWork, ct);
     }
 }

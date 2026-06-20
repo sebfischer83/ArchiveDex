@@ -1,19 +1,16 @@
 using ArchiveDex.Application.Abstractions;
+using ArchiveDex.Domain.Entities;
 
-namespace ArchiveDex.Infrastructure.Setup;
-
-public class SetupState : ISetupState
+namespace ArchiveDex.Infrastructure.Setup
 {
-    private readonly IConfigStore _configStore;
-
-    public SetupState(IConfigStore configStore)
+    public class SetupState(IConfigStore configStore) : ISetupState
     {
-        _configStore = configStore;
-    }
+        private readonly IConfigStore _configStore = configStore;
 
-    public async Task<bool> IsSetupCompleteAsync(CancellationToken ct = default)
-    {
-        var config = await _configStore.GetAsync(ct).ConfigureAwait(false);
-        return config.IsSetupComplete;
+        public async Task<bool> IsSetupCompleteAsync(CancellationToken ct = default)
+        {
+            ApplicationConfiguration config = await _configStore.GetAsync(ct).ConfigureAwait(false);
+            return config.IsSetupComplete;
+        }
     }
 }

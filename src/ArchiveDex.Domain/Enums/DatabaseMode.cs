@@ -1,7 +1,8 @@
-namespace ArchiveDex.Domain.Enums;
-
-public enum DatabaseMode
+namespace ArchiveDex.Domain.Enums
 {
-    Embedded = 0,
-    External = 1
+    public enum DatabaseMode
+    {
+        Embedded = 0,
+        External = 1
+    }
 }

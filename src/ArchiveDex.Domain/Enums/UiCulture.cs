@@ -1,8 +1,9 @@
-namespace ArchiveDex.Domain.Enums;
-
-public enum UiCulture
+namespace ArchiveDex.Domain.Enums
 {
-    de = 0,
-    en = 1,
-    ru = 2
+    public enum UiCulture
+    {
+        de = 0,
+        en = 1,
+        ru = 2
+    }
 }

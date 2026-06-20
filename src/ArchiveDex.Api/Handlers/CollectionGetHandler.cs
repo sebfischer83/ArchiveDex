@@ -1,16 +1,18 @@
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Common;
+using ArchiveDex.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Wolverine.Http;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class CollectionGetHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverineGet("/api/collection/{entryId}")]
-    public static async Task<IResult> Handle(Guid entryId, ICollectionRepository repo, CancellationToken ct)
+    public static class CollectionGetHandler
     {
-        var entry = await repo.GetByIdAsync(entryId, ct);
-        return entry is null ? Results.NotFound() : Results.Ok(CollectionEntryDto.FromEntry(entry));
+        [WolverineGet("/api/collection/{entryId}")]
+        public static async Task<IResult> Handle(Guid entryId, ICollectionRepository repo, CancellationToken ct)
+        {
+            CollectionEntry? entry = await repo.GetByIdAsync(entryId, ct);
+            return entry is null ? Results.NotFound() : Results.Ok(CollectionEntryDto.FromEntry(entry));
+        }
     }
 }

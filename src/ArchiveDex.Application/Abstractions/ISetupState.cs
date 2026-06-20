@@ -1,6 +1,7 @@
-namespace ArchiveDex.Application.Abstractions;
-
-public interface ISetupState
+namespace ArchiveDex.Application.Abstractions
 {
-    Task<bool> IsSetupCompleteAsync(CancellationToken ct = default);
+    public interface ISetupState
+    {
+        Task<bool> IsSetupCompleteAsync(CancellationToken ct = default);
+    }
 }

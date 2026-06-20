@@ -1,29 +1,23 @@
 using System.Net;
-using System.Net.Http.Json;
-using Xunit;
 
-namespace ArchiveDex.Api.Tests;
-
-public class CollectionContractTests : IClassFixture<TestWebApplicationFactory>
+namespace ArchiveDex.Api.Tests
 {
-    private readonly HttpClient _client;
-
-    public CollectionContractTests(TestWebApplicationFactory factory)
+    public class CollectionContractTests(TestWebApplicationFactory factory) : IClassFixture<TestWebApplicationFactory>
     {
-        _client = factory.CreateClient();
-    }
+        private readonly HttpClient _client = factory.CreateClient();
 
-    [Fact]
-    public async Task GetCollection_Returns200()
-    {
-        var response = await _client.GetAsync("/api/collection");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    }
+        [Fact]
+        public async Task GetCollection_Returns200()
+        {
+            HttpResponseMessage response = await _client.GetAsync("/api/collection");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
 
-    [Fact]
-    public async Task GetCollectionEntry_ReturnsSuccessOrNotFound()
-    {
-        var response = await _client.GetAsync($"/api/collection/{Guid.NewGuid()}");
-        Assert.True(response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.NotFound);
+        [Fact]
+        public async Task GetCollectionEntry_ReturnsSuccessOrNotFound()
+        {
+            HttpResponseMessage response = await _client.GetAsync($"/api/collection/{Guid.NewGuid()}");
+            Assert.True(response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.NotFound);
+        }
     }
 }

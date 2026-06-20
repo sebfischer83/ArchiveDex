@@ -1,140 +1,140 @@
-using Xunit;
 using Microsoft.EntityFrameworkCore;
 using ArchiveDex.Domain.Entities;
 using ArchiveDex.Domain.Enums;
 using ArchiveDex.Infrastructure.Persistence;
 
-namespace ArchiveDex.Infrastructure.Tests.Collection;
-
-public class CollectionCreateTests
+namespace ArchiveDex.Infrastructure.Tests.Collection
 {
-    private static CardSet NewSet(string name) => new()
+    public class CollectionCreateTests
     {
-        Id = Guid.NewGuid(),
-        CanonicalName = name,
-        CreatedAt = DateTime.UtcNow,
-        UpdatedAt = DateTime.UtcNow
-    };
-
-    [Fact]
-    public async Task FindByCardAndCondition_ExistingDuplicate_ReturnsEntry()
-    {
-        var options = new DbContextOptionsBuilder<ArchiveDexDbContext>()
-            .UseSqlite("Data Source=test_coll_dup_find.db")
-            .Options;
-
-        await using var db = new ArchiveDexDbContext(options);
-        await db.Database.EnsureDeletedAsync();
-        await db.Database.EnsureCreatedAsync();
-
-        var set = NewSet("Duplicate Test Set");
-        db.CardSets.Add(set);
-
-        var card = new CardPrint
+        private static CardSet NewSet(string name) => new()
         {
             Id = Guid.NewGuid(),
-            CardSetId = set.Id,
-            CardLanguage = CardLanguage.en,
-            Number = "001",
-            Name = "Duplicate Card",
-            Origin = Origin.Imported
+            CanonicalName = name,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
-        db.CardPrints.Add(card);
-        await db.SaveChangesAsync();
 
-        var entry = new CollectionEntry
+        [Fact]
+        public async Task FindByCardAndCondition_ExistingDuplicate_ReturnsEntry()
         {
-            Id = Guid.NewGuid(),
-            CardPrintId = card.Id,
-            Condition = CardCondition.NM,
-            Quantity = 2,
-            FrontImagePath = "test.jpg",
-            DateAdded = DateTime.UtcNow
-        };
-        db.CollectionEntries.Add(entry);
-        await db.SaveChangesAsync();
+            DbContextOptions<ArchiveDexDbContext> options = new DbContextOptionsBuilder<ArchiveDexDbContext>()
+                .UseSqlite("Data Source=test_coll_dup_find.db")
+                .Options;
 
-        var repo = new CollectionRepository(db);
-        var found = await repo.FindByCardAndConditionAsync(card.Id, CardCondition.NM);
+            await using var db = new ArchiveDexDbContext(options);
+            _ = await db.Database.EnsureDeletedAsync();
+            _ = await db.Database.EnsureCreatedAsync();
 
-        Assert.NotNull(found);
-        Assert.Equal(2, found!.Quantity);
-        Assert.Equal(CardCondition.NM, found.Condition);
-    }
+            CardSet set = NewSet("Duplicate Test Set");
+            _ = db.CardSets.Add(set);
 
-    [Fact]
-    public async Task FindByCardAndCondition_NoDuplicate_ReturnsNull()
-    {
-        var options = new DbContextOptionsBuilder<ArchiveDexDbContext>()
-            .UseSqlite("Data Source=test_coll_dup_none.db")
-            .Options;
+            var card = new CardPrint
+            {
+                Id = Guid.NewGuid(),
+                CardSetId = set.Id,
+                CardLanguage = CardLanguage.en,
+                Number = "001",
+                Name = "Duplicate Card",
+                Origin = Origin.Imported
+            };
+            _ = db.CardPrints.Add(card);
+            _ = await db.SaveChangesAsync();
 
-        await using var db = new ArchiveDexDbContext(options);
-        await db.Database.EnsureDeletedAsync();
-        await db.Database.EnsureCreatedAsync();
+            var entry = new CollectionEntry
+            {
+                Id = Guid.NewGuid(),
+                CardPrintId = card.Id,
+                Condition = CardCondition.NM,
+                Quantity = 2,
+                FrontImagePath = "test.jpg",
+                DateAdded = DateTime.UtcNow
+            };
+            _ = db.CollectionEntries.Add(entry);
+            _ = await db.SaveChangesAsync();
 
-        var set = NewSet("No Duplicate Set");
-        db.CardSets.Add(set);
+            var repo = new CollectionRepository(db);
+            CollectionEntry? found = await repo.FindByCardAndConditionAsync(card.Id, CardCondition.NM);
 
-        var card = new CardPrint
+            Assert.NotNull(found);
+            Assert.Equal(2, found!.Quantity);
+            Assert.Equal(CardCondition.NM, found.Condition);
+        }
+
+        [Fact]
+        public async Task FindByCardAndCondition_NoDuplicate_ReturnsNull()
         {
-            Id = Guid.NewGuid(),
-            CardSetId = set.Id,
-            CardLanguage = CardLanguage.en,
-            Number = "002",
-            Name = "No Dup Card",
-            Origin = Origin.Imported
-        };
-        db.CardPrints.Add(card);
-        await db.SaveChangesAsync();
+            DbContextOptions<ArchiveDexDbContext> options = new DbContextOptionsBuilder<ArchiveDexDbContext>()
+                .UseSqlite("Data Source=test_coll_dup_none.db")
+                .Options;
 
-        var repo = new CollectionRepository(db);
-        var found = await repo.FindByCardAndConditionAsync(card.Id, CardCondition.NM);
+            await using var db = new ArchiveDexDbContext(options);
+            _ = await db.Database.EnsureDeletedAsync();
+            _ = await db.Database.EnsureCreatedAsync();
 
-        Assert.Null(found);
-    }
+            CardSet set = NewSet("No Duplicate Set");
+            _ = db.CardSets.Add(set);
 
-    [Fact]
-    public async Task FindByCardAndCondition_DifferentCondition_ReturnsNull()
-    {
-        var options = new DbContextOptionsBuilder<ArchiveDexDbContext>()
-            .UseSqlite("Data Source=test_coll_dup_diffcond.db")
-            .Options;
+            var card = new CardPrint
+            {
+                Id = Guid.NewGuid(),
+                CardSetId = set.Id,
+                CardLanguage = CardLanguage.en,
+                Number = "002",
+                Name = "No Dup Card",
+                Origin = Origin.Imported
+            };
+            _ = db.CardPrints.Add(card);
+            _ = await db.SaveChangesAsync();
 
-        await using var db = new ArchiveDexDbContext(options);
-        await db.Database.EnsureDeletedAsync();
-        await db.Database.EnsureCreatedAsync();
+            var repo = new CollectionRepository(db);
+            CollectionEntry? found = await repo.FindByCardAndConditionAsync(card.Id, CardCondition.NM);
 
-        var set = NewSet("Diff Condition Set");
-        db.CardSets.Add(set);
+            Assert.Null(found);
+        }
 
-        var card = new CardPrint
+        [Fact]
+        public async Task FindByCardAndCondition_DifferentCondition_ReturnsNull()
         {
-            Id = Guid.NewGuid(),
-            CardSetId = set.Id,
-            CardLanguage = CardLanguage.en,
-            Number = "003",
-            Name = "Diff Cond Card",
-            Origin = Origin.Imported
-        };
-        db.CardPrints.Add(card);
-        await db.SaveChangesAsync();
+            DbContextOptions<ArchiveDexDbContext> options = new DbContextOptionsBuilder<ArchiveDexDbContext>()
+                .UseSqlite("Data Source=test_coll_dup_diffcond.db")
+                .Options;
 
-        var entry = new CollectionEntry
-        {
-            Id = Guid.NewGuid(),
-            CardPrintId = card.Id,
-            Condition = CardCondition.LP,
-            Quantity = 1,
-            FrontImagePath = string.Empty,
-            DateAdded = DateTime.UtcNow
-        };
-        db.CollectionEntries.Add(entry);
-        await db.SaveChangesAsync();
+            await using var db = new ArchiveDexDbContext(options);
+            _ = await db.Database.EnsureDeletedAsync();
+            _ = await db.Database.EnsureCreatedAsync();
 
-        var repo = new CollectionRepository(db);
-        var found = await repo.FindByCardAndConditionAsync(card.Id, CardCondition.NM);
+            CardSet set = NewSet("Diff Condition Set");
+            _ = db.CardSets.Add(set);
 
-        Assert.Null(found);
+            var card = new CardPrint
+            {
+                Id = Guid.NewGuid(),
+                CardSetId = set.Id,
+                CardLanguage = CardLanguage.en,
+                Number = "003",
+                Name = "Diff Cond Card",
+                Origin = Origin.Imported
+            };
+            _ = db.CardPrints.Add(card);
+            _ = await db.SaveChangesAsync();
+
+            var entry = new CollectionEntry
+            {
+                Id = Guid.NewGuid(),
+                CardPrintId = card.Id,
+                Condition = CardCondition.LP,
+                Quantity = 1,
+                FrontImagePath = string.Empty,
+                DateAdded = DateTime.UtcNow
+            };
+            _ = db.CollectionEntries.Add(entry);
+            _ = await db.SaveChangesAsync();
+
+            var repo = new CollectionRepository(db);
+            CollectionEntry? found = await repo.FindByCardAndConditionAsync(card.Id, CardCondition.NM);
+
+            Assert.Null(found);
+        }
     }
 }

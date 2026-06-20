@@ -3,15 +3,13 @@ using ArchiveDex.Application.Queries.Collection;
 using Wolverine.Http;
 using ApplicationGetCollectionSetsHandler = ArchiveDex.Application.Queries.Collection.GetCollectionSetsHandler;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class CollectionSetsHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverineGet("/api/collection/sets")]
-    public static Task<IReadOnlyList<CollectionSetSummary>> Handle(
-        ICollectionRepository repo,
-        CancellationToken ct)
+    public static class CollectionSetsHandler
     {
-        return ApplicationGetCollectionSetsHandler.Handle(new GetCollectionSets(), repo, ct);
+        [WolverineGet("/api/collection/sets")]
+        public static Task<IReadOnlyList<CollectionSetSummary>> Handle(
+            ICollectionRepository repo,
+            CancellationToken ct) => ApplicationGetCollectionSetsHandler.Handle(new GetCollectionSets(), repo, ct);
     }
 }

@@ -1,8 +1,9 @@
-namespace ArchiveDex.Domain.Enums;
-
-public enum ImageFormat
+namespace ArchiveDex.Domain.Enums
 {
-    Jpeg = 0,
-    Png = 1,
-    WebP = 2
+    public enum ImageFormat
+    {
+        Jpeg = 0,
+        Png = 1,
+        WebP = 2
+    }
 }

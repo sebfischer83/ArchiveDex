@@ -1,16 +1,14 @@
 using ArchiveDex.Application.Abstractions;
 
-namespace ArchiveDex.Application.Commands.Collection;
-
-public sealed record DeleteCollectionEntry(Guid EntryId);
-
-public static class DeleteCollectionEntryHandler
+namespace ArchiveDex.Application.Commands.Collection
 {
-    public static async Task Handle(
-        DeleteCollectionEntry command,
-        ICollectionRepository repo,
-        CancellationToken ct)
+    public sealed record DeleteCollectionEntry(Guid EntryId);
+
+    public static class DeleteCollectionEntryHandler
     {
-        await repo.DeleteAsync(command.EntryId, ct);
+        public static async Task Handle(
+            DeleteCollectionEntry command,
+            ICollectionRepository repo,
+            CancellationToken ct) => await repo.DeleteAsync(command.EntryId, ct);
     }
 }

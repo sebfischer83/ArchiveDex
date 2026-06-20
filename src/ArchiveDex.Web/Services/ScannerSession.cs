@@ -1,41 +1,40 @@
-using ArchiveDex.Domain.Enums;
-
-namespace ArchiveDex.Web.Services;
-
-public class ScannerSession
+namespace ArchiveDex.Web.Services
 {
-    public Guid? LastScanId { get; set; }
-    public Guid? SelectedCardId { get; set; }
-    public string? ImageUrl { get; set; }
-    public string? DetectedNumber { get; set; }
-    public string? DetectedName { get; set; }
-    public double? Confidence { get; set; }
-    public List<CandidateItem> Candidates { get; set; } = [];
-    public bool IsScanning { get; set; }
-    public bool IsComplete { get; set; }
-    public string? Error { get; set; }
-
-    public void Reset()
+    public class ScannerSession
     {
-        LastScanId = null;
-        SelectedCardId = null;
-        ImageUrl = null;
-        DetectedNumber = null;
-        DetectedName = null;
-        Confidence = null;
-        Candidates = [];
-        IsScanning = false;
-        IsComplete = false;
-        Error = null;
-    }
-}
+        public Guid? LastScanId { get; set; }
+        public Guid? SelectedCardId { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? DetectedNumber { get; set; }
+        public string? DetectedName { get; set; }
+        public double? Confidence { get; set; }
+        public List<CandidateItem> Candidates { get; set; } = [];
+        public bool IsScanning { get; set; }
+        public bool IsComplete { get; set; }
+        public string? Error { get; set; }
 
-public class CandidateItem
-{
-    public Guid CardId { get; set; }
-    public int Score { get; set; }
-    public string Number { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string? Rarity { get; set; }
-    public string? CardLanguage { get; set; }
+        public void Reset()
+        {
+            LastScanId = null;
+            SelectedCardId = null;
+            ImageUrl = null;
+            DetectedNumber = null;
+            DetectedName = null;
+            Confidence = null;
+            Candidates = [];
+            IsScanning = false;
+            IsComplete = false;
+            Error = null;
+        }
+    }
+
+    public class CandidateItem
+    {
+        public Guid CardId { get; set; }
+        public int Score { get; set; }
+        public string Number { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Rarity { get; set; }
+        public string? CardLanguage { get; set; }
+    }
 }

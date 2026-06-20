@@ -1,17 +1,11 @@
-using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Domain.Entities;
 
-namespace ArchiveDex.Application.Catalog;
-
-public class EffectiveCardPrintResolver
+namespace ArchiveDex.Application.Catalog
 {
-    public string GetEffectiveName(CardPrint card)
+    public class EffectiveCardPrintResolver
     {
-        return card.LocalCorrection?.NameOverride ?? card.Name;
-    }
+        public string GetEffectiveName(CardPrint card) => card.LocalCorrection?.NameOverride ?? card.Name;
 
-    public string GetEffectiveNumber(CardPrint card)
-    {
-        return card.LocalCorrection?.NumberOverride ?? card.Number;
+        public string GetEffectiveNumber(CardPrint card) => card.LocalCorrection?.NumberOverride ?? card.Number;
     }
 }

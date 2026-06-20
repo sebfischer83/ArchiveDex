@@ -1,6 +1,7 @@
-namespace ArchiveDex.Application.Abstractions;
-
-public interface IImportJobService
+namespace ArchiveDex.Application.Abstractions
 {
-    Task ExecuteAsync(Guid jobId, string source, List<string> setIds, List<string> cardLanguages);
+    public interface IImportJobService
+    {
+        Task ExecuteAsync(Guid jobId, string source, List<string> setIds, List<string> cardLanguages);
+    }
 }

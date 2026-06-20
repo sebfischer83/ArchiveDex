@@ -1,23 +1,19 @@
 using ArchiveDex.Application.Abstractions;
 
-namespace ArchiveDex.Infrastructure.Tcg;
-
-public sealed class TcgDataSourceRegistry : ITcgDataSourceRegistry
+namespace ArchiveDex.Infrastructure.Tcg
 {
-    private readonly IReadOnlyDictionary<string, ITcgDataSource> _sources;
-
-    public TcgDataSourceRegistry(IEnumerable<ITcgDataSource> sources)
+    public sealed class TcgDataSourceRegistry(IEnumerable<ITcgDataSource> sources) : ITcgDataSourceRegistry
     {
-        _sources = sources.ToDictionary(s => s.SourceName, StringComparer.OrdinalIgnoreCase);
-    }
+        private readonly IReadOnlyDictionary<string, ITcgDataSource> _sources = sources.ToDictionary(s => s.SourceName, StringComparer.OrdinalIgnoreCase);
 
-    public IReadOnlyList<string> Sources => _sources.Keys.Order(StringComparer.OrdinalIgnoreCase).ToList();
+        public IReadOnlyList<string> Sources => [.. _sources.Keys.Order(StringComparer.OrdinalIgnoreCase)];
 
-    public ITcgDataSource Resolve(string sourceName)
-    {
-        if (_sources.TryGetValue(sourceName, out var source)) return source;
-
-        throw new InvalidOperationException(
-            $"Unknown import source '{sourceName}'. Available sources: {string.Join(", ", Sources)}");
+        public ITcgDataSource Resolve(string sourceName)
+        {
+            return _sources.TryGetValue(sourceName, out ITcgDataSource? source)
+                ? source
+                : throw new InvalidOperationException(
+                $"Unknown import source '{sourceName}'. Available sources: {string.Join(", ", Sources)}");
+        }
     }
 }

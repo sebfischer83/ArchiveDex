@@ -6,32 +6,33 @@ using Microsoft.AspNetCore.Mvc;
 using Wolverine.Http;
 using ApplicationCompleteSetupHandler = ArchiveDex.Application.Commands.Setup.CompleteSetupHandler;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class SetupCompleteHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverinePost("/api/setup/complete")]
-    [AllowAnonymous]
-    public static async Task<IResult> Handle(
-        CompleteSetup command,
-        IConfigStore configStore,
-        IAdminProvisioner adminProvisioner,
-        CancellationToken ct)
+    public static class SetupCompleteHandler
     {
-        try
+        [WolverinePost("/api/setup/complete")]
+        [AllowAnonymous]
+        public static async Task<IResult> Handle(
+            CompleteSetup command,
+            IConfigStore configStore,
+            IAdminProvisioner adminProvisioner,
+            CancellationToken ct)
         {
-            await ApplicationCompleteSetupHandler.Handle(command, configStore, adminProvisioner, ct);
-            return Results.Ok(new { success = true });
-        }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("already complete"))
-        {
-            return Results.Conflict(new ProblemDetails
+            try
             {
-                Type = "https://tools.ietf.org/html/rfc7807",
-                Title = "Setup already completed",
-                Status = 409,
-                Detail = ex.Message
-            });
+                await ApplicationCompleteSetupHandler.Handle(command, configStore, adminProvisioner, ct);
+                return Results.Ok(new { success = true });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("already complete"))
+            {
+                return Results.Conflict(new ProblemDetails
+                {
+                    Type = "https://tools.ietf.org/html/rfc7807",
+                    Title = "Setup already completed",
+                    Status = 409,
+                    Detail = ex.Message
+                });
+            }
         }
     }
 }

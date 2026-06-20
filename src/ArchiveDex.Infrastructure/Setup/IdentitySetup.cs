@@ -1,29 +1,29 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using ArchiveDex.Domain.Entities;
 
-namespace ArchiveDex.Infrastructure.Setup;
-
-public static class IdentitySetup
+namespace ArchiveDex.Infrastructure.Setup
 {
-    public static IServiceCollection AddArchiveDexIdentity(this IServiceCollection services)
+    public static class IdentitySetup
     {
-        services.AddAuthentication(IdentityConstants.ApplicationScheme)
-            .AddCookie(IdentityConstants.ApplicationScheme);
-
-        services.AddAuthorization();
-
-        services.AddIdentityCore<Administrator>(options =>
+        public static IServiceCollection AddArchiveDexIdentity(this IServiceCollection services)
         {
-            options.Password.RequireDigit = true;
-            options.Password.RequiredLength = 8;
-            options.Password.RequireNonAlphanumeric = false;
-            options.User.RequireUniqueEmail = false;
-        })
-        .AddEntityFrameworkStores<Persistence.ArchiveDexDbContext>()
-        .AddDefaultTokenProviders();
+            _ = services.AddAuthentication(IdentityConstants.ApplicationScheme)
+                .AddCookie(IdentityConstants.ApplicationScheme);
 
-        return services;
+            _ = services.AddAuthorization();
+
+            _ = services.AddIdentityCore<Administrator>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequiredLength = 8;
+                options.Password.RequireNonAlphanumeric = false;
+                options.User.RequireUniqueEmail = false;
+            })
+            .AddEntityFrameworkStores<Persistence.ArchiveDexDbContext>()
+            .AddDefaultTokenProviders();
+
+            return services;
+        }
     }
 }

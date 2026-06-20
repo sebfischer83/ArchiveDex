@@ -4,17 +4,18 @@ using Microsoft.AspNetCore.Http;
 using Wolverine.Http;
 using ApplicationGetImportJobStatusHandler = ArchiveDex.Application.Queries.Import.GetImportJobStatusHandler;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class ImportJobStatusHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverineGet("/api/import/jobs/{jobId}")]
-    public static async Task<IResult> Handle(
-        Guid jobId,
-        IImportJobStore jobs,
-        CancellationToken ct)
+    public static class ImportJobStatusHandler
     {
-        var response = await ApplicationGetImportJobStatusHandler.Handle(new GetImportJobStatus(jobId), jobs, ct);
-        return response is null ? Results.NotFound() : Results.Ok(response);
+        [WolverineGet("/api/import/jobs/{jobId}")]
+        public static async Task<IResult> Handle(
+            Guid jobId,
+            IImportJobStore jobs,
+            CancellationToken ct)
+        {
+            ImportJobStatusResponse? response = await ApplicationGetImportJobStatusHandler.Handle(new GetImportJobStatus(jobId), jobs, ct);
+            return response is null ? Results.NotFound() : Results.Ok(response);
+        }
     }
 }

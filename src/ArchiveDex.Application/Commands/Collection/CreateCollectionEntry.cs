@@ -4,87 +4,92 @@ using ArchiveDex.Application.Common;
 using ArchiveDex.Domain.Entities;
 using ArchiveDex.Domain.Enums;
 
-namespace ArchiveDex.Application.Commands.Collection;
-
-public sealed record CreateCollectionEntry(
-    Guid CardPrintId,
-    CardCondition Condition,
-    [Range(1, int.MaxValue)] int Quantity,
-    [Range(0, double.MaxValue)] decimal? PurchasePrice,
-    string? StorageLocation,
-    string? Notes,
-    bool ForceCreate = false
-);
-
-public sealed record DuplicateDetectedResponse(
-    Guid ExistingEntryId,
-    string Condition,
-    int ExistingQuantity,
-    string? StorageLocation,
-    string? Notes,
-    int SubmittedQuantity,
-    int ProposedQuantity
-);
-
-public sealed class CreateCollectionResult
+namespace ArchiveDex.Application.Commands.Collection
 {
-    public CollectionEntryDto? Entry { get; init; }
-    public DuplicateDetectedResponse? Duplicate { get; init; }
-    public bool IsDuplicate => Duplicate is not null;
+    public sealed record CreateCollectionEntry(
+        Guid CardPrintId,
+        CardCondition Condition,
+        [Range(1, int.MaxValue)] int Quantity,
+        [Range(0, double.MaxValue)] decimal? PurchasePrice,
+        string? StorageLocation,
+        string? Notes,
+        bool ForceCreate = false
+    );
 
-    public static CreateCollectionResult Created(CollectionEntryDto dto) => new() { Entry = dto };
-    public static CreateCollectionResult DuplicateFound(DuplicateDetectedResponse dup) => new() { Duplicate = dup };
-}
+    public sealed record DuplicateDetectedResponse(
+        Guid ExistingEntryId,
+        string Condition,
+        int ExistingQuantity,
+        string? StorageLocation,
+        string? Notes,
+        int SubmittedQuantity,
+        int ProposedQuantity
+    );
 
-public static class CreateCollectionEntryHandler
-{
-    public static async Task<CreateCollectionResult> Handle(
-        CreateCollectionEntry command,
-        ICatalogRepository catalogRepository,
-        ICollectionRepository collectionRepository,
-        CancellationToken ct)
+    public sealed class CreateCollectionResult
     {
-        if (command.Quantity < 1)
-            throw new ValidationException("Quantity must be at least 1.");
+        public CollectionEntryDto? Entry { get; init; }
+        public DuplicateDetectedResponse? Duplicate { get; init; }
+        public bool IsDuplicate => Duplicate is not null;
 
-        if (command.PurchasePrice.HasValue && command.PurchasePrice.Value < 0)
-            throw new ValidationException("Purchase price must be non-negative.");
+        public static CreateCollectionResult Created(CollectionEntryDto dto) => new() { Entry = dto };
+        public static CreateCollectionResult DuplicateFound(DuplicateDetectedResponse dup) => new() { Duplicate = dup };
+    }
 
-        var card = await catalogRepository.GetByIdAsync(command.CardPrintId, ct)
-            ?? throw new InvalidOperationException("Catalog card not found.");
-
-        if (!command.ForceCreate)
+    public static class CreateCollectionEntryHandler
+    {
+        public static async Task<CreateCollectionResult> Handle(
+            CreateCollectionEntry command,
+            ICatalogRepository catalogRepository,
+            ICollectionRepository collectionRepository,
+            CancellationToken ct)
         {
-            var existing = await collectionRepository.FindByCardAndConditionAsync(
-                command.CardPrintId, command.Condition, ct);
-
-            if (existing is not null)
+            if (command.Quantity < 1)
             {
-                return CreateCollectionResult.DuplicateFound(new DuplicateDetectedResponse(
-                    existing.Id,
-                    command.Condition.ToString(),
-                    existing.Quantity,
-                    existing.StorageLocation,
-                    existing.Notes,
-                    command.Quantity,
-                    existing.Quantity + command.Quantity));
+                throw new ValidationException("Quantity must be at least 1.");
             }
+
+            if (command.PurchasePrice.HasValue && command.PurchasePrice.Value < 0)
+            {
+                throw new ValidationException("Purchase price must be non-negative.");
+            }
+
+            CardPrint card = await catalogRepository.GetByIdAsync(command.CardPrintId, ct)
+                ?? throw new InvalidOperationException("Catalog card not found.");
+
+            if (!command.ForceCreate)
+            {
+                CollectionEntry? existing = await collectionRepository.FindByCardAndConditionAsync(
+                    command.CardPrintId, command.Condition, ct);
+
+                if (existing is not null)
+                {
+                    return CreateCollectionResult.DuplicateFound(new DuplicateDetectedResponse(
+                        existing.Id,
+                        command.Condition.ToString(),
+                        existing.Quantity,
+                        existing.StorageLocation,
+                        existing.Notes,
+                        command.Quantity,
+                        existing.Quantity + command.Quantity));
+                }
+            }
+
+            var entry = new CollectionEntry
+            {
+                Id = Guid.NewGuid(),
+                CardPrintId = command.CardPrintId,
+                Condition = command.Condition,
+                Quantity = command.Quantity,
+                PurchasePrice = command.PurchasePrice,
+                StorageLocation = command.StorageLocation,
+                Notes = command.Notes,
+                FrontImagePath = string.Empty,
+                DateAdded = DateTime.UtcNow
+            };
+
+            await collectionRepository.AddAsync(entry, ct);
+            return CreateCollectionResult.Created(CollectionEntryDto.FromEntry(entry));
         }
-
-        var entry = new CollectionEntry
-        {
-            Id = Guid.NewGuid(),
-            CardPrintId = command.CardPrintId,
-            Condition = command.Condition,
-            Quantity = command.Quantity,
-            PurchasePrice = command.PurchasePrice,
-            StorageLocation = command.StorageLocation,
-            Notes = command.Notes,
-            FrontImagePath = string.Empty,
-            DateAdded = DateTime.UtcNow
-        };
-
-        await collectionRepository.AddAsync(entry, ct);
-        return CreateCollectionResult.Created(CollectionEntryDto.FromEntry(entry));
     }
 }

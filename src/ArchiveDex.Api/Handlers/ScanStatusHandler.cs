@@ -1,61 +1,62 @@
 using System.Text.Json;
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Scanning;
+using ArchiveDex.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Wolverine.Http;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class ScanStatusHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverineGet("/api/scans/{scanId}")]
-    public static async Task<IResult> Handle(
-        Guid scanId,
-        IScanRepository scanRepository,
-        ICatalogRepository catalogRepository,
-        CancellationToken ct)
+    public static class ScanStatusHandler
     {
-        var scan = await scanRepository.GetByIdAsync(scanId, ct);
-        if (scan is null)
-            return Results.NotFound();
-
-        var candidateCards = new List<object>();
-        foreach (var candidate in DeserializeCandidates(scan.OcrResult?.CandidateMatches))
+        [WolverineGet("/api/scans/{scanId}")]
+        public static async Task<IResult> Handle(
+            Guid scanId,
+            IScanRepository scanRepository,
+            ICatalogRepository catalogRepository,
+            CancellationToken ct)
         {
-            var card = await catalogRepository.GetByIdAsync(candidate.CardId, ct);
-            candidateCards.Add(new
+            ScanJob? scan = await scanRepository.GetByIdAsync(scanId, ct);
+            if (scan is null)
             {
-                cardId = candidate.CardId,
-                score = candidate.Score,
-                number = card?.Number ?? string.Empty,
-                name = card?.Name ?? string.Empty,
-                rarity = card?.Rarity,
-                cardLanguage = card?.CardLanguage.ToString()
+                return Results.NotFound();
+            }
+
+            var candidateCards = new List<object>();
+            foreach (CandidateMatch candidate in DeserializeCandidates(scan.OcrResult?.CandidateMatches))
+            {
+                CardPrint? card = await catalogRepository.GetByIdAsync(candidate.CardId, ct);
+                candidateCards.Add(new
+                {
+                    cardId = candidate.CardId,
+                    score = candidate.Score,
+                    number = card?.Number ?? string.Empty,
+                    name = card?.Name ?? string.Empty,
+                    rarity = card?.Rarity,
+                    cardLanguage = card?.CardLanguage.ToString()
+                });
+            }
+
+            return Results.Ok(new
+            {
+                scan.Id,
+                status = scan.Status.ToString(),
+                imageUrl = $"/api/images/{scan.ImageAsset.RelativePath.Replace('\\', '/')}",
+                ocr = scan.OcrResult is not null ? new
+                {
+                    scan.OcrResult.DetectedNumber,
+                    scan.OcrResult.DetectedName,
+                    detectedCardLanguage = scan.OcrResult.DetectedCardLanguage?.ToString(),
+                    scan.OcrResult.DetectedSetHint,
+                    scan.OcrResult.Confidence,
+                    candidates = candidateCards
+                } : null
             });
         }
 
-        return Results.Ok(new
+        private static IReadOnlyList<CandidateMatch> DeserializeCandidates(string? json)
         {
-            scan.Id,
-            status = scan.Status.ToString(),
-            imageUrl = $"/api/images/{scan.ImageAsset.RelativePath.Replace('\\', '/')}",
-            ocr = scan.OcrResult is not null ? new
-            {
-                scan.OcrResult.DetectedNumber,
-                scan.OcrResult.DetectedName,
-                detectedCardLanguage = scan.OcrResult.DetectedCardLanguage?.ToString(),
-                scan.OcrResult.DetectedSetHint,
-                scan.OcrResult.Confidence,
-                candidates = candidateCards
-            } : null
-        });
-    }
-
-    private static IReadOnlyList<CandidateMatch> DeserializeCandidates(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return [];
-
-        return JsonSerializer.Deserialize<List<CandidateMatch>>(json) ?? [];
+            return string.IsNullOrWhiteSpace(json) ? [] : (IReadOnlyList<CandidateMatch>)(JsonSerializer.Deserialize<List<CandidateMatch>>(json) ?? []);
+        }
     }
 }

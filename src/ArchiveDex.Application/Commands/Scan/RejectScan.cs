@@ -1,11 +1,9 @@
-namespace ArchiveDex.Application.Commands.Scan;
-
-public sealed record RejectScan(Guid ScanId);
-
-public static class RejectScanHandler
+namespace ArchiveDex.Application.Commands.Scan
 {
-    public static Task Handle(RejectScan command, CancellationToken ct)
+    public sealed record RejectScan(Guid ScanId);
+
+    public static class RejectScanHandler
     {
-        return Task.CompletedTask;
+        public static Task Handle(RejectScan command, CancellationToken ct) => Task.CompletedTask;
     }
 }

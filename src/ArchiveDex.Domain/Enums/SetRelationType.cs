@@ -1,11 +1,12 @@
-namespace ArchiveDex.Domain.Enums;
-
-public enum SetRelationType
+namespace ArchiveDex.Domain.Enums
 {
-    SameSet,
-    PartOf,
-    Contains,
-    DerivedFrom,
-    InternationalEquivalent,
-    Unknown
+    public enum SetRelationType
+    {
+        SameSet,
+        PartOf,
+        Contains,
+        DerivedFrom,
+        InternationalEquivalent,
+        Unknown
+    }
 }

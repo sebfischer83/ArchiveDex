@@ -3,17 +3,18 @@ using ArchiveDex.Application.Queries.Catalog;
 using Microsoft.AspNetCore.Http;
 using Wolverine.Http;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class CatalogCardDetailHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverineGet("/api/catalog/cards/{id}")]
-    public static async Task<IResult> Handle(
-        Guid id,
-        ICatalogRepository repo,
-        CancellationToken ct)
+    public static class CatalogCardDetailHandler
     {
-        var detail = await GetCatalogCardHandler.Handle(new GetCatalogCard(id), repo, ct);
-        return detail is null ? Results.NotFound() : Results.Ok(detail);
+        [WolverineGet("/api/catalog/cards/{id}")]
+        public static async Task<IResult> Handle(
+            Guid id,
+            ICatalogRepository repo,
+            CancellationToken ct)
+        {
+            CatalogCardDetail? detail = await GetCatalogCardHandler.Handle(new GetCatalogCard(id), repo, ct);
+            return detail is null ? Results.NotFound() : Results.Ok(detail);
+        }
     }
 }

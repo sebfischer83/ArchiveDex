@@ -4,16 +4,14 @@ using Microsoft.AspNetCore.Authorization;
 using Wolverine.Http;
 using ApplicationGetSetupStateHandler = ArchiveDex.Application.Queries.Setup.GetSetupStateHandler;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class SetupStateHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverineGet("/api/setup/state")]
-    [AllowAnonymous]
-    public static Task<SetupStateResponse> Handle(
-        ISetupState setupState,
-        CancellationToken ct)
+    public static class SetupStateHandler
     {
-        return ApplicationGetSetupStateHandler.Handle(new GetSetupState(), setupState, ct);
+        [WolverineGet("/api/setup/state")]
+        [AllowAnonymous]
+        public static Task<SetupStateResponse> Handle(
+            ISetupState setupState,
+            CancellationToken ct) => ApplicationGetSetupStateHandler.Handle(new GetSetupState(), setupState, ct);
     }
 }

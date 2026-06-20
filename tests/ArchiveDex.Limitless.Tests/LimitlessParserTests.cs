@@ -1,149 +1,148 @@
-using ArchiveDex.Limitless;
 using ArchiveDex.Limitless.Models;
 
-namespace ArchiveDex.Limitless.Tests;
-
-public class LimitlessParserTests
+namespace ArchiveDex.Limitless.Tests
 {
-    [Fact]
-    public void ParseSets_EmptyHtml_ReturnsEmpty()
+    public class LimitlessParserTests
     {
-        var sets = LimitlessParser.ParseSets("<html></html>");
-        Assert.Empty(sets);
-    }
+        [Fact]
+        public void ParseSets_EmptyHtml_ReturnsEmpty()
+        {
+            List<LimitlessSet> sets = LimitlessParser.ParseSets("<html></html>");
+            Assert.Empty(sets);
+        }
 
-    [Fact]
-    public void ParseSets_ExtractsSetRows()
-    {
-        var html = GetSampleHtml();
-        var sets = LimitlessParser.ParseSets(html);
+        [Fact]
+        public void ParseSets_ExtractsSetRows()
+        {
+            var html = GetSampleHtml();
+            List<LimitlessSet> sets = LimitlessParser.ParseSets(html);
 
-        Assert.NotEmpty(sets);
-        Assert.Equal(4, sets.Count);
-    }
+            Assert.NotEmpty(sets);
+            Assert.Equal(4, sets.Count);
+        }
 
-    [Fact]
-    public void ParseSets_ExtractsCodeAndName()
-    {
-        var sets = LimitlessParser.ParseSets(GetSampleHtml());
+        [Fact]
+        public void ParseSets_ExtractsCodeAndName()
+        {
+            List<LimitlessSet> sets = LimitlessParser.ParseSets(GetSampleHtml());
 
-        var chaos = sets.First(s => s.Code == "CRI");
-        Assert.Equal("Chaos Rising", chaos.Name);
-        Assert.Equal("Mega", chaos.Era);
-    }
+            LimitlessSet chaos = sets.First(s => s.Code == "CRI");
+            Assert.Equal("Chaos Rising", chaos.Name);
+            Assert.Equal("Mega", chaos.Era);
+        }
 
-    [Fact]
-    public void ParseSets_ExtractsDateAndCardCount()
-    {
-        var sets = LimitlessParser.ParseSets(GetSampleHtml());
+        [Fact]
+        public void ParseSets_ExtractsDateAndCardCount()
+        {
+            List<LimitlessSet> sets = LimitlessParser.ParseSets(GetSampleHtml());
 
-        var chaos = sets.First(s => s.Code == "CRI");
-        Assert.Equal("22 May 26", chaos.ReleaseDate);
-        Assert.Equal(122, chaos.CardCount);
-    }
+            LimitlessSet chaos = sets.First(s => s.Code == "CRI");
+            Assert.Equal("22 May 26", chaos.ReleaseDate);
+            Assert.Equal(122, chaos.CardCount);
+        }
 
-    [Fact]
-    public void ParseSets_ExtractsPrices()
-    {
-        var sets = LimitlessParser.ParseSets(GetSampleHtml());
+        [Fact]
+        public void ParseSets_ExtractsPrices()
+        {
+            List<LimitlessSet> sets = LimitlessParser.ParseSets(GetSampleHtml());
 
-        var chaos = sets.First(s => s.Code == "CRI");
-        Assert.Equal("$1,071.57", chaos.UsdPrice);
-        Assert.Equal("689.77€", chaos.EurPrice);
-    }
+            LimitlessSet chaos = sets.First(s => s.Code == "CRI");
+            Assert.Equal("$1,071.57", chaos.UsdPrice);
+            Assert.Equal("689.77€", chaos.EurPrice);
+        }
 
-    [Fact]
-    public void ParseSets_ExtractsImageUrl()
-    {
-        var sets = LimitlessParser.ParseSets(GetSampleHtml());
+        [Fact]
+        public void ParseSets_ExtractsImageUrl()
+        {
+            List<LimitlessSet> sets = LimitlessParser.ParseSets(GetSampleHtml());
 
-        var chaos = sets.First(s => s.Code == "CRI");
-        Assert.Contains("CRI_SM.png", chaos.ImageUrl);
-    }
+            LimitlessSet chaos = sets.First(s => s.Code == "CRI");
+            Assert.Contains("CRI_SM.png", chaos.ImageUrl);
+        }
 
-    [Fact]
-    public void ParseSets_BuildsFullUrl()
-    {
-        var sets = LimitlessParser.ParseSets(GetSampleHtml());
+        [Fact]
+        public void ParseSets_BuildsFullUrl()
+        {
+            List<LimitlessSet> sets = LimitlessParser.ParseSets(GetSampleHtml());
 
-        var chaos = sets.First(s => s.Code == "CRI");
-        Assert.Equal("https://limitlesstcg.com/cards/en/CRI", chaos.Url);
-    }
+            LimitlessSet chaos = sets.First(s => s.Code == "CRI");
+            Assert.Equal("https://limitlesstcg.com/cards/en/CRI", chaos.Url);
+        }
 
-    [Fact]
-    public void ParseSets_ExtractsEraHeadings()
-    {
-        var sets = LimitlessParser.ParseSets(GetSampleHtml());
+        [Fact]
+        public void ParseSets_ExtractsEraHeadings()
+        {
+            List<LimitlessSet> sets = LimitlessParser.ParseSets(GetSampleHtml());
 
-        Assert.Equal("Mega", sets[0].Era);
-        Assert.Equal("Mega", sets[1].Era);
-        Assert.Equal("Scarlet & Violet", sets[2].Era);
-        Assert.Equal("Scarlet & Violet", sets[3].Era);
-    }
+            Assert.Equal("Mega", sets[0].Era);
+            Assert.Equal("Mega", sets[1].Era);
+            Assert.Equal("Scarlet & Violet", sets[2].Era);
+            Assert.Equal("Scarlet & Violet", sets[3].Era);
+        }
 
-    [Fact]
-    public void ParseSets_NoPrices_WhenMissingColumns()
-    {
-        var html = GetJpSampleHtml();
-        var sets = LimitlessParser.ParseSets(html);
+        [Fact]
+        public void ParseSets_NoPrices_WhenMissingColumns()
+        {
+            var html = GetJpSampleHtml();
+            List<LimitlessSet> sets = LimitlessParser.ParseSets(html);
 
-        Assert.NotEmpty(sets);
-        Assert.All(sets, s => Assert.Null(s.UsdPrice));
-        Assert.All(sets, s => Assert.Null(s.EurPrice));
-    }
+            Assert.NotEmpty(sets);
+            Assert.All(sets, s => Assert.Null(s.UsdPrice));
+            Assert.All(sets, s => Assert.Null(s.EurPrice));
+        }
 
-    [Fact]
-    public void Language_ToCode_MapsCorrectly()
-    {
-        Assert.Equal("en", LimitlessLanguage.En.ToCode());
-        Assert.Equal("jp", LimitlessLanguage.Jp.ToCode());
-        Assert.Equal("de", LimitlessLanguage.De.ToCode());
-    }
+        [Fact]
+        public void Language_ToCode_MapsCorrectly()
+        {
+            Assert.Equal("en", LimitlessLanguage.En.ToCode());
+            Assert.Equal("jp", LimitlessLanguage.Jp.ToCode());
+            Assert.Equal("de", LimitlessLanguage.De.ToCode());
+        }
 
-    [Fact]
-    public void ParseCards_ExtractsNumbersAndImageUrls()
-    {
-        var html = GetCardsSampleHtml();
-        var cards = LimitlessParser.ParseCards(html, "PRE", LimitlessLanguage.En);
+        [Fact]
+        public void ParseCards_ExtractsNumbersAndImageUrls()
+        {
+            var html = GetCardsSampleHtml();
+            List<LimitlessCard> cards = LimitlessParser.ParseCards(html, "PRE", LimitlessLanguage.En);
 
-        Assert.Equal(3, cards.Count);
-        Assert.Equal("1", cards[0].Number);
-        Assert.Contains("PRE_001_R_EN_SM.png", cards[0].ImageUrl);
-        Assert.Equal("PRE", cards[0].SetCode);
-        Assert.Equal(LimitlessLanguage.En, cards[0].Language);
-        Assert.Equal("PRE/en/1", cards[0].VendorId);
-        Assert.Equal("2", cards[1].Number);
-        Assert.Equal("3", cards[2].Number);
-    }
+            Assert.Equal(3, cards.Count);
+            Assert.Equal("1", cards[0].Number);
+            Assert.Contains("PRE_001_R_EN_SM.png", cards[0].ImageUrl);
+            Assert.Equal("PRE", cards[0].SetCode);
+            Assert.Equal(LimitlessLanguage.En, cards[0].Language);
+            Assert.Equal("PRE/en/1", cards[0].VendorId);
+            Assert.Equal("2", cards[1].Number);
+            Assert.Equal("3", cards[2].Number);
+        }
 
-    [Fact]
-    public void ParseCards_DifferentLanguage_ReflectedInModel()
-    {
-        var html = GetCardsSampleHtml();
-        var cards = LimitlessParser.ParseCards(html, "SV8a", LimitlessLanguage.Jp);
+        [Fact]
+        public void ParseCards_DifferentLanguage_ReflectedInModel()
+        {
+            var html = GetCardsSampleHtml();
+            List<LimitlessCard> cards = LimitlessParser.ParseCards(html, "SV8a", LimitlessLanguage.Jp);
 
-        Assert.All(cards, c => Assert.Equal("SV8a", c.SetCode));
-        Assert.All(cards, c => Assert.Equal(LimitlessLanguage.Jp, c.Language));
-        Assert.All(cards, c => Assert.StartsWith("SV8a/jp/", c.VendorId));
-    }
+            Assert.All(cards, c => Assert.Equal("SV8a", c.SetCode));
+            Assert.All(cards, c => Assert.Equal(LimitlessLanguage.Jp, c.Language));
+            Assert.All(cards, c => Assert.StartsWith("SV8a/jp/", c.VendorId));
+        }
 
-    [Fact]
-    public void ParseCards_ExtractsNameFromAltText()
-    {
-        var html = GetCardsSampleHtmlWithAlt();
-        var cards = LimitlessParser.ParseCards(html, "PRE", LimitlessLanguage.En);
+        [Fact]
+        public void ParseCards_ExtractsNameFromAltText()
+        {
+            var html = GetCardsSampleHtmlWithAlt();
+            List<LimitlessCard> cards = LimitlessParser.ParseCards(html, "PRE", LimitlessLanguage.En);
 
-        Assert.Equal("Charizard ex", cards[0].Name);
-    }
+            Assert.Equal("Charizard ex", cards[0].Name);
+        }
 
-    [Fact]
-    public void ParseCards_EmptyHtml_ReturnsEmpty()
-    {
-        var cards = LimitlessParser.ParseCards("<html></html>", "SET", LimitlessLanguage.En);
-        Assert.Empty(cards);
-    }
+        [Fact]
+        public void ParseCards_EmptyHtml_ReturnsEmpty()
+        {
+            List<LimitlessCard> cards = LimitlessParser.ParseCards("<html></html>", "SET", LimitlessLanguage.En);
+            Assert.Empty(cards);
+        }
 
-    private static string GetSampleHtml() => """
+        private static string GetSampleHtml() => """
 <html><body>
 <table class="data-table sets-table striped">
 <tr><th>Name</th><th>Release Date</th><th class="md-only">Cards</th><th class="lg-only">USD</th><th class="lg-only">EUR</th></tr>
@@ -181,7 +180,7 @@ public class LimitlessParserTests
 </body></html>
 """;
 
-    private static string GetJpSampleHtml() => """
+        private static string GetJpSampleHtml() => """
 <html><body>
 <table class="data-table sets-table striped">
 <tr><th>Name</th><th>Release Date</th><th class="md-only">Cards</th></tr>
@@ -200,7 +199,7 @@ public class LimitlessParserTests
 </body></html>
 """;
 
-    private static string GetCardsSampleHtml() => """
+        private static string GetCardsSampleHtml() => """
 <html><body>
 <section>
   <div class="card-search-grid">
@@ -212,7 +211,7 @@ public class LimitlessParserTests
 </body></html>
 """;
 
-    private static string GetCardsSampleHtmlWithAlt() => """
+        private static string GetCardsSampleHtmlWithAlt() => """
 <html><body>
 <section>
   <div class="card-search-grid">
@@ -222,4 +221,5 @@ public class LimitlessParserTests
 </section>
 </body></html>
 """;
+    }
 }

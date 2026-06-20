@@ -1,24 +1,24 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Localization;
-using Microsoft.Extensions.DependencyInjection;
 
-namespace ArchiveDex.Web;
-
-public static class LocalizationSetup
+namespace ArchiveDex.Web
 {
-    public static IServiceCollection AddArchiveDexLocalization(this IServiceCollection services)
+    public static class LocalizationSetup
     {
-        services.AddLocalization(options => options.ResourcesPath = "Resources");
-
-        services.Configure<RequestLocalizationOptions>(options =>
+        public static IServiceCollection AddArchiveDexLocalization(this IServiceCollection services)
         {
-            var supportedCultures = new[] { "de", "en", "ru" };
-            options.DefaultRequestCulture = new RequestCulture("en");
-            options.SupportedCultures = supportedCultures.Select(c => new CultureInfo(c)).ToList();
-            options.SupportedUICultures = supportedCultures.Select(c => new CultureInfo(c)).ToList();
-            options.RequestCultureProviders = [new CookieRequestCultureProvider()];
-        });
+            _ = services.AddLocalization(options => options.ResourcesPath = "Resources");
 
-        return services;
+            _ = services.Configure<RequestLocalizationOptions>(options =>
+            {
+                var supportedCultures = new[] { "de", "en", "ru" };
+                options.DefaultRequestCulture = new RequestCulture("en");
+                options.SupportedCultures = [.. supportedCultures.Select(c => new CultureInfo(c))];
+                options.SupportedUICultures = [.. supportedCultures.Select(c => new CultureInfo(c))];
+                options.RequestCultureProviders = [new CookieRequestCultureProvider()];
+            });
+
+            return services;
+        }
     }
 }

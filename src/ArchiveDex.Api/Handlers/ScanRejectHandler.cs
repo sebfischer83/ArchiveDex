@@ -1,21 +1,25 @@
 using ArchiveDex.Application.Abstractions;
+using ArchiveDex.Domain.Entities;
 using ArchiveDex.Domain.Enums;
 using Microsoft.AspNetCore.Http;
 using Wolverine.Http;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class ScanRejectHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverinePost("/api/scans/{scanId}/reject")]
-    public static async Task<IResult> Handle(Guid scanId, IScanRepository scanRepository, CancellationToken ct)
+    public static class ScanRejectHandler
     {
-        var scan = await scanRepository.GetByIdAsync(scanId, ct);
-        if (scan is null)
-            return Results.NotFound();
+        [WolverinePost("/api/scans/{scanId}/reject")]
+        public static async Task<IResult> Handle(Guid scanId, IScanRepository scanRepository, CancellationToken ct)
+        {
+            ScanJob? scan = await scanRepository.GetByIdAsync(scanId, ct);
+            if (scan is null)
+            {
+                return Results.NotFound();
+            }
 
-        scan.Status = ScanJobStatus.Rejected;
-        await scanRepository.UpdateAsync(scan, ct);
-        return Results.NoContent();
+            scan.Status = ScanJobStatus.Rejected;
+            await scanRepository.UpdateAsync(scan, ct);
+            return Results.NoContent();
+        }
     }
 }

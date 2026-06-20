@@ -1,18 +1,20 @@
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Common;
+using ArchiveDex.Domain.Entities;
 
-namespace ArchiveDex.Application.Queries.Collection;
-
-public sealed record GetCollectionEntry(Guid EntryId);
-
-public static class GetCollectionEntryHandler
+namespace ArchiveDex.Application.Queries.Collection
 {
-    public static async Task<CollectionEntryDto?> Handle(
-        GetCollectionEntry query,
-        ICollectionRepository repo,
-        CancellationToken ct)
+    public sealed record GetCollectionEntry(Guid EntryId);
+
+    public static class GetCollectionEntryHandler
     {
-        var entry = await repo.GetByIdAsync(query.EntryId, ct);
-        return entry is null ? null : CollectionEntryDto.FromEntry(entry);
+        public static async Task<CollectionEntryDto?> Handle(
+            GetCollectionEntry query,
+            ICollectionRepository repo,
+            CancellationToken ct)
+        {
+            CollectionEntry? entry = await repo.GetByIdAsync(query.EntryId, ct);
+            return entry is null ? null : CollectionEntryDto.FromEntry(entry);
+        }
     }
 }

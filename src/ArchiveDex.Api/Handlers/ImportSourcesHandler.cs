@@ -3,13 +3,11 @@ using ArchiveDex.Application.Queries.Import;
 using Wolverine.Http;
 using ApplicationGetImportSourcesHandler = ArchiveDex.Application.Queries.Import.GetImportSourcesHandler;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class ImportSourcesHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverineGet("/api/import/sources")]
-    public static ImportSourcesResponse Handle(ITcgDataSourceRegistry sources)
+    public static class ImportSourcesHandler
     {
-        return ApplicationGetImportSourcesHandler.Handle(new GetImportSources(), sources);
+        [WolverineGet("/api/import/sources")]
+        public static ImportSourcesResponse Handle(ITcgDataSourceRegistry sources) => ApplicationGetImportSourcesHandler.Handle(new GetImportSources(), sources);
     }
 }

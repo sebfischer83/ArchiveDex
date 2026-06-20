@@ -1,38 +1,31 @@
-using System.Net;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Xunit;
 
-namespace ArchiveDex.Api.Tests.Setup;
-
-public class SetupGateTests : IClassFixture<TestWebApplicationFactory>
+namespace ArchiveDex.Api.Tests.Setup
 {
-    private readonly TestWebApplicationFactory _factory;
-
-    public SetupGateTests(TestWebApplicationFactory factory)
+    public class SetupGateTests(TestWebApplicationFactory factory) : IClassFixture<TestWebApplicationFactory>
     {
-        _factory = factory;
+        private readonly TestWebApplicationFactory _factory = factory;
+
+        [Fact]
+        public async Task BeforeSetup_ApiSetupState_ReturnsIsNotComplete()
+        {
+            HttpClient client = _factory.CreateClient();
+            HttpResponseMessage response = await client.GetAsync("/api/setup/state");
+            _ = response.EnsureSuccessStatusCode();
+
+            SetupStateDto? state = await response.Content.ReadFromJsonAsync<SetupStateDto>();
+            Assert.NotNull(state);
+            Assert.False(state.IsSetupComplete);
+        }
+
+        [Fact]
+        public async Task SetupApiRoute_IsAccessible()
+        {
+            HttpClient client = _factory.CreateClient();
+            HttpResponseMessage response = await client.GetAsync("/api/setup/state");
+            Assert.True(response.IsSuccessStatusCode);
+        }
+
+        private record SetupStateDto(bool IsSetupComplete);
     }
-
-    [Fact]
-    public async Task BeforeSetup_ApiSetupState_ReturnsIsNotComplete()
-    {
-        var client = _factory.CreateClient();
-        var response = await client.GetAsync("/api/setup/state");
-        response.EnsureSuccessStatusCode();
-
-        var state = await response.Content.ReadFromJsonAsync<SetupStateDto>();
-        Assert.NotNull(state);
-        Assert.False(state.IsSetupComplete);
-    }
-
-    [Fact]
-    public async Task SetupApiRoute_IsAccessible()
-    {
-        var client = _factory.CreateClient();
-        var response = await client.GetAsync("/api/setup/state");
-        Assert.True(response.IsSuccessStatusCode);
-    }
-
-    private record SetupStateDto(bool IsSetupComplete);
 }

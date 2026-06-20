@@ -1,79 +1,78 @@
-using ArchiveDex.Serebii;
 using ArchiveDex.Serebii.Models;
 
-namespace ArchiveDex.Serebii.Tests;
-
-public class SerebiiParserTests
+namespace ArchiveDex.Serebii.Tests
 {
-    [Fact]
-    public void ParseSets_EmptyHtml_ReturnsEmpty()
+    public class SerebiiParserTests
     {
-        var sets = SerebiiParser.ParseSets("<html></html>");
-        Assert.Empty(sets);
-    }
+        [Fact]
+        public void ParseSets_EmptyHtml_ReturnsEmpty()
+        {
+            List<SerebiiSet> sets = SerebiiParser.ParseSets("<html></html>");
+            Assert.Empty(sets);
+        }
 
-    [Fact]
-    public void ParseSets_ExtractsSetRows()
-    {
-        var html = GetSetsSampleHtml();
-        var sets = SerebiiParser.ParseSets(html);
+        [Fact]
+        public void ParseSets_ExtractsSetRows()
+        {
+            var html = GetSetsSampleHtml();
+            List<SerebiiSet> sets = SerebiiParser.ParseSets(html);
 
-        Assert.NotEmpty(sets);
-        Assert.Equal(3, sets.Count);
-    }
+            Assert.NotEmpty(sets);
+            Assert.Equal(3, sets.Count);
+        }
 
-    [Fact]
-    public void ParseSets_ExtractsSlugAndName()
-    {
-        var sets = SerebiiParser.ParseSets(GetSetsSampleHtml());
+        [Fact]
+        public void ParseSets_ExtractsSlugAndName()
+        {
+            List<SerebiiSet> sets = SerebiiParser.ParseSets(GetSetsSampleHtml());
 
-        var blk = sets.First(s => s.Slug == "blackbolt");
-        Assert.Equal("Black Bolt", blk.Name);
-    }
+            SerebiiSet blk = sets.First(s => s.Slug == "blackbolt");
+            Assert.Equal("Black Bolt", blk.Name);
+        }
 
-    [Fact]
-    public void ParseSets_ExtractsCardCount()
-    {
-        var sets = SerebiiParser.ParseSets(GetSetsSampleHtml());
+        [Fact]
+        public void ParseSets_ExtractsCardCount()
+        {
+            List<SerebiiSet> sets = SerebiiParser.ParseSets(GetSetsSampleHtml());
 
-        var blk = sets.First(s => s.Slug == "blackbolt");
-        Assert.Equal(172, blk.CardCount);
-    }
+            SerebiiSet blk = sets.First(s => s.Slug == "blackbolt");
+            Assert.Equal(172, blk.CardCount);
+        }
 
-    [Fact]
-    public void ParseSets_ExtractsReleaseDate()
-    {
-        var sets = SerebiiParser.ParseSets(GetSetsSampleHtml());
+        [Fact]
+        public void ParseSets_ExtractsReleaseDate()
+        {
+            List<SerebiiSet> sets = SerebiiParser.ParseSets(GetSetsSampleHtml());
 
-        var dri = sets.First(s => s.Slug == "destinedrivals");
-        Assert.Equal("May 30th 2025", dri.ReleaseDate);
-    }
+            SerebiiSet dri = sets.First(s => s.Slug == "destinedrivals");
+            Assert.Equal("May 30th 2025", dri.ReleaseDate);
+        }
 
-    [Fact]
-    public void ParseSets_ExtractsLogoAndThumb()
-    {
-        var sets = SerebiiParser.ParseSets(GetSetsSampleHtml());
+        [Fact]
+        public void ParseSets_ExtractsLogoAndThumb()
+        {
+            List<SerebiiSet> sets = SerebiiParser.ParseSets(GetSetsSampleHtml());
 
-        var blk = sets.First(s => s.Slug == "blackbolt");
-        Assert.Contains("blackbolt.png", blk.LogoUrl);
-        Assert.Contains("blackbolt-th.png", blk.ThumbUrl);
-        Assert.StartsWith("https://www.serebii.net/", blk.LogoUrl);
-        Assert.StartsWith("https://www.serebii.net/", blk.ThumbUrl);
-    }
+            SerebiiSet blk = sets.First(s => s.Slug == "blackbolt");
+            Assert.Contains("blackbolt.png", blk.LogoUrl);
+            Assert.Contains("blackbolt-th.png", blk.ThumbUrl);
+            Assert.StartsWith("https://www.serebii.net/", blk.LogoUrl);
+            Assert.StartsWith("https://www.serebii.net/", blk.ThumbUrl);
+        }
 
-    [Fact]
-    public void ParseSets_BuildsFullUrl()
-    {
-        var sets = SerebiiParser.ParseSets(GetSetsSampleHtml());
+        [Fact]
+        public void ParseSets_BuildsFullUrl()
+        {
+            List<SerebiiSet> sets = SerebiiParser.ParseSets(GetSetsSampleHtml());
 
-        var blk = sets.First(s => s.Slug == "blackbolt");
-        Assert.Equal("https://www.serebii.net/card/blackbolt", blk.Url);
-    }
+            SerebiiSet blk = sets.First(s => s.Slug == "blackbolt");
+            Assert.Equal("https://www.serebii.net/card/blackbolt", blk.Url);
+        }
 
-    [Fact]
-    public void ParseSets_IgnoresRowsWithoutReleaseDateColumn()
-    {
-        var html = """
+        [Fact]
+        public void ParseSets_IgnoresRowsWithoutReleaseDateColumn()
+        {
+            var html = """
 <html><body>
 <table>
 <tr>
@@ -86,110 +85,110 @@ public class SerebiiParserTests
 </body></html>
 """;
 
-        var sets = SerebiiParser.ParseSets(html);
+            List<SerebiiSet> sets = SerebiiParser.ParseSets(html);
 
-        Assert.Empty(sets);
-    }
+            Assert.Empty(sets);
+        }
 
-    [Fact]
-    public void ParseCards_EmptyHtml_ReturnsEmpty()
-    {
-        var cards = SerebiiParser.ParseCards("<html></html>");
-        Assert.Empty(cards);
-    }
+        [Fact]
+        public void ParseCards_EmptyHtml_ReturnsEmpty()
+        {
+            List<SerebiiCard> cards = SerebiiParser.ParseCards("<html></html>");
+            Assert.Empty(cards);
+        }
 
-    [Fact]
-    public void ParseCards_ExtractsCards()
-    {
-        var html = GetCardsSampleHtml();
-        var cards = SerebiiParser.ParseCards(html);
+        [Fact]
+        public void ParseCards_ExtractsCards()
+        {
+            var html = GetCardsSampleHtml();
+            List<SerebiiCard> cards = SerebiiParser.ParseCards(html);
 
-        Assert.NotEmpty(cards);
-        Assert.Equal(2, cards.Count);
-    }
+            Assert.NotEmpty(cards);
+            Assert.Equal(2, cards.Count);
+        }
 
-    [Fact]
-    public void ParseCards_ExtractsNumberAndName()
-    {
-        var cards = SerebiiParser.ParseCards(GetCardsSampleHtml());
+        [Fact]
+        public void ParseCards_ExtractsNumberAndName()
+        {
+            List<SerebiiCard> cards = SerebiiParser.ParseCards(GetCardsSampleHtml());
 
-        var victini = cards.First(c => c.Number == "13");
-        Assert.Equal("Victini", victini.Name);
-        Assert.Equal(128, victini.TotalCards);
-        Assert.Equal("30thcelebration", victini.SetSlug);
-    }
+            SerebiiCard victini = cards.First(c => c.Number == "13");
+            Assert.Equal("Victini", victini.Name);
+            Assert.Equal(128, victini.TotalCards);
+            Assert.Equal("30thcelebration", victini.SetSlug);
+        }
 
-    [Fact]
-    public void ParseCards_ExtractsHpAndType()
-    {
-        var cards = SerebiiParser.ParseCards(GetCardsSampleHtml());
+        [Fact]
+        public void ParseCards_ExtractsHpAndType()
+        {
+            List<SerebiiCard> cards = SerebiiParser.ParseCards(GetCardsSampleHtml());
 
-        var victini = cards.First(c => c.Number == "13");
-        Assert.Equal(80, victini.Hp);
-        Assert.Equal("fire", victini.Type);
-    }
+            SerebiiCard victini = cards.First(c => c.Number == "13");
+            Assert.Equal(80, victini.Hp);
+            Assert.Equal("fire", victini.Type);
+        }
 
-    [Fact]
-    public void ParseCards_ExtractsWeaknessResistanceRetreat()
-    {
-        var cards = SerebiiParser.ParseCards(GetCardsSampleHtml());
+        [Fact]
+        public void ParseCards_ExtractsWeaknessResistanceRetreat()
+        {
+            List<SerebiiCard> cards = SerebiiParser.ParseCards(GetCardsSampleHtml());
 
-        var victini = cards.First(c => c.Number == "13");
-        Assert.Equal("water", victini.Weakness);
-        Assert.Null(victini.Resistance);
-        Assert.Equal(1, victini.RetreatCost);
-    }
+            SerebiiCard victini = cards.First(c => c.Number == "13");
+            Assert.Equal("water", victini.Weakness);
+            Assert.Null(victini.Resistance);
+            Assert.Equal(1, victini.RetreatCost);
+        }
 
-    [Fact]
-    public void ParseCards_ExtractsRarity()
-    {
-        var cards = SerebiiParser.ParseCards(GetCardsSampleHtml());
+        [Fact]
+        public void ParseCards_ExtractsRarity()
+        {
+            List<SerebiiCard> cards = SerebiiParser.ParseCards(GetCardsSampleHtml());
 
-        var victini = cards.First(c => c.Number == "13");
-        Assert.Equal("promo", victini.Rarity);
-    }
+            SerebiiCard victini = cards.First(c => c.Number == "13");
+            Assert.Equal("promo", victini.Rarity);
+        }
 
-    [Fact]
-    public void ParseCards_ExtractsThumbAndDetailUrl()
-    {
-        var cards = SerebiiParser.ParseCards(GetCardsSampleHtml());
+        [Fact]
+        public void ParseCards_ExtractsThumbAndDetailUrl()
+        {
+            List<SerebiiCard> cards = SerebiiParser.ParseCards(GetCardsSampleHtml());
 
-        var victini = cards.First(c => c.Number == "13");
-        Assert.Contains("30thcelebration/13.jpg", victini.ThumbUrl);
-        Assert.StartsWith("https://www.serebii.net/", victini.ThumbUrl);
-        Assert.Equal("https://www.serebii.net/card/30thcelebration/013.shtml", victini.DetailUrl);
-    }
+            SerebiiCard victini = cards.First(c => c.Number == "13");
+            Assert.Contains("30thcelebration/13.jpg", victini.ThumbUrl);
+            Assert.StartsWith("https://www.serebii.net/", victini.ThumbUrl);
+            Assert.Equal("https://www.serebii.net/card/30thcelebration/013.shtml", victini.DetailUrl);
+        }
 
-    [Fact]
-    public void ParseCards_BuildsVendorId()
-    {
-        var cards = SerebiiParser.ParseCards(GetCardsSampleHtml());
+        [Fact]
+        public void ParseCards_BuildsVendorId()
+        {
+            List<SerebiiCard> cards = SerebiiParser.ParseCards(GetCardsSampleHtml());
 
-        var victini = cards.First(c => c.Number == "13");
-        Assert.Equal("serebii/30thcelebration/13", victini.VendorId);
-    }
+            SerebiiCard victini = cards.First(c => c.Number == "13");
+            Assert.Equal("serebii/30thcelebration/13", victini.VendorId);
+        }
 
-    [Fact]
-    public void ParseCards_ExtractsResistance()
-    {
-        var html = GetCardsWithResistanceSampleHtml();
-        var cards = SerebiiParser.ParseCards(html);
+        [Fact]
+        public void ParseCards_ExtractsResistance()
+        {
+            var html = GetCardsWithResistanceSampleHtml();
+            List<SerebiiCard> cards = SerebiiParser.ParseCards(html);
 
-        var espeon = cards.First(c => c.Number == "69");
-        Assert.Equal("fighting", espeon.Resistance);
-    }
+            SerebiiCard espeon = cards.First(c => c.Number == "69");
+            Assert.Equal("fighting", espeon.Resistance);
+        }
 
-    [Fact]
-    public void ParseCards_ExtractsDoubleRetreatCost()
-    {
-        var html = GetCardsWithResistanceSampleHtml();
-        var cards = SerebiiParser.ParseCards(html);
+        [Fact]
+        public void ParseCards_ExtractsDoubleRetreatCost()
+        {
+            var html = GetCardsWithResistanceSampleHtml();
+            List<SerebiiCard> cards = SerebiiParser.ParseCards(html);
 
-        var umbreon = cards.First(c => c.Number == "92");
-        Assert.Equal(2, umbreon.RetreatCost);
-    }
+            SerebiiCard umbreon = cards.First(c => c.Number == "92");
+            Assert.Equal(2, umbreon.RetreatCost);
+        }
 
-    private static string GetSetsSampleHtml() => """
+        private static string GetSetsSampleHtml() => """
 <html><body>
 <table width="100%" border="1" cellspacing="0" cellpadding="4"><tr>
 <td class="fooevo" width="15%">Logo</td>
@@ -221,7 +220,7 @@ public class SerebiiParserTests
 </body></html>
 """;
 
-    private static string GetCardsSampleHtml() => """
+        private static string GetCardsSampleHtml() => """
 <html><body>
 <table class="dextable">
   <tr>
@@ -253,7 +252,7 @@ public class SerebiiParserTests
 </body></html>
 """;
 
-    private static string GetCardsWithResistanceSampleHtml() => """
+        private static string GetCardsWithResistanceSampleHtml() => """
 <html><body>
 <table class="dextable">
   <tr>
@@ -284,4 +283,5 @@ public class SerebiiParserTests
 </tr></table>
 </body></html>
 """;
+    }
 }

@@ -2,14 +2,15 @@ using ArchiveDex.Application.Abstractions;
 using Microsoft.AspNetCore.Http;
 using Wolverine.Http;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class CollectionDeleteHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverineDelete("/api/collection/{entryId}")]
-    public static async Task<IResult> Handle(Guid entryId, ICollectionRepository repo, CancellationToken ct)
+    public static class CollectionDeleteHandler
     {
-        await repo.DeleteAsync(entryId, ct);
-        return Results.NoContent();
+        [WolverineDelete("/api/collection/{entryId}")]
+        public static async Task<IResult> Handle(Guid entryId, ICollectionRepository repo, CancellationToken ct)
+        {
+            await repo.DeleteAsync(entryId, ct);
+            return Results.NoContent();
+        }
     }
 }

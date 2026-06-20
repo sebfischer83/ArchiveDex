@@ -1,4 +1,3 @@
-﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,27 +10,27 @@ namespace ArchiveDex.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
+            _ = migrationBuilder.DropForeignKey(
                 name: "FK_CardPrints_Sets_SetId",
                 table: "CardPrints");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "SetExternalIds");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "Sets");
 
-            migrationBuilder.RenameColumn(
+            _ = migrationBuilder.RenameColumn(
                 name: "SetId",
                 table: "CardPrints",
                 newName: "CardSetId");
 
-            migrationBuilder.RenameIndex(
+            _ = migrationBuilder.RenameIndex(
                 name: "IX_CardPrints_SetId",
                 table: "CardPrints",
                 newName: "IX_CardPrints_CardSetId");
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "CardSets",
                 columns: table => new
                 {
@@ -46,10 +45,10 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CardSets", x => x.Id);
+                    _ = table.PrimaryKey("PK_CardSets", x => x.Id);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "CardSetExternalIds",
                 columns: table => new
                 {
@@ -68,8 +67,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CardSetExternalIds", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_CardSetExternalIds", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_CardSetExternalIds_CardSets_CardSetId",
                         column: x => x.CardSetId,
                         principalTable: "CardSets",
@@ -77,7 +76,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "PendingSetMappings",
                 columns: table => new
                 {
@@ -98,8 +97,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PendingSetMappings", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_PendingSetMappings", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_PendingSetMappings_CardSets_SuggestedCardSetId",
                         column: x => x.SuggestedCardSetId,
                         principalTable: "CardSets",
@@ -107,7 +106,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.SetNull);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "SetMappings",
                 columns: table => new
                 {
@@ -123,8 +122,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SetMappings", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_SetMappings", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_SetMappings_CardSets_CardSetId",
                         column: x => x.CardSetId,
                         principalTable: "CardSets",
@@ -132,7 +131,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "SetRelations",
                 columns: table => new
                 {
@@ -147,14 +146,14 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SetRelations", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_SetRelations", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_SetRelations_CardSets_SourceSetId",
                         column: x => x.SourceSetId,
                         principalTable: "CardSets",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
+                    _ = table.ForeignKey(
                         name: "FK_SetRelations_CardSets_TargetSetId",
                         column: x => x.TargetSetId,
                         principalTable: "CardSets",
@@ -162,65 +161,65 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_CardSetExternalIds_CardSetId",
                 table: "CardSetExternalIds",
                 column: "CardSetId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_CardSetExternalIds_Source_Language_ExternalId",
                 table: "CardSetExternalIds",
-                columns: new[] { "Source", "Language", "ExternalId" },
+                columns: ["Source", "Language", "ExternalId"],
                 unique: true);
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_CardSets_CanonicalName",
                 table: "CardSets",
                 column: "CanonicalName");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_CardSets_ReleaseDate",
                 table: "CardSets",
                 column: "ReleaseDate");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_PendingSetMappings_IncomingSource_IncomingLanguage_Incoming~",
                 table: "PendingSetMappings",
-                columns: new[] { "IncomingSource", "IncomingLanguage", "IncomingExternalId" });
+                columns: ["IncomingSource", "IncomingLanguage", "IncomingExternalId"]);
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_PendingSetMappings_Status",
                 table: "PendingSetMappings",
                 column: "Status");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_PendingSetMappings_SuggestedCardSetId",
                 table: "PendingSetMappings",
                 column: "SuggestedCardSetId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_SetMappings_CardSetId",
                 table: "SetMappings",
                 column: "CardSetId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_SetMappings_Source_Language_ExternalId",
                 table: "SetMappings",
-                columns: new[] { "Source", "Language", "ExternalId" },
+                columns: ["Source", "Language", "ExternalId"],
                 unique: true);
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_SetRelations_SourceSetId_TargetSetId_RelationType",
                 table: "SetRelations",
-                columns: new[] { "SourceSetId", "TargetSetId", "RelationType" },
+                columns: ["SourceSetId", "TargetSetId", "RelationType"],
                 unique: true);
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_SetRelations_TargetSetId",
                 table: "SetRelations",
                 column: "TargetSetId");
 
-            migrationBuilder.AddForeignKey(
+            _ = migrationBuilder.AddForeignKey(
                 name: "FK_CardPrints_CardSets_CardSetId",
                 table: "CardPrints",
                 column: "CardSetId",
@@ -232,36 +231,36 @@ namespace ArchiveDex.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
+            _ = migrationBuilder.DropForeignKey(
                 name: "FK_CardPrints_CardSets_CardSetId",
                 table: "CardPrints");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "CardSetExternalIds");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "PendingSetMappings");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "SetMappings");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "SetRelations");
 
-            migrationBuilder.DropTable(
+            _ = migrationBuilder.DropTable(
                 name: "CardSets");
 
-            migrationBuilder.RenameColumn(
+            _ = migrationBuilder.RenameColumn(
                 name: "CardSetId",
                 table: "CardPrints",
                 newName: "SetId");
 
-            migrationBuilder.RenameIndex(
+            _ = migrationBuilder.RenameIndex(
                 name: "IX_CardPrints_CardSetId",
                 table: "CardPrints",
                 newName: "IX_CardPrints_SetId");
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "Sets",
                 columns: table => new
                 {
@@ -274,10 +273,10 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Sets", x => x.Id);
+                    _ = table.PrimaryKey("PK_Sets", x => x.Id);
                 });
 
-            migrationBuilder.CreateTable(
+            _ = migrationBuilder.CreateTable(
                 name: "SetExternalIds",
                 columns: table => new
                 {
@@ -289,8 +288,8 @@ namespace ArchiveDex.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SetExternalIds", x => x.Id);
-                    table.ForeignKey(
+                    _ = table.PrimaryKey("PK_SetExternalIds", x => x.Id);
+                    _ = table.ForeignKey(
                         name: "FK_SetExternalIds_Sets_SetId",
                         column: x => x.SetId,
                         principalTable: "Sets",
@@ -298,18 +297,18 @@ namespace ArchiveDex.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_SetExternalIds_SetId",
                 table: "SetExternalIds",
                 column: "SetId");
 
-            migrationBuilder.CreateIndex(
+            _ = migrationBuilder.CreateIndex(
                 name: "IX_SetExternalIds_Source_ExternalId_Language",
                 table: "SetExternalIds",
-                columns: new[] { "Source", "ExternalId", "Language" },
+                columns: ["Source", "ExternalId", "Language"],
                 unique: true);
 
-            migrationBuilder.AddForeignKey(
+            _ = migrationBuilder.AddForeignKey(
                 name: "FK_CardPrints_Sets_SetId",
                 table: "CardPrints",
                 column: "SetId",

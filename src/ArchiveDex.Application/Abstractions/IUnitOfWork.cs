@@ -1,6 +1,7 @@
-namespace ArchiveDex.Application.Abstractions;
-
-public interface IUnitOfWork
+namespace ArchiveDex.Application.Abstractions
 {
-    Task<int> SaveChangesAsync(CancellationToken ct = default);
+    public interface IUnitOfWork
+    {
+        Task<int> SaveChangesAsync(CancellationToken ct = default);
+    }
 }

@@ -3,24 +3,22 @@ using ArchiveDex.Application.Queries.Import;
 using Wolverine.Http;
 using ApplicationLoadImportSetsHandler = ArchiveDex.Application.Queries.Import.LoadImportSetsHandler;
 
-namespace ArchiveDex.Api.Handlers;
-
-public static class ImportSetsHandler
+namespace ArchiveDex.Api.Handlers
 {
-    [WolverineGet("/api/import/sets")]
-    public static Task<IReadOnlyList<CatalogSetSummary>> Handle(
-        string cardLanguage,
-        string? source,
-        ITcgDataSourceRegistry sources,
-        ISetImportService setImport,
-        ICatalogRepository catalog,
-        CancellationToken ct)
+    public static class ImportSetsHandler
     {
-        return ApplicationLoadImportSetsHandler.Handle(
-            new LoadImportSets(cardLanguage, string.IsNullOrWhiteSpace(source) ? "TCGdex" : source),
-            sources,
-            setImport,
-            catalog,
-            ct);
+        [WolverineGet("/api/import/sets")]
+        public static Task<IReadOnlyList<CatalogSetSummary>> Handle(
+            string cardLanguage,
+            string? source,
+            ITcgDataSourceRegistry sources,
+            ISetImportService setImport,
+            ICatalogRepository catalog,
+            CancellationToken ct) => ApplicationLoadImportSetsHandler.Handle(
+                new LoadImportSets(cardLanguage, string.IsNullOrWhiteSpace(source) ? "TCGdex" : source),
+                sources,
+                setImport,
+                catalog,
+                ct);
     }
 }

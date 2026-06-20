@@ -1,9 +1,10 @@
-namespace ArchiveDex.Domain.Enums;
-
-public enum MappingConfidence
+namespace ArchiveDex.Domain.Enums
 {
-    Low,
-    Medium,
-    High,
-    Verified
+    public enum MappingConfidence
+    {
+        Low,
+        Medium,
+        High,
+        Verified
+    }
 }

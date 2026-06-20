@@ -13,97 +13,98 @@ using Microsoft.EntityFrameworkCore;
 using Wolverine;
 using Wolverine.Http;
 
-namespace ArchiveDex.Web;
-
-public class Program
+namespace ArchiveDex.Web
 {
-    public static void Main(string[] args)
+    public class Program
     {
-        var builder = WebApplication.CreateBuilder(args);
-        var isTesting = builder.Environment.IsEnvironment("Testing");
-
-        builder.Host.UseWolverine(opts =>
+        public static void Main(string[] args)
         {
-            opts.Discovery.IncludeAssembly(typeof(SetupStateHandler).Assembly);
-            opts.Discovery.IncludeAssembly(typeof(ValidateSetup).Assembly);
-            opts.ServiceLocationPolicy = ServiceLocationPolicy.AllowedButWarn;
-        });
+            WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+            var isTesting = builder.Environment.IsEnvironment("Testing");
 
-        builder.Services.AddWolverineHttp();
-
-        builder.Services.AddRazorComponents()
-            .AddInteractiveServerComponents();
-
-        builder.Services.AddArchiveDexLocalization();
-
-        var config = builder.Configuration;
-        var connectionString = config.GetConnectionString("PostgreSQL")
-            ?? "Host=localhost;Database=archivedex;Username=archivedex;Password=archivedex";
-        builder.Services.AddInfrastructure(connectionString);
-        builder.Services.Configure<TesseractOcrOptions>(
-            builder.Configuration.GetSection("TesseractOcr"));
-
-        builder.Services.AddHangfire(cfg =>
-        {
-            cfg.UsePostgreSqlStorage(opts =>
+            _ = builder.Host.UseWolverine(opts =>
             {
-                opts.UseNpgsqlConnection(connectionString);
+                _ = opts.Discovery.IncludeAssembly(typeof(SetupStateHandler).Assembly);
+                _ = opts.Discovery.IncludeAssembly(typeof(ValidateSetup).Assembly);
+                opts.ServiceLocationPolicy = ServiceLocationPolicy.AllowedButWarn;
             });
-            cfg.UseRecommendedSerializerSettings();
-        });
-        if (!isTesting)
-        {
-            builder.Services.AddHangfireServer();
-        }
 
-        builder.Services.AddScoped<MatchRankingService>();
-        builder.Services.AddScoped<Services.ScannerSession>();
+            _ = builder.Services.AddWolverineHttp();
 
-        builder.Services.AddScoped(sp =>
-        {
-            var urls = builder.Configuration["ASPNETCORE_URLS"] ?? "http://localhost:8080";
-            var uri = urls.Split(';').First();
-            return new HttpClient { BaseAddress = new Uri(uri) };
-        });
+            _ = builder.Services.AddRazorComponents()
+                .AddInteractiveServerComponents();
 
-        var app = builder.Build();
+            _ = builder.Services.AddArchiveDexLocalization();
 
-        GlobalConfiguration.Configuration.UseActivator(
-            new AspNetCoreJobActivator(app.Services.GetRequiredService<IServiceScopeFactory>()));
+            ConfigurationManager config = builder.Configuration;
+            var connectionString = config.GetConnectionString("PostgreSQL")
+                ?? "Host=localhost;Database=archivedex;Username=archivedex;Password=archivedex";
+            _ = builder.Services.AddInfrastructure(connectionString);
+            _ = builder.Services.Configure<TesseractOcrOptions>(
+                builder.Configuration.GetSection("TesseractOcr"));
 
-        using (var scope = app.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ArchiveDexDbContext>();
-            db.Database.Migrate();
-        }
-
-        app.UseArchiveDexErrorHandling();
-        app.UseRequestLocalization();
-
-        if (!app.Environment.IsDevelopment())
-        {
-            app.UseExceptionHandler("/Error", createScopeForErrors: true);
-        }
-
-        app.UseSetupGate();
-
-        if (!isTesting)
-        {
-            app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            _ = builder.Services.AddHangfire(cfg =>
             {
-                Authorization = [],
-                IsReadOnlyFunc = _ => false
+                _ = cfg.UsePostgreSqlStorage(opts =>
+                {
+                    _ = opts.UseNpgsqlConnection(connectionString);
+                });
+                _ = cfg.UseRecommendedSerializerSettings();
             });
+            if (!isTesting)
+            {
+                _ = builder.Services.AddHangfireServer();
+            }
+
+            _ = builder.Services.AddScoped<MatchRankingService>();
+            _ = builder.Services.AddScoped<Services.ScannerSession>();
+
+            _ = builder.Services.AddScoped(sp =>
+            {
+                var urls = builder.Configuration["ASPNETCORE_URLS"] ?? "http://localhost:8080";
+                var uri = urls.Split(';').First();
+                return new HttpClient { BaseAddress = new Uri(uri) };
+            });
+
+            WebApplication app = builder.Build();
+
+            _ = GlobalConfiguration.Configuration.UseActivator(
+                new AspNetCoreJobActivator(app.Services.GetRequiredService<IServiceScopeFactory>()));
+
+            using (IServiceScope scope = app.Services.CreateScope())
+            {
+                ArchiveDexDbContext db = scope.ServiceProvider.GetRequiredService<ArchiveDexDbContext>();
+                db.Database.Migrate();
+            }
+
+            _ = app.UseArchiveDexErrorHandling();
+            _ = app.UseRequestLocalization();
+
+            if (!app.Environment.IsDevelopment())
+            {
+                _ = app.UseExceptionHandler("/Error", createScopeForErrors: true);
+            }
+
+            _ = app.UseSetupGate();
+
+            if (!isTesting)
+            {
+                _ = app.UseHangfireDashboard("/hangfire", new DashboardOptions
+                {
+                    Authorization = [],
+                    IsReadOnlyFunc = _ => false
+                });
+            }
+
+            _ = app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+            _ = app.UseAntiforgery();
+
+            _ = app.MapStaticAssets();
+            app.MapWolverineEndpoints();
+            _ = app.MapRazorComponents<App>()
+                .AddInteractiveServerRenderMode();
+
+            app.Run();
         }
-
-        app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-        app.UseAntiforgery();
-
-        app.MapStaticAssets();
-        app.MapWolverineEndpoints();
-        app.MapRazorComponents<App>()
-            .AddInteractiveServerRenderMode();
-
-        app.Run();
     }
 }
