@@ -111,6 +111,7 @@
     transition: background var(--ad-motion-fast) var(--ad-ease-standard),
                 border-color var(--ad-motion-fast) var(--ad-ease-standard);
     font: inherit;
+    align-items: center;
 }
 .set-card:hover { background: var(--ad-surface-hover); border-color: var(--ad-border); }
 .set-card--selected {
@@ -120,6 +121,19 @@
 .set-card:focus-visible { outline: 2px solid var(--ad-accent); outline-offset: 2px; }
 
 .set-card--skeleton { min-height: 58px; gap: var(--ad-space-2); pointer-events: none; }
+
+.set-image {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    border-radius: var(--ad-radius-sm);
+    margin-bottom: var(--ad-space-1);
+}
+
+.set-image--placeholder {
+    opacity: 0.35;
+    filter: grayscale(1);
+}
 
 .set-name {
     font-size: var(--ad-text-sm);
@@ -149,6 +163,13 @@
 .set-count {
     font-size: var(--ad-text-xs);
     color: var(--ad-text-muted);
+}
+
+.set-progress {
+    font-size: var(--ad-text-xs);
+    font-weight: var(--ad-weight-medium);
+    color: var(--ad-accent);
+    margin-top: var(--ad-space-1);
 }
 
 .sets-empty {
