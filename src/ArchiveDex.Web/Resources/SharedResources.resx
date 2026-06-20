@@ -175,4 +175,64 @@
   <data name="App.SearchByName" xml:space="preserve">
     <value>Search by name...</value>
   </data>
+  <data name="BatchScan.Title" xml:space="preserve">
+    <value>Batch Scan</value>
+  </data>
+  <data name="BatchScan.SelectImages" xml:space="preserve">
+    <value>Select multiple card photos for batch scanning</value>
+  </data>
+  <data name="BatchScan.UploadBatch" xml:space="preserve">
+    <value>Upload Batch</value>
+  </data>
+  <data name="BatchScan.MinImages" xml:space="preserve">
+    <value>At least 2 images required</value>
+  </data>
+  <data name="BatchScan.MaxImages" xml:space="preserve">
+    <value>Maximum 50 images per batch</value>
+  </data>
+  <data name="BatchScan.ReviewTitle" xml:space="preserve">
+    <value>Batch Review</value>
+  </data>
+  <data name="BatchScan.FilterAll" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="BatchScan.FilterLowConfidence" xml:space="preserve">
+    <value>Low Confidence</value>
+  </data>
+  <data name="BatchScan.FilterNoMatch" xml:space="preserve">
+    <value>No Match</value>
+  </data>
+  <data name="BatchScan.FilterNeedsReview" xml:space="preserve">
+    <value>Needs Review</value>
+  </data>
+  <data name="BatchScan.FilterReviewed" xml:space="preserve">
+    <value>Reviewed</value>
+  </data>
+  <data name="BatchScan.FindMatch" xml:space="preserve">
+    <value>Find Match</value>
+  </data>
+  <data name="BatchScan.ChangeMatch" xml:space="preserve">
+    <value>Change Match</value>
+  </data>
+  <data name="BatchScan.MarkNoMatch" xml:space="preserve">
+    <value>Mark No Match</value>
+  </data>
+  <data name="BatchScan.DuplicateWarning" xml:space="preserve">
+    <value>Duplicate in batch</value>
+  </data>
+  <data name="BatchScan.AcceptTitle" xml:space="preserve">
+    <value>Accept Into Collection</value>
+  </data>
+  <data name="BatchScan.DiscardBatch" xml:space="preserve">
+    <value>Discard Batch</value>
+  </data>
+  <data name="BatchScan.SelectAll" xml:space="preserve">
+    <value>Select All</value>
+  </data>
+  <data name="BatchScan.DeselectAll" xml:space="preserve">
+    <value>Deselect All</value>
+  </data>
+  <data name="BatchScan.BackToReview" xml:space="preserve">
+    <value>Back to Review</value>
+  </data>
 </root>

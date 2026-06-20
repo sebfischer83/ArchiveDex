@@ -22,6 +22,9 @@ namespace ArchiveDex.Infrastructure.Persistence
         public DbSet<OcrResult> OcrResults => Set<OcrResult>();
         public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
         public DbSet<ImageAsset> ImageAssets => Set<ImageAsset>();
+        public DbSet<BatchScanJob> BatchScanJobs => Set<BatchScanJob>();
+        public DbSet<BatchScanItem> BatchScanItems => Set<BatchScanItem>();
+        public DbSet<BatchScanResult> BatchScanResults => Set<BatchScanResult>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -137,6 +140,35 @@ namespace ArchiveDex.Infrastructure.Persistence
             {
                 _ = e.HasKey(ia => ia.Id);
                 _ = e.Property(ia => ia.Format).HasConversion<string>().IsRequired();
+            });
+
+            _ = modelBuilder.Entity<BatchScanJob>(e =>
+            {
+                _ = e.HasKey(b => b.Id);
+                _ = e.Property(b => b.Status).HasConversion<string>().IsRequired();
+                _ = e.HasMany(b => b.Items).WithOne(i => i.BatchScanJob).HasForeignKey(i => i.BatchScanJobId);
+            });
+
+            _ = modelBuilder.Entity<BatchScanItem>(e =>
+            {
+                _ = e.HasKey(i => i.Id);
+                _ = e.HasIndex(i => i.BatchScanJobId);
+                _ = e.HasIndex(i => i.MatchStatus);
+                _ = e.Property(i => i.MatchStatus).HasConversion<string>().IsRequired();
+                _ = e.Property(i => i.FailureReason).HasMaxLength(500);
+                _ = e.HasOne(i => i.BatchScanJob).WithMany(b => b.Items).HasForeignKey(i => i.BatchScanJobId);
+                _ = e.HasOne(i => i.ImageAsset).WithMany().HasForeignKey(i => i.ImageAssetId).OnDelete(DeleteBehavior.Cascade);
+                _ = e.HasOne(i => i.OcrResult).WithOne(r => r.BatchScanItem).HasForeignKey<BatchScanResult>(r => r.BatchScanItemId);
+                _ = e.HasOne(i => i.MatchedCardPrint).WithMany().HasForeignKey(i => i.MatchedCardPrintId).OnDelete(DeleteBehavior.SetNull);
+                _ = e.HasOne(i => i.CollectionEntry).WithMany().HasForeignKey(i => i.CollectionEntryId).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            _ = modelBuilder.Entity<BatchScanResult>(e =>
+            {
+                _ = e.HasKey(r => r.Id);
+                _ = e.HasIndex(r => r.BatchScanItemId).IsUnique();
+                _ = e.Property(r => r.DetectedCardLanguage).HasConversion<string>();
+                _ = e.Property(r => r.CandidateMatches).IsRequired();
             });
         }
     }

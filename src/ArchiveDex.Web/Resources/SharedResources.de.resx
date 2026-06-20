@@ -175,4 +175,64 @@
   <data name="App.SearchByName" xml:space="preserve">
     <value>Nach Name suchen...</value>
   </data>
+  <data name="BatchScan.Title" xml:space="preserve">
+    <value>Stapelscan</value>
+  </data>
+  <data name="BatchScan.SelectImages" xml:space="preserve">
+    <value>Mehrere Kartenfotos für Stapelscan auswählen</value>
+  </data>
+  <data name="BatchScan.UploadBatch" xml:space="preserve">
+    <value>Stapel hochladen</value>
+  </data>
+  <data name="BatchScan.MinImages" xml:space="preserve">
+    <value>Mindestens 2 Bilder erforderlich</value>
+  </data>
+  <data name="BatchScan.MaxImages" xml:space="preserve">
+    <value>Maximal 50 Bilder pro Stapel</value>
+  </data>
+  <data name="BatchScan.ReviewTitle" xml:space="preserve">
+    <value>Stapelprüfung</value>
+  </data>
+  <data name="BatchScan.FilterAll" xml:space="preserve">
+    <value>Alle</value>
+  </data>
+  <data name="BatchScan.FilterLowConfidence" xml:space="preserve">
+    <value>Niedrige Zuversicht</value>
+  </data>
+  <data name="BatchScan.FilterNoMatch" xml:space="preserve">
+    <value>Kein Treffer</value>
+  </data>
+  <data name="BatchScan.FilterNeedsReview" xml:space="preserve">
+    <value>Prüfung nötig</value>
+  </data>
+  <data name="BatchScan.FilterReviewed" xml:space="preserve">
+    <value>Geprüft</value>
+  </data>
+  <data name="BatchScan.FindMatch" xml:space="preserve">
+    <value>Treffer finden</value>
+  </data>
+  <data name="BatchScan.ChangeMatch" xml:space="preserve">
+    <value>Treffer ändern</value>
+  </data>
+  <data name="BatchScan.MarkNoMatch" xml:space="preserve">
+    <value>Kein Treffer</value>
+  </data>
+  <data name="BatchScan.DuplicateWarning" xml:space="preserve">
+    <value>Duplikat im Stapel</value>
+  </data>
+  <data name="BatchScan.AcceptTitle" xml:space="preserve">
+    <value>In Sammlung übernehmen</value>
+  </data>
+  <data name="BatchScan.DiscardBatch" xml:space="preserve">
+    <value>Stapel verwerfen</value>
+  </data>
+  <data name="BatchScan.SelectAll" xml:space="preserve">
+    <value>Alle auswählen</value>
+  </data>
+  <data name="BatchScan.DeselectAll" xml:space="preserve">
+    <value>Auswahl aufheben</value>
+  </data>
+  <data name="BatchScan.BackToReview" xml:space="preserve">
+    <value>Zurück zur Prüfung</value>
+  </data>
 </root>

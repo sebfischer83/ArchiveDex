@@ -1,0 +1,268 @@
+@page "/scan/batch/accept/{BatchId:guid}"
+@layout ArchiveDex.Web.Components.Layout.ScannerLayout
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="batch-accept">
+    <h1>Accept Into Collection</h1>
+
+    @if (_isLoading)
+    {
+        <div class="scanning-overlay">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="error-box">
+            <p>@_error</p>
+        </div>
+    }
+    else if (_batch is not null)
+    {
+        <h2>@_batch.Batch.Status — @_acceptedCount / @_batch.Items.Count(i => i.MatchStatus is "Matched" or "Overridden") accepted</h2>
+
+        <div class="batch-defaults">
+            <h3>Defaults</h3>
+            <div class="form-row">
+                <label>Condition:
+                    <select @bind="_defaultCondition">
+                        <option value="NM">Near Mint</option>
+                        <option value="LP">Lightly Played</option>
+                        <option value="MP">Moderately Played</option>
+                        <option value="HP">Heavily Played</option>
+                        <option value="DMG">Damaged</option>
+                    </select>
+                </label>
+                <label>Quantity: <input type="number" min="1" @bind="_defaultQuantity" /></label>
+                <label>Price: <input type="number" step="0.01" @bind="_defaultPrice" /></label>
+            </div>
+            <div class="form-row">
+                <label>Location: <input type="text" @bind="_defaultLocation" /></label>
+                <label>Notes: <input type="text" @bind="_defaultNotes" /></label>
+            </div>
+        </div>
+
+        <div class="accept-items">
+            @foreach (var item in _batch.Items.Where(i => i.MatchStatus is "Matched" or "Overridden"))
+            {
+                <div class="accept-item @(_selectedItems.Contains(item.Id) ? "selected" : "")">
+                    <input type="checkbox" checked="@_selectedItems.Contains(item.Id)"
+                           @onchange="(e) => ToggleItem(item.Id, (bool)(e.Value ?? false))" />
+                    <img src="@item.ImageUrl" alt="Card" class="accept-item-img" />
+                    <div class="accept-item-info">
+                        <span><strong>@item.MatchedCardName</strong> @item.MatchedCardNumber</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (_showDuplicates && _duplicateConflicts.Count > 0)
+        {
+            <div class="duplicate-warnings">
+                <h3>Duplicates Detected</h3>
+                @foreach (var dup in _duplicateConflicts)
+                {
+                    <p>@dup.CardName (@dup.Condition): already in collection. It will be skipped.</p>
+                }
+            </div>
+        }
+
+        <div class="accept-actions">
+            <button class="btn-select-all" @onclick="SelectAll">Select All</button>
+            <button class="btn-deselect-all" @onclick="DeselectAll">Deselect All</button>
+            <button class="btn-accept" @onclick="SubmitAccept" disabled="@(!_selectedItems.Any() || _isSubmitting)">
+                Accept @_selectedItems.Count Cards
+            </button>
+            <button class="btn-secondary" @onclick="GoBackToReview">Back to Review</button>
+        </div>
+
+        @if (_acceptResult is not null)
+        {
+            <div class="accept-result">
+                <p>@_acceptResult.AcceptedCount cards added to collection.</p>
+                @if (_acceptResult.AcceptedCount > 0)
+                {
+                    <button class="btn-primary" @onclick="GoToCollection">View Collection</button>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid BatchId { get; set; }
+
+    private BatchDetail? _batch;
+    private bool _isLoading = true;
+    private bool _isSubmitting;
+    private string? _error;
+    private string _defaultCondition = "NM";
+    private int _defaultQuantity = 1;
+    private string _defaultPrice = "";
+    private string _defaultLocation = "";
+    private string _defaultNotes = "";
+    private HashSet<Guid> _selectedItems = [];
+    private List<DuplicateConflict> _duplicateConflicts = [];
+    private bool _showDuplicates;
+    private AcceptResult? _acceptResult;
+    private int _acceptedCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBatch();
+    }
+
+    private async Task LoadBatch()
+    {
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            var response = await Http.GetAsync($"/api/batch-scans/{BatchId}");
+            if (response.IsSuccessStatusCode)
+            {
+                _batch = await response.Content.ReadFromJsonAsync<BatchDetail>();
+                _selectedItems = [.. (_batch?.Items
+                    .Where(i => i.MatchStatus is "Matched" or "Overridden")
+                    .Select(i => i.Id) ?? [])];
+            }
+            else
+            {
+                _error = $"Failed to load batch: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ToggleItem(Guid itemId, bool selected)
+    {
+        if (selected) _selectedItems.Add(itemId);
+        else _selectedItems.Remove(itemId);
+    }
+
+    private void SelectAll()
+    {
+        if (_batch is not null)
+        {
+            _selectedItems = [.. _batch.Items
+                .Where(i => i.MatchStatus is "Matched" or "Overridden")
+                .Select(i => i.Id)];
+        }
+    }
+
+    private void DeselectAll()
+    {
+        _selectedItems = [];
+    }
+
+    private async Task SubmitAccept()
+    {
+        _isSubmitting = true;
+        _error = null;
+        _duplicateConflicts = [];
+        _showDuplicates = false;
+
+        try
+        {
+            var body = new
+            {
+                defaults = new
+                {
+                    condition = _defaultCondition,
+                    quantity = _defaultQuantity,
+                    purchasePrice = string.IsNullOrEmpty(_defaultPrice) ? (decimal?)null : decimal.Parse(_defaultPrice),
+                    storageLocation = string.IsNullOrEmpty(_defaultLocation) ? null : _defaultLocation,
+                    notes = string.IsNullOrEmpty(_defaultNotes) ? null : _defaultNotes
+                },
+                items = _selectedItems.Select(id => new { itemId = id }).ToList()
+            };
+
+            var response = await Http.PostAsJsonAsync($"/api/batch-scans/{BatchId}/accept", body);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _acceptResult = await response.Content.ReadFromJsonAsync<AcceptResult>();
+                _acceptedCount = _acceptResult?.AcceptedCount ?? 0;
+                _selectedItems = [];
+                await LoadBatch();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                var conflict = await response.Content.ReadFromJsonAsync<ConflictResponse>();
+                _duplicateConflicts = conflict?.Conflicts ?? [];
+                _showDuplicates = true;
+            }
+            else
+            {
+                _error = $"Accept failed: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private class BatchDetail
+    {
+        public BatchInfo? Batch { get; set; }
+        public List<BatchItem> Items { get; set; } = [];
+    }
+
+    private class BatchInfo
+    {
+        public string Status { get; set; } = string.Empty;
+    }
+
+    private class BatchItem
+    {
+        public Guid Id { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
+        public string MatchStatus { get; set; } = string.Empty;
+        public string? MatchedCardName { get; set; }
+        public string? MatchedCardNumber { get; set; }
+    }
+
+    private class AcceptResult
+    {
+        public int AcceptedCount { get; set; }
+        public string BatchStatus { get; set; } = string.Empty;
+    }
+
+    private class DuplicateConflict
+    {
+        public string CardName { get; set; } = string.Empty;
+        public string Condition { get; set; } = string.Empty;
+    }
+
+    private void GoToCollection()
+    {
+        Navigation.NavigateTo("/collection");
+    }
+
+    private void GoBackToReview()
+    {
+        Navigation.NavigateTo($"/scan/batch/review/{BatchId}");
+    }
+
+    private class ConflictResponse
+    {
+        public List<DuplicateConflict> Conflicts { get; set; } = [];
+    }
+}

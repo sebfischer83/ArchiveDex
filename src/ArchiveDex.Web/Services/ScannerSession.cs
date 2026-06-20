@@ -12,6 +12,10 @@ namespace ArchiveDex.Web.Services
         public bool IsScanning { get; set; }
         public bool IsComplete { get; set; }
         public string? Error { get; set; }
+        public bool IsBatchMode { get; set; }
+        public Guid? ActiveBatchId { get; set; }
+        public int BatchUploadProgress { get; set; }
+        public int BatchUploadTotal { get; set; }
 
         public void Reset()
         {
@@ -25,6 +29,13 @@ namespace ArchiveDex.Web.Services
             IsScanning = false;
             IsComplete = false;
             Error = null;
+        }
+
+        public void ResetBatch()
+        {
+            ActiveBatchId = null;
+            BatchUploadProgress = 0;
+            BatchUploadTotal = 0;
         }
     }
 

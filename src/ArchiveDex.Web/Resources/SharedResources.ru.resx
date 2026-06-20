@@ -175,4 +175,64 @@
   <data name="App.SearchByName" xml:space="preserve">
     <value>Поиск по имени...</value>
   </data>
+  <data name="BatchScan.Title" xml:space="preserve">
+    <value>Пакетное сканирование</value>
+  </data>
+  <data name="BatchScan.SelectImages" xml:space="preserve">
+    <value>Выберите несколько фото карт для пакетного сканирования</value>
+  </data>
+  <data name="BatchScan.UploadBatch" xml:space="preserve">
+    <value>Загрузить пакет</value>
+  </data>
+  <data name="BatchScan.MinImages" xml:space="preserve">
+    <value>Требуется минимум 2 изображения</value>
+  </data>
+  <data name="BatchScan.MaxImages" xml:space="preserve">
+    <value>Максимум 50 изображений в пакете</value>
+  </data>
+  <data name="BatchScan.ReviewTitle" xml:space="preserve">
+    <value>Просмотр пакета</value>
+  </data>
+  <data name="BatchScan.FilterAll" xml:space="preserve">
+    <value>Все</value>
+  </data>
+  <data name="BatchScan.FilterLowConfidence" xml:space="preserve">
+    <value>Низкая уверенность</value>
+  </data>
+  <data name="BatchScan.FilterNoMatch" xml:space="preserve">
+    <value>Нет совпадений</value>
+  </data>
+  <data name="BatchScan.FilterNeedsReview" xml:space="preserve">
+    <value>Требует проверки</value>
+  </data>
+  <data name="BatchScan.FilterReviewed" xml:space="preserve">
+    <value>Проверено</value>
+  </data>
+  <data name="BatchScan.FindMatch" xml:space="preserve">
+    <value>Найти совпадение</value>
+  </data>
+  <data name="BatchScan.ChangeMatch" xml:space="preserve">
+    <value>Изменить совпадение</value>
+  </data>
+  <data name="BatchScan.MarkNoMatch" xml:space="preserve">
+    <value>Нет совпадения</value>
+  </data>
+  <data name="BatchScan.DuplicateWarning" xml:space="preserve">
+    <value>Дубликат в пакете</value>
+  </data>
+  <data name="BatchScan.AcceptTitle" xml:space="preserve">
+    <value>Добавить в коллекцию</value>
+  </data>
+  <data name="BatchScan.DiscardBatch" xml:space="preserve">
+    <value>Отменить пакет</value>
+  </data>
+  <data name="BatchScan.SelectAll" xml:space="preserve">
+    <value>Выбрать все</value>
+  </data>
+  <data name="BatchScan.DeselectAll" xml:space="preserve">
+    <value>Отменить выбор</value>
+  </data>
+  <data name="BatchScan.BackToReview" xml:space="preserve">
+    <value>Назад к просмотру</value>
+  </data>
 </root>

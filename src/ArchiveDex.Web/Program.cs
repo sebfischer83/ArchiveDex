@@ -1,4 +1,5 @@
 using ArchiveDex.Api.Handlers;
+using ArchiveDex.Infrastructure.BatchScan;
 using ArchiveDex.Application.Commands.Setup;
 using ArchiveDex.Application.Scanning;
 using ArchiveDex.Infrastructure;
@@ -25,6 +26,7 @@ namespace ArchiveDex.Web
             _ = builder.Host.UseWolverine(opts =>
             {
                 _ = opts.Discovery.IncludeAssembly(typeof(SetupStateHandler).Assembly);
+                _ = opts.Discovery.IncludeAssembly(typeof(BatchScanHandlers).Assembly);
                 _ = opts.Discovery.IncludeAssembly(typeof(ValidateSetup).Assembly);
                 opts.ServiceLocationPolicy = ServiceLocationPolicy.AllowedButWarn;
             });
@@ -56,6 +58,8 @@ namespace ArchiveDex.Web
                 _ = builder.Services.AddHangfireServer();
             }
 
+            _ = builder.Services.AddHostedService<BatchOcrProcessor>();
+            _ = builder.Services.AddHostedService<BatchCleanupService>();
             _ = builder.Services.AddScoped<MatchRankingService>();
             _ = builder.Services.AddScoped<Services.ScannerSession>();
 

@@ -33,6 +33,8 @@ namespace ArchiveDex.Infrastructure
             _ = services.AddScoped<ISetMappingService, Application.Sets.SetMappingService>();
             _ = services.AddScoped<IImportJobStore, ImportJobStore>();
             _ = services.AddScoped<IImportJobService, ImportJobService>();
+            _ = services.AddScoped<IBatchScanRepository, BatchScanRepository>();
+            _ = services.AddScoped<BatchOcrService>();
             _ = services.AddScoped<IImageStore>(_ => new FileImageStore("/app/images"));
             _ = services.AddOptions<TesseractOcrOptions>();
             _ = services.AddSingleton<IOcrEngine, TesseractOcrEngine>();

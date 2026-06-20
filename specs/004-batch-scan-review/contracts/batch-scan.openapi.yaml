@@ -1,0 +1,593 @@
+openapi: "3.0.3"
+info:
+  title: ArchiveDex Batch Scan API
+  version: "1.0.0"
+  description: Batch scan endpoints for uploading multiple card images, reviewing results, and accepting into collection.
+
+servers:
+  - url: /api
+    description: Relative to application root
+
+paths:
+  /batch-scans:
+    post:
+      summary: Create a new batch scan
+      description: |
+        Upload multiple card images (2–50) as a single batch.
+        Only one active (non-complete) batch is allowed at a time.
+        Returns 409 Conflict if an active batch already exists.
+      operationId: createBatchScan
+      tags: [Batch Scans]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  minItems: 2
+                  maxItems: 50
+                  description: Card images (JPEG, PNG, WebP; max 10 MB each)
+              required:
+                - images
+      responses:
+        "201":
+          description: Batch created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchScanJob"
+        "400":
+          description: Validation error (e.g., fewer than 2 images, invalid format)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: An active batch already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+        "503":
+          description: Setup not complete (setup gate)
+
+  /batch-scans/active:
+    get:
+      summary: Get the active (non-complete) batch
+      description: Returns the currently active batch, or 404 if no active batch exists.
+      operationId: getActiveBatchScan
+      tags: [Batch Scans]
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Active batch found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchScanJob"
+        "404":
+          description: No active batch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /batch-scans/{batchId}:
+    parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get a batch with all items
+      description: Returns the batch job and all its scan items, including OCR results and candidate matches.
+      operationId: getBatchScan
+      tags: [Batch Scans]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: statusFilter
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, low-confidence, no-match, needs-review, reviewed]
+          description: Filter items by match status
+      responses:
+        "200":
+          description: Batch details with items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchScanDetail"
+        "404":
+          description: Batch not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Discard a batch
+      description: |
+        Discards a batch that has no accepted items.
+        Deletes associated images and OCR results.
+        Returns 409 if any items have been accepted.
+      operationId: discardBatchScan
+      tags: [Batch Scans]
+      security:
+        - cookieAuth: []
+      responses:
+        "204":
+          description: Batch discarded
+        "409":
+          description: Cannot discard — items have been accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /batch-scans/{batchId}/items/{itemId}:
+    parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get a single batch item
+      description: Returns a single item with OCR results, candidate matches, and catalog search capability.
+      operationId: getBatchScanItem
+      tags: [Batch Scans]
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Item details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchScanItemDetail"
+        "404":
+          description: Item not found
+
+  /batch-scans/{batchId}/items/{itemId}/match:
+    parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Override matched card for an item
+      description: Manually assign a catalog card to the scan item, overriding the OCR suggestion.
+      operationId: updateBatchItemMatch
+      tags: [Batch Scans]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cardPrintId:
+                  type: string
+                  format: uuid
+                  description: Catalog card ID to assign
+              required:
+                - cardPrintId
+      responses:
+        "200":
+          description: Match updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchScanItemDetail"
+        "400":
+          description: Invalid cardPrintId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /batch-scans/{batchId}/items/{itemId}/no-match:
+    parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Mark item as no match
+      description: Mark a scan item as having no viable catalog card match.
+      operationId: markBatchItemNoMatch
+      tags: [Batch Scans]
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Item marked no match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchScanItemDetail"
+
+  /batch-scans/{batchId}/accept:
+    parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Accept selected items into collection
+      description: |
+        Accept a subset of batch items into the user's collection.
+        Per-item collection details can be specified, with batch-level defaults.
+        Within-batch duplicates are detected and must be resolved before acceptance (resolved during review).
+        Existing collection duplicate detection applies per accepted item.
+        The operation is transactional — all items succeed or none do.
+      operationId: acceptBatchItems
+      tags: [Batch Scans]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                defaults:
+                  $ref: "#/components/schemas/BatchAcceptDefaults"
+                items:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/BatchAcceptItem"
+                  minItems: 1
+                  description: Items to accept
+              required:
+                - items
+      responses:
+        "200":
+          description: Items accepted into collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchAcceptResult"
+        "400":
+          description: Validation error or item not in acceptable state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Duplicate detected in existing collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DuplicateConflictResponse"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: .AspNetCore.Identity.Application
+
+  schemas:
+    BatchScanJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [Uploading, Processing, ReadyForReview, PartiallyAccepted, Complete]
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        itemCount:
+          type: integer
+        acceptedCount:
+          type: integer
+        rejectedCount:
+          type: integer
+        noMatchCount:
+          type: integer
+        pendingCount:
+          type: integer
+
+    BatchScanDetail:
+      type: object
+      properties:
+        batch:
+          $ref: "#/components/schemas/BatchScanJob"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BatchScanItemSummary"
+
+    BatchScanItemSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sortOrder:
+          type: integer
+        imageUrl:
+          type: string
+          description: URL to the card image
+        matchStatus:
+          type: string
+          enum: [PendingReview, Matched, Overridden, NoMatch, Accepted, Rejected]
+        isReviewed:
+          type: boolean
+        detectedName:
+          type: string
+          nullable: true
+          description: OCR-detected card name
+        detectedNumber:
+          type: string
+          nullable: true
+          description: OCR-detected card number
+        confidence:
+          type: number
+          format: double
+          nullable: true
+          description: OCR confidence 0.0–1.0
+        matchedCardName:
+          type: string
+          nullable: true
+          description: Name of the matched catalog card
+        matchedCardNumber:
+          type: string
+          nullable: true
+        failureReason:
+          type: string
+          nullable: true
+        isDuplicateInBatch:
+          type: boolean
+          description: True if another item in the same batch matches the same catalog card
+
+    BatchScanItemDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+        sortOrder:
+          type: integer
+        imageUrl:
+          type: string
+        matchStatus:
+          type: string
+          enum: [PendingReview, Matched, Overridden, NoMatch, Accepted, Rejected]
+        isReviewed:
+          type: boolean
+        matchedCardPrintId:
+          type: string
+          format: uuid
+          nullable: true
+        ocrResult:
+          $ref: "#/components/schemas/BatchOcrResult"
+        candidateMatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/CandidateMatch"
+        collectionEntryId:
+          type: string
+          format: uuid
+          nullable: true
+        failureReason:
+          type: string
+          nullable: true
+        isDuplicateInBatch:
+          type: boolean
+        duplicateItemIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: IDs of other items matching the same card (within batch)
+
+    BatchOcrResult:
+      type: object
+      properties:
+        detectedNumber:
+          type: string
+          nullable: true
+        detectedName:
+          type: string
+          nullable: true
+        detectedCardLanguage:
+          type: string
+          nullable: true
+        detectedSetHint:
+          type: string
+          nullable: true
+        confidence:
+          type: number
+          format: double
+          nullable: true
+        rawText:
+          type: string
+          nullable: true
+
+    CandidateMatch:
+      type: object
+      properties:
+        cardPrintId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        number:
+          type: string
+        setName:
+          type: string
+        score:
+          type: number
+          description: Match score (1.0 = exact, 0.0 = none)
+
+    BatchAcceptDefaults:
+      type: object
+      properties:
+        condition:
+          type: string
+          enum: [NM, LP, MP, HP, DMG]
+          default: NM
+        quantity:
+          type: integer
+          minimum: 1
+          default: 1
+        purchasePrice:
+          type: number
+          format: decimal
+          nullable: true
+        storageLocation:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    BatchAcceptItem:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        condition:
+          type: string
+          enum: [NM, LP, MP, HP, DMG]
+          description: Overrides batch default if set
+        quantity:
+          type: integer
+          minimum: 1
+          description: Overrides batch default if set
+        purchasePrice:
+          type: number
+          format: decimal
+          nullable: true
+        storageLocation:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required:
+        - itemId
+
+    BatchAcceptResult:
+      type: object
+      properties:
+        acceptedCount:
+          type: integer
+        duplicateConflicts:
+          type: array
+          items:
+            $ref: "#/components/schemas/DuplicateConflict"
+          description: Empty if no duplicates; non-empty means partial/zero acceptance
+        batchStatus:
+          type: string
+          enum: [PartiallyAccepted, Complete]
+        collectionEntryIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: IDs of created collection entries
+
+    DuplicateConflict:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        existingEntryId:
+          type: string
+          format: uuid
+        cardName:
+          type: string
+        condition:
+          type: string
+        message:
+          type: string
+          description: Human-readable conflict description
+
+    DuplicateConflictResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: "duplicate_detected"
+        message:
+          type: string
+        conflicts:
+          type: array
+          items:
+            $ref: "#/components/schemas/DuplicateConflict"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+          nullable: true
