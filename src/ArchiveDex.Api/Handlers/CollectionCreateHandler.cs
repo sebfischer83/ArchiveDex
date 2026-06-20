@@ -25,7 +25,8 @@ namespace ArchiveDex.Api.Handlers
                     input.PurchasePrice,
                     input.StorageLocation,
                     input.Notes,
-                    input.ForceCreate);
+                    input.ForceCreate,
+                    input.MergeDuplicate);
 
                 CreateCollectionResult result = await CreateCollectionEntryHandler.Handle(
                     command, catalogRepository, collectionRepository, ct);
@@ -50,5 +51,6 @@ namespace ArchiveDex.Api.Handlers
         decimal? PurchasePrice,
         string? StorageLocation,
         string? Notes,
-        bool ForceCreate = false);
+        bool ForceCreate = false,
+        bool MergeDuplicate = false);
 }

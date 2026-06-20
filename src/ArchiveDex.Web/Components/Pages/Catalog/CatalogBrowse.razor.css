@@ -200,6 +200,16 @@
     margin-bottom: var(--ad-space-4);
 }
 
+.catalog-confirm {
+    margin-bottom: var(--ad-space-4);
+    padding: var(--ad-space-3) var(--ad-space-4);
+    border-radius: var(--ad-radius-md);
+    background: color-mix(in srgb, var(--ad-success) 12%, transparent);
+    color: var(--ad-success);
+    font-size: var(--ad-text-sm);
+    font-weight: var(--ad-weight-medium);
+}
+
 .cards-section-title {
     font-size: var(--ad-text-lg);
     font-weight: var(--ad-weight-bold);

@@ -130,6 +130,11 @@
             </div>
         </div>
 
+        @if (_showConfirmation)
+        {
+            <div class="catalog-confirm" role="status">Card added to your collection!</div>
+        }
+
         <div class="catalog-grid">
             @if (_isLoading)
             {
@@ -231,6 +236,7 @@
 
     private AddToCollectionDialog _dialog = null!;
     private Guid _dialogCardId;
+    private bool _showConfirmation;
 
     private IEnumerable<CatalogSetDto> VisibleSets => _sets
         .Where(s => string.IsNullOrWhiteSpace(_selectedLanguage) ||
@@ -354,7 +360,20 @@
         _dialog.Open();
     }
 
-    private void OnAddToCollection(CollectionEntryDto _) => StateHasChanged();
+    private Task OnAddToCollection(CollectionEntryDto entry)
+    {
+        _showConfirmation = true;
+        StateHasChanged();
+        _ = HideConfirmationLater();
+        return Task.CompletedTask;
+    }
+
+    private async Task HideConfirmationLater()
+    {
+        await Task.Delay(3000);
+        _showConfirmation = false;
+        StateHasChanged();
+    }
 
     private void OnAddCancel() { }
 }

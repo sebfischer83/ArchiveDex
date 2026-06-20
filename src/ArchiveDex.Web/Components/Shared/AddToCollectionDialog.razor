@@ -137,6 +137,7 @@
         _duplicate = null;
         _error = null;
         _isVisible = true;
+        StateHasChanged();
     }
 
     private async Task Cancel()
@@ -153,7 +154,7 @@
 
         try
         {
-            var result = await TryCreate(forceCreate: false);
+            var result = await TryCreate(forceCreate: false, mergeDuplicate: false);
             if (result is not null)
                 await OnConfirm.InvokeAsync(result);
         }
@@ -170,7 +171,7 @@
 
         try
         {
-            var result = await TryCreate(forceCreate: false);
+            var result = await TryCreate(forceCreate: false, mergeDuplicate: true);
             if (result is not null)
                 await OnConfirm.InvokeAsync(result);
         }
@@ -187,7 +188,7 @@
 
         try
         {
-            var result = await TryCreate(forceCreate: true);
+            var result = await TryCreate(forceCreate: true, mergeDuplicate: false);
             if (result is not null)
                 await OnConfirm.InvokeAsync(result);
         }
@@ -197,7 +198,7 @@
         }
     }
 
-    private async Task<CollectionEntryDto?> TryCreate(bool forceCreate)
+    private async Task<CollectionEntryDto?> TryCreate(bool forceCreate, bool mergeDuplicate)
     {
         try
         {
@@ -209,7 +210,8 @@
                 purchasePrice = _model.PurchasePrice,
                 storageLocation = _model.StorageLocation,
                 notes = _model.Notes,
-                forceCreate
+                forceCreate,
+                mergeDuplicate
             });
 
             if (response.IsSuccessStatusCode)

@@ -13,7 +13,8 @@ namespace ArchiveDex.Application.Commands.Collection
         [Range(0, double.MaxValue)] decimal? PurchasePrice,
         string? StorageLocation,
         string? Notes,
-        bool ForceCreate = false
+        bool ForceCreate = false,
+        bool MergeDuplicate = false
     );
 
     public sealed record DuplicateDetectedResponse(
@@ -64,6 +65,13 @@ namespace ArchiveDex.Application.Commands.Collection
 
                 if (existing is not null)
                 {
+                    if (command.MergeDuplicate)
+                    {
+                        existing.Quantity += command.Quantity;
+                        await collectionRepository.UpdateAsync(existing, ct);
+                        return CreateCollectionResult.Created(CollectionEntryDto.FromEntry(existing));
+                    }
+
                     return CreateCollectionResult.DuplicateFound(new DuplicateDetectedResponse(
                         existing.Id,
                         command.Condition.ToString(),

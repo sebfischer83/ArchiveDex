@@ -283,9 +283,16 @@
 
     private void OpenAddDialog() => _dialog.Open();
 
-    private async Task OnAddToCollection(CollectionEntryDto entry)
+    private Task OnAddToCollection(CollectionEntryDto entry)
     {
         _showConfirmation = true;
+        StateHasChanged();
+        _ = HideConfirmationLater();
+        return Task.CompletedTask;
+    }
+
+    private async Task HideConfirmationLater()
+    {
         await Task.Delay(3000);
         _showConfirmation = false;
         StateHasChanged();

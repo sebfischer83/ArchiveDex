@@ -1,30 +1,38 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
+using ArchiveDex.Application.Common;
 using ArchiveDex.Application.Commands.Collection;
+using ArchiveDex.Domain.Entities;
+using ArchiveDex.Domain.Enums;
+using ArchiveDex.Infrastructure.Persistence;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ArchiveDex.Api.Tests
 {
     public class CollectionCreateContractTests(TestWebApplicationFactory factory) : IClassFixture<TestWebApplicationFactory>
     {
+        private readonly TestWebApplicationFactory _factory = factory;
         private readonly HttpClient _client = factory.CreateClient();
 
         [Fact]
         public async Task PostCollection_ValidRequest_Returns201Created()
         {
+            Guid cardPrintId = await SeedCardAsync();
             var request = new
             {
-                cardPrintId = Guid.NewGuid(),
+                cardPrintId,
                 condition = "NM",
                 quantity = 1
             };
 
             HttpResponseMessage response = await _client.PostAsJsonAsync("/api/collection", request);
 
-            Assert.True(
-                response.StatusCode is HttpStatusCode.Created
-                or HttpStatusCode.NotFound,
-                $"Expected 201 or 404, got {response.StatusCode}");
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            CollectionEntryDto? entry = await response.Content.ReadFromJsonAsync<CollectionEntryDto>();
+            Assert.NotNull(entry);
+            Assert.Equal(cardPrintId, entry!.CardId);
+            Assert.Equal(1, entry.Quantity);
         }
 
         [Fact]
@@ -58,9 +66,9 @@ namespace ArchiveDex.Api.Tests
         }
 
         [Fact]
-        public async Task PostCollection_DuplicateDetection_Returns409Or404()
+        public async Task PostCollection_DuplicateDetection_Returns409()
         {
-            var cardPrintId = Guid.NewGuid();
+            Guid cardPrintId = await SeedCardAsync();
             var request = new
             {
                 cardPrintId,
@@ -69,31 +77,27 @@ namespace ArchiveDex.Api.Tests
             };
 
             HttpResponseMessage firstResponse = await _client.PostAsJsonAsync("/api/collection", request);
-
-            if (firstResponse.StatusCode == HttpStatusCode.NotFound)
-            {
-                return;
-            }
+            Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
 
             HttpResponseMessage secondResponse = await _client.PostAsJsonAsync("/api/collection", request);
 
-            Assert.True(
-                secondResponse.StatusCode is HttpStatusCode.Conflict
-                or HttpStatusCode.Created,
-                $"Expected 409 or 201, got {secondResponse.StatusCode}");
-
-            if (secondResponse.StatusCode == HttpStatusCode.Conflict)
-            {
-                DuplicateDetectedResponse? duplicate = await secondResponse.Content.ReadFromJsonAsync<DuplicateDetectedResponse>();
-                Assert.NotNull(duplicate);
-                Assert.True(duplicate!.ProposedQuantity > duplicate.ExistingQuantity);
-            }
+            Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
+            DuplicateDetectedResponse? duplicate = await secondResponse.Content.ReadFromJsonAsync<DuplicateDetectedResponse>();
+            Assert.NotNull(duplicate);
+            Assert.Equal(1, duplicate!.ExistingQuantity);
+            Assert.Equal(2, duplicate.ProposedQuantity);
         }
 
         [Fact]
-        public async Task PostCollection_ForceCreate_AlwaysCreatesNew()
+        public async Task PostCollection_ForceCreate_CreatesSeparateEntry()
         {
-            var cardPrintId = Guid.NewGuid();
+            Guid cardPrintId = await SeedCardAsync();
+            var firstRequest = new
+            {
+                cardPrintId,
+                condition = "NM",
+                quantity = 1
+            };
             var request = new
             {
                 cardPrintId,
@@ -102,18 +106,55 @@ namespace ArchiveDex.Api.Tests
                 forceCreate = true
             };
 
+            HttpResponseMessage firstResponse = await _client.PostAsJsonAsync("/api/collection", firstRequest);
+            Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
+            CollectionEntryDto? firstEntry = await firstResponse.Content.ReadFromJsonAsync<CollectionEntryDto>();
+
             HttpResponseMessage response = await _client.PostAsJsonAsync("/api/collection", request);
 
-            Assert.True(
-                response.StatusCode is HttpStatusCode.Created
-                or HttpStatusCode.NotFound,
-                $"Expected 201 or 404, got {response.StatusCode}");
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            CollectionEntryDto? forcedEntry = await response.Content.ReadFromJsonAsync<CollectionEntryDto>();
+            Assert.NotNull(firstEntry);
+            Assert.NotNull(forcedEntry);
+            Assert.NotEqual(firstEntry!.Id, forcedEntry!.Id);
+        }
+
+        [Fact]
+        public async Task PostCollection_MergeDuplicate_IncrementsExistingEntry()
+        {
+            Guid cardPrintId = await SeedCardAsync();
+            var firstRequest = new
+            {
+                cardPrintId,
+                condition = "NM",
+                quantity = 1
+            };
+            var mergeRequest = new
+            {
+                cardPrintId,
+                condition = "NM",
+                quantity = 2,
+                mergeDuplicate = true
+            };
+
+            HttpResponseMessage firstResponse = await _client.PostAsJsonAsync("/api/collection", firstRequest);
+            Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
+            CollectionEntryDto? firstEntry = await firstResponse.Content.ReadFromJsonAsync<CollectionEntryDto>();
+
+            HttpResponseMessage mergeResponse = await _client.PostAsJsonAsync("/api/collection", mergeRequest);
+
+            Assert.Equal(HttpStatusCode.Created, mergeResponse.StatusCode);
+            CollectionEntryDto? mergedEntry = await mergeResponse.Content.ReadFromJsonAsync<CollectionEntryDto>();
+            Assert.NotNull(firstEntry);
+            Assert.NotNull(mergedEntry);
+            Assert.Equal(firstEntry!.Id, mergedEntry!.Id);
+            Assert.Equal(3, mergedEntry.Quantity);
         }
 
         [Fact]
         public async Task PostCollection_DoesNotModifyCatalogCard()
         {
-            var cardPrintId = Guid.NewGuid();
+            Guid cardPrintId = await SeedCardAsync();
             var createRequest = new
             {
                 cardPrintId,
@@ -122,11 +163,7 @@ namespace ArchiveDex.Api.Tests
             };
 
             HttpResponseMessage createResponse = await _client.PostAsJsonAsync("/api/collection", createRequest);
-
-            if (createResponse.StatusCode == HttpStatusCode.NotFound)
-            {
-                return;
-            }
+            Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
 
             HttpResponseMessage cardResponse = await _client.GetAsync($"/api/catalog/cards/{cardPrintId}");
 
@@ -136,9 +173,10 @@ namespace ArchiveDex.Api.Tests
         [Fact]
         public async Task PostCollection_ResponseTimeUnderOneSecond()
         {
+            Guid cardPrintId = await SeedCardAsync();
             var request = new
             {
-                cardPrintId = Guid.NewGuid(),
+                cardPrintId,
                 condition = "NM",
                 quantity = 1
             };
@@ -147,13 +185,40 @@ namespace ArchiveDex.Api.Tests
             HttpResponseMessage response = await _client.PostAsJsonAsync("/api/collection", request);
             sw.Stop();
 
-            Assert.True(
-                response.StatusCode is HttpStatusCode.Created
-                or HttpStatusCode.NotFound,
-                $"Expected 201 or 404, got {response.StatusCode}");
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
             Assert.True(sw.ElapsedMilliseconds < 1000,
                 $"Response time {sw.ElapsedMilliseconds}ms exceeded 1000ms budget");
+        }
+
+        private async Task<Guid> SeedCardAsync()
+        {
+            using IServiceScope scope = _factory.Services.CreateScope();
+            ArchiveDexDbContext db = scope.ServiceProvider.GetRequiredService<ArchiveDexDbContext>();
+
+            var set = new CardSet
+            {
+                Id = Guid.NewGuid(),
+                CanonicalName = $"Collection Contract Set {Guid.NewGuid():N}",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            var card = new CardPrint
+            {
+                Id = Guid.NewGuid(),
+                CardSetId = set.Id,
+                CardSet = set,
+                CardLanguage = CardLanguage.en,
+                Number = "001",
+                Name = "Collection Contract Card",
+                Origin = Origin.Imported
+            };
+
+            _ = db.CardSets.Add(set);
+            _ = db.CardPrints.Add(card);
+            _ = await db.SaveChangesAsync();
+
+            return card.Id;
         }
     }
 
