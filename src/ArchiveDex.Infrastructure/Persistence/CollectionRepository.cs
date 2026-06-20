@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Domain.Entities;
+using ArchiveDex.Domain.Enums;
 
 namespace ArchiveDex.Infrastructure.Persistence;
 
@@ -68,6 +69,13 @@ public class CollectionRepository : ICollectionRepository
         return await q.OrderByDescending(e => e.DateAdded)
             .Skip((page - 1) * pageSize).Take(pageSize)
             .ToListAsync(ct);
+    }
+
+    public async Task<CollectionEntry?> FindByCardAndConditionAsync(
+        Guid cardPrintId, CardCondition condition, CancellationToken ct = default)
+    {
+        return await _db.CollectionEntries
+            .FirstOrDefaultAsync(e => e.CardPrintId == cardPrintId && e.Condition == condition, ct);
     }
 
     public async Task AddAsync(CollectionEntry entry, CancellationToken ct = default)

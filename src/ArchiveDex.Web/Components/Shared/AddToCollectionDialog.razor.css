@@ -1,0 +1,112 @@
+.ad-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(0 0 0 / .45);
+    backdrop-filter: blur(2px);
+    padding: var(--ad-space-4);
+}
+
+.ad-dialog {
+    background: var(--ad-surface);
+    border-radius: var(--ad-radius-lg);
+    box-shadow: var(--ad-shadow-xl);
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: var(--ad-space-6);
+}
+
+.ad-dialog__title {
+    font-size: var(--ad-text-lg);
+    font-weight: var(--ad-weight-bold);
+    color: var(--ad-text);
+    margin: 0 0 var(--ad-space-5) 0;
+}
+
+.ad-dialog__dup-desc {
+    font-size: var(--ad-text-sm);
+    color: var(--ad-text-secondary);
+    margin: 0 0 var(--ad-space-2) 0;
+    line-height: 1.5;
+}
+
+.ad-dialog__dup-proposal {
+    font-size: var(--ad-text-sm);
+    color: var(--ad-text);
+    margin: 0 0 var(--ad-space-5) 0;
+    line-height: 1.5;
+}
+
+.ad-dialog__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ad-space-4);
+}
+
+.ad-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ad-space-1);
+}
+
+.ad-form-label {
+    font-size: var(--ad-text-xs);
+    font-weight: var(--ad-weight-medium);
+    color: var(--ad-text-muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.ad-form-input,
+.ad-form-select,
+.ad-form-textarea {
+    height: 44px;
+    padding: 0 var(--ad-space-3);
+    border: 1px solid var(--ad-border);
+    border-radius: var(--ad-radius-md);
+    background: var(--ad-surface-sunk);
+    color: var(--ad-text);
+    font: inherit;
+    font-size: var(--ad-text-sm);
+    transition: border-color var(--ad-motion-fast) var(--ad-ease-standard);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ad-form-textarea {
+    height: auto;
+    padding: var(--ad-space-3);
+    resize: vertical;
+}
+
+.ad-form-input:focus,
+.ad-form-select:focus,
+.ad-form-textarea:focus {
+    outline: 2px solid var(--ad-accent);
+    outline-offset: 1px;
+    border-color: var(--ad-accent);
+}
+
+.ad-dialog__error {
+    padding: var(--ad-space-3);
+    border-radius: var(--ad-radius-md);
+    background: color-mix(in srgb, var(--ad-c-danger) 10%, transparent);
+    color: var(--ad-c-danger);
+    font-size: var(--ad-text-sm);
+}
+
+.ad-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--ad-space-3);
+    margin-top: var(--ad-space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ad-dialog-overlay { backdrop-filter: none; }
+}

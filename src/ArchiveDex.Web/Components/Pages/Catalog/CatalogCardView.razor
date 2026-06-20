@@ -5,6 +5,8 @@
 @inject IStringLocalizer<SharedResources> Loc
 @using System.Net.Http.Json
 @using ArchiveDex.Application.Queries.Catalog
+@using ArchiveDex.Application.Common
+@using ArchiveDex.Web.Components.Shared
 
 <div class="detail-page">
 
@@ -30,7 +32,13 @@
     {
         <div class="detail-back">
             <button class="ad-btn ad-btn--ghost" type="button" @onclick="GoBack">← @_card.SetName</button>
+            <button class="ad-btn ad-btn--primary" type="button" @onclick="OpenAddDialog">+ Add to Collection</button>
         </div>
+
+        @if (_showConfirmation)
+        {
+            <div class="detail-confirm">Card added to your collection!</div>
+        }
 
         <div class="detail-layout">
 
@@ -238,6 +246,12 @@
         </div>
     }
 
+    @* Dialog *@
+    <AddToCollectionDialog @ref="_dialog"
+                           CardPrintId="@Id"
+                           OnConfirm="OnAddToCollection"
+                           OnCancel="OnAddCancel" />
+
 </div>
 
 @code {
@@ -245,6 +259,8 @@
 
     private CatalogCardDetail? _card;
     private bool _isLoading = true;
+    private bool _showConfirmation;
+    private AddToCollectionDialog _dialog = null!;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -264,4 +280,19 @@
     }
 
     private void GoBack() => Navigation.NavigateTo("/catalog");
+
+    private void OpenAddDialog() => _dialog.Open();
+
+    private async Task OnAddToCollection(CollectionEntryDto entry)
+    {
+        _showConfirmation = true;
+        await Task.Delay(3000);
+        _showConfirmation = false;
+        StateHasChanged();
+    }
+
+    private void OnAddCancel()
+    {
+        // Dialog closed by user, nothing to do
+    }
 }

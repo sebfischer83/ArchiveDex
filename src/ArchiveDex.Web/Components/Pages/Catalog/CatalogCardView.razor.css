@@ -1,6 +1,21 @@
 .detail-page { max-width: 960px; margin: 0 auto; }
 
-.detail-back { margin-bottom: var(--ad-space-4); }
+.detail-back {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--ad-space-4);
+}
+
+.detail-confirm {
+    padding: var(--ad-space-3) var(--ad-space-4);
+    margin-bottom: var(--ad-space-4);
+    border-radius: var(--ad-radius-md);
+    background: color-mix(in srgb, var(--ad-c-success) 10%, transparent);
+    color: var(--ad-c-success);
+    font-size: var(--ad-text-sm);
+    font-weight: var(--ad-weight-medium);
+}
 
 /* Two-column layout */
 .detail-layout {
