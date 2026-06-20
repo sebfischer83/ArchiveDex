@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="8" fill="var(--ad-surface-sunk, #f3f4f6)"/>
+  <path d="M20 14h24c1.1 0 2 .9 2 2v32c0 1.1-.9 2-2 2H20c-1.1 0-2-.9-2-2V16c0-1.1.9-2 2-2z" fill="var(--ad-gray-300, #d1d5db)" stroke="var(--ad-gray-400, #9ca3af)" stroke-width="1.5"/>
+  <rect x="22" y="30" width="8" height="12" rx="1" fill="var(--ad-gray-200, #e5e7eb)" stroke="var(--ad-gray-400, #9ca3af)" stroke-width="1"/>
+  <rect x="34" y="28" width="8" height="14" rx="1" fill="var(--ad-gray-200, #e5e7eb)" stroke="var(--ad-gray-400, #9ca3af)" stroke-width="1"/>
+  <rect x="26" y="24" width="8" height="4" rx="1" fill="var(--ad-gray-300, #d1d5db)"/>
+  <rect x="38" y="22" width="8" height="4" rx="1" fill="var(--ad-gray-300, #d1d5db)"/>
+</svg>

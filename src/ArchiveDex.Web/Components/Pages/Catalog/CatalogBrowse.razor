@@ -82,11 +82,20 @@
                     {
                         <button class="set-card @(set.SetId == _selectedSet?.SetId ? "set-card--selected" : "")"
                                 type="button" @onclick="() => SelectSet(set.SetId)">
+                            @if (!string.IsNullOrWhiteSpace(set.ImageUrl))
+                            {
+                                <img class="set-image" src="@set.ImageUrl" alt="@set.Name" loading="lazy" />
+                            }
+                            else
+                            {
+                                <img class="set-image set-image--placeholder" src="/set-placeholder.svg" alt="" />
+                            }
                             <span class="set-name">@set.Name</span>
                             <span class="set-meta">
                                 <span class="set-lang-chip">@set.CardLanguage</span>
                                 <span class="set-count">@set.CardCount cards</span>
                             </span>
+                            <span class="set-progress">@set.OwnedCount/@set.CardCount</span>
                         </button>
                     }
                 </div>
@@ -333,7 +342,9 @@
         Guid SetId,
         string Name,
         string CardLanguage,
-        int CardCount);
+        int CardCount,
+        int OwnedCount,
+        string? ImageUrl);
 
     private void NavigateToCard(Guid cardId) => Navigation.NavigateTo($"/catalog/card/{cardId}");
 
