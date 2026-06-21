@@ -1,8 +1,7 @@
 using ArchiveDex.Api.Models;
 using ArchiveDex.Application.Abstractions;
+using ArchiveDex.Application.Commands.Catalog;
 using ArchiveDex.Application.Queries.Catalog;
-using ArchiveDex.Domain.Entities;
-using ArchiveDex.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArchiveDex.Api.Controllers;
@@ -31,18 +30,9 @@ public class CatalogController(ICatalogRepository repo) : ControllerBase
     [HttpPost("cards")]
     public async Task<IActionResult> CreateCard([FromBody] CardCreateRequest input, CancellationToken ct)
     {
-        var card = new CardPrint
-        {
-            Id = Guid.NewGuid(),
-            CardSetId = input.SetId,
-            Number = input.Number,
-            Name = input.Name,
-            CardLanguage = Enum.Parse<CardLanguage>(input.CardLanguage),
-            Rarity = input.Rarity,
-            Origin = Origin.Manual
-        };
-        _ = await repo.AddAsync(card, ct);
-        return Created($"/api/catalog/cards/{card.Id}", new { card.Id });
+        CardCreatedResponse result = await CreateCardHandler.Handle(
+            new CreateCard(input.SetId, input.Number, input.Name, input.CardLanguage, input.Rarity), repo, ct);
+        return Created($"/api/catalog/cards/{result.Id}", result);
     }
 
     [HttpGet("sets")]

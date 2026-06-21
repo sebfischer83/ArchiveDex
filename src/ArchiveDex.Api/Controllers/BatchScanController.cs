@@ -2,12 +2,13 @@ using System.Text.Json;
 using ArchiveDex.Api.Models;
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.BatchScan.DTOs;
-using ArchiveDex.Application.BatchScan.Services;
+using ArchiveDex.Application.Queries.BatchScan;
 using ArchiveDex.Application.Scanning;
 using ArchiveDex.Domain.Entities;
 using ArchiveDex.Domain.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using BatchScanCmd = ArchiveDex.Application.Commands.BatchScan;
 
 namespace ArchiveDex.Api.Controllers;
 
@@ -19,112 +20,52 @@ public class BatchScanController(
     ICollectionRepository collectionRepo,
     ICatalogRepository catalogRepo) : ControllerBase
 {
-    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".jpg", ".jpeg", ".png", ".webp"
-    };
-    private const long MaxFileSize = 10 * 1024 * 1024;
-
     [HttpPost]
     [DisableRequestSizeLimit]
     public async Task<IActionResult> CreateBatch([FromForm] IFormFileCollection images, CancellationToken ct)
     {
-        if (images is null || images.Count == 0)
-            return BadRequest(new { error = "validation_error", message = "At least one image is required." });
-
-        if (images.Count < 2)
+        if (images is null || images.Count < 2)
             return BadRequest(new { error = "validation_error", message = "At least 2 images are required for a batch scan." });
 
         if (images.Count > 50)
             return BadRequest(new { error = "validation_error", message = "Maximum 50 images per batch." });
 
-        BatchScanJob? activeBatch = await batchRepo.GetActiveBatchAsync(ct);
-        if (activeBatch is not null)
-            return Conflict(new { error = "active_batch_exists", message = "An active batch already exists. Complete or discard it before starting a new one." });
-
-        var job = new BatchScanJob
-        {
-            Id = Guid.NewGuid(),
-            Status = BatchStatus.Uploading,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        var items = new List<BatchScanItem>();
-        var errors = new List<object>();
-        var validItemCount = 0;
-
+        var files = new List<BatchScanCmd.CreateBatchScanFile>();
         for (int i = 0; i < images.Count; i++)
         {
             IFormFile image = images[i];
-            string ext = Path.GetExtension(image.FileName);
-
-            if (!AllowedExtensions.Contains(ext))
-            {
-                var error = $"Unsupported format: {ext}. Allowed: JPEG, PNG, WebP.";
-                errors.Add(new { index = i, fileName = image.FileName, error });
-                items.Add(CreateFailedItem(job.Id, i, error));
-                continue;
-            }
-
-            if (image.Length > MaxFileSize)
-            {
-                const string error = "File exceeds 10 MB limit.";
-                errors.Add(new { index = i, fileName = image.FileName, error });
-                items.Add(CreateFailedItem(job.Id, i, error));
-                continue;
-            }
-
-            try
-            {
-                await using Stream stream = image.OpenReadStream();
-                ImageAsset imageAsset = await imageStore.StoreAsync(stream, image.FileName, ct);
-
-                var item = new BatchScanItem
-                {
-                    Id = Guid.NewGuid(),
-                    BatchScanJobId = job.Id,
-                    ImageAssetId = imageAsset.Id,
-                    SortOrder = i,
-                    MatchStatus = BatchItemMatchStatus.PendingReview,
-                    ImageAsset = imageAsset
-                };
-
-                items.Add(item);
-                validItemCount++;
-            }
-            catch (Exception ex)
-            {
-                errors.Add(new { index = i, fileName = image.FileName, error = ex.Message });
-                items.Add(CreateFailedItem(job.Id, i, ex.Message));
-            }
+            files.Add(new BatchScanCmd.CreateBatchScanFile(image.OpenReadStream(), image.FileName, image.Length));
         }
 
-        if (validItemCount == 0 && errors.Count > 0)
-            return BadRequest(new { error = "validation_error", message = "No valid images in batch.", details = errors });
-
-        job.Items = items;
-        await batchRepo.AddJobAsync(job, ct);
-
-        if (validItemCount > 0)
-            BatchOcrQueue.Enqueue(job.Id);
-
-        var response = new
+        try
         {
-            job.Id,
-            status = job.Status.ToString(),
-            itemCount = items.Count,
-            errorCount = errors.Count,
-            createdAt = job.CreatedAt,
-            errors = errors.Count > 0 ? errors : null
-        };
+            BatchScanCmd.CreateBatchScanResult result = await BatchScanCmd.CreateBatchScanHandler.Handle(
+                new BatchScanCmd.CreateBatchScan(files), batchRepo, imageStore, ct);
 
-        return Created($"/api/batch-scans/{job.Id}", response);
+            return Created($"/api/batch-scans/{result.Id}", new
+            {
+                result.Id,
+                result.Status,
+                result.ItemCount,
+                result.ErrorCount,
+                result.CreatedAt,
+                result.Errors
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = "validation_error", message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = "active_batch_exists", message = ex.Message });
+        }
     }
 
     [HttpGet("active")]
     public async Task<IActionResult> GetActiveBatch(CancellationToken ct)
     {
-        BatchScanJob? job = await batchRepo.GetActiveBatchAsync(ct);
+        BatchScanJob? job = await GetActiveBatchHandler.Handle(new GetActiveBatch(), batchRepo, ct);
         if (job is null)
             return NotFound(new { error = "not_found", message = "No active batch." });
 
@@ -134,7 +75,7 @@ public class BatchScanController(
     [HttpGet("{batchId:guid}")]
     public async Task<IActionResult> GetBatch(Guid batchId, [FromQuery] string? statusFilter, CancellationToken ct)
     {
-        BatchScanJob? job = await batchRepo.GetByIdAsync(batchId, ct);
+        BatchScanJob? job = await GetBatchHandler.Handle(new GetBatch(batchId), batchRepo, ct);
         if (job is null)
             return NotFound(new { error = "not_found", message = "Batch not found." });
 
@@ -144,7 +85,6 @@ public class BatchScanController(
         {
             var items = (IEnumerable<object>?)detail.GetType().GetProperty("items")?.GetValue(detail);
             var filtered = items?.Where(i => MatchesFilter(i, statusFilter)).ToList();
-
             var batch = detail.GetType().GetProperty("batch")?.GetValue(detail);
             detail = new { batch, items = filtered };
         }
@@ -155,152 +95,63 @@ public class BatchScanController(
     [HttpDelete("{batchId:guid}")]
     public async Task<IActionResult> DiscardBatch(Guid batchId, CancellationToken ct)
     {
-        BatchScanJob? job = await batchRepo.GetByIdAsync(batchId, ct);
-        if (job is null)
-            return NotFound(new { error = "not_found", message = "Batch not found." });
-
-        if (job.Items.Any(i => i.CollectionEntryId is not null))
-            return Conflict(new { error = "cannot_discard", message = "Cannot discard a batch that has accepted items." });
-
-        foreach (BatchScanItem item in job.Items)
+        try
         {
-            try
-            {
-                if (item.ImageAsset is not null)
-                    await imageStore.DeleteAsync(item.ImageAsset.RelativePath, ct);
-            }
-            catch { }
+            await BatchScanCmd.DiscardBatchHandler.Handle(new BatchScanCmd.DiscardBatch(batchId), batchRepo, imageStore, ct);
+            return NoContent();
         }
-
-        await batchRepo.DeleteJobAsync(job.Id, ct);
-        return NoContent();
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
+        {
+            return NotFound(new { error = "not_found", message = "Batch not found." });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("accepted items"))
+        {
+            return Conflict(new { error = "cannot_discard", message = ex.Message });
+        }
     }
 
     [HttpPost("{batchId:guid}/accept")]
     public async Task<IActionResult> AcceptBatch(Guid batchId, [FromBody] AcceptBatchRequest request, CancellationToken ct)
     {
-        BatchScanJob? job = await batchRepo.GetByIdAsync(batchId, ct);
-        if (job is null)
+        var items = request.Items?.Select(i => new BatchScanCmd.AcceptBatchItem(
+            i.ItemId, i.Condition, i.Quantity, i.PurchasePrice,
+            i.StorageLocation, i.Notes, i.DuplicateAction)).ToList() ?? [];
+
+        var defaults = request.Defaults is not null
+            ? new BatchScanCmd.AcceptBatchDefaults(request.Defaults.Condition, request.Defaults.Quantity,
+                request.Defaults.PurchasePrice, request.Defaults.StorageLocation, request.Defaults.Notes)
+            : null;
+
+        try
+        {
+            BatchAcceptResult result = await BatchScanCmd.AcceptBatchHandler.Handle(
+                new BatchScanCmd.AcceptBatch(batchId, items, defaults),
+                batchRepo, collectionRepo, catalogRepo, ct);
+
+            if (result.DuplicateConflicts.Count > 0 && result.AcceptedCount == 0)
+                return Conflict(new
+                {
+                    error = "duplicate_detected",
+                    message = "All items have duplicates in the collection.",
+                    conflicts = result.DuplicateConflicts
+                });
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
+        {
             return NotFound(new { error = "not_found", message = "Batch not found." });
-
-        if (job.Status != BatchStatus.ReadyForReview && job.Status != BatchStatus.PartiallyAccepted)
-            return BadRequest(new { error = "invalid_state", message = "Batch is not ready for acceptance." });
-
-        if (request.Items is null || request.Items.Count == 0)
-            return BadRequest(new { error = "validation_error", message = "No items to accept." });
-
-        var acceptedEntryIds = new List<Guid>();
-        var duplicateConflicts = new List<DuplicateConflictDto>();
-
-        string defaultCondition = request.Defaults?.Condition ?? "NM";
-        int defaultQuantity = request.Defaults?.Quantity ?? 1;
-
-        foreach (var acceptItem in request.Items)
-        {
-            BatchScanItem? item = job.Items.FirstOrDefault(i => i.Id == acceptItem.ItemId);
-            if (item is null || item.MatchedCardPrintId is null)
-                continue;
-
-            if (item.MatchStatus is BatchItemMatchStatus.NoMatch or BatchItemMatchStatus.Rejected or BatchItemMatchStatus.Accepted)
-                continue;
-
-            CardPrint? card = await catalogRepo.GetByIdAsync(item.MatchedCardPrintId.Value, ct);
-            if (card is null)
-                continue;
-
-            var condition = Enum.TryParse<CardCondition>(
-                acceptItem.Condition ?? defaultCondition, out var parsed) ? parsed : CardCondition.NM;
-            var quantity = acceptItem.Quantity ?? defaultQuantity;
-
-            CollectionEntry? existing = await collectionRepo.FindByCardAndConditionAsync(card.Id, condition, ct);
-            if (existing is not null)
-            {
-                var duplicateAction = acceptItem.DuplicateAction?.ToLowerInvariant() ?? "skip";
-                if (duplicateAction == "merge")
-                {
-                    existing.Quantity += quantity;
-                    decimal? purchasePrice = acceptItem.PurchasePrice ?? request.Defaults?.PurchasePrice;
-                    if (purchasePrice.HasValue)
-                        existing.PurchasePrice = purchasePrice.Value;
-
-                    existing.StorageLocation = acceptItem.StorageLocation ?? request.Defaults?.StorageLocation ?? existing.StorageLocation;
-                    existing.Notes = acceptItem.Notes ?? request.Defaults?.Notes ?? existing.Notes;
-                    await collectionRepo.UpdateAsync(existing, ct);
-
-                    item.CollectionEntryId = existing.Id;
-                    item.MatchStatus = BatchItemMatchStatus.Accepted;
-                    await batchRepo.UpdateItemAsync(item, ct);
-
-                    acceptedEntryIds.Add(existing.Id);
-                    continue;
-                }
-
-                if (duplicateAction != "separate")
-                {
-                    duplicateConflicts.Add(new DuplicateConflictDto(
-                        item.Id,
-                        existing.Id,
-                        card.Name ?? "Unknown",
-                        condition.ToString(),
-                        "Card already in collection. Merge quantities or create separate entry."));
-                    continue;
-                }
-            }
-
-            var entry = new CollectionEntry
-            {
-                Id = Guid.NewGuid(),
-                CardPrintId = card.Id,
-                Condition = condition,
-                Quantity = quantity,
-                PurchasePrice = acceptItem.PurchasePrice ?? request.Defaults?.PurchasePrice,
-                StorageLocation = acceptItem.StorageLocation ?? request.Defaults?.StorageLocation,
-                Notes = acceptItem.Notes ?? request.Defaults?.Notes,
-                FrontImagePath = item.ImageAsset?.RelativePath ?? string.Empty,
-                DateAdded = DateTime.UtcNow
-            };
-
-            await collectionRepo.AddAsync(entry, ct);
-
-            item.CollectionEntryId = entry.Id;
-            item.MatchStatus = BatchItemMatchStatus.Accepted;
-            await batchRepo.UpdateItemAsync(item, ct);
-
-            acceptedEntryIds.Add(entry.Id);
         }
-
-        if (duplicateConflicts.Count > 0 && acceptedEntryIds.Count == 0)
-            return Conflict(new
-            {
-                error = "duplicate_detected",
-                message = "All items have duplicates in the collection.",
-                conflicts = duplicateConflicts
-            });
-
-        job = await batchRepo.GetByIdAsync(batchId, ct);
-        if (job is not null)
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ready"))
         {
-            bool allResolved = job.Items.All(i =>
-                i.MatchStatus is BatchItemMatchStatus.Accepted or BatchItemMatchStatus.Rejected or BatchItemMatchStatus.NoMatch);
-
-            job.Status = allResolved ? BatchStatus.Complete : BatchStatus.PartiallyAccepted;
-            if (allResolved)
-                job.CompletedAt = DateTime.UtcNow;
-
-            await batchRepo.UpdateJobAsync(job, ct);
+            return BadRequest(new { error = "invalid_state", message = ex.Message });
         }
-
-        return Ok(new BatchAcceptResult(
-            acceptedEntryIds.Count,
-            duplicateConflicts,
-            job?.Status.ToString() ?? "Unknown",
-            acceptedEntryIds));
     }
 
     [HttpGet("{batchId:guid}/items/{itemId:guid}")]
     public async Task<IActionResult> GetBatchItem(Guid batchId, Guid itemId, CancellationToken ct)
     {
-        BatchScanItem? item = await batchRepo.GetItemByIdAsync(batchId, itemId, ct);
+        BatchScanItem? item = await GetBatchItemHandler.Handle(new GetBatchItem(batchId, itemId), batchRepo, ct);
         if (item is null)
             return NotFound(new { error = "not_found", message = "Item not found." });
 
@@ -318,79 +169,65 @@ public class BatchScanController(
     [HttpPut("{batchId:guid}/items/{itemId:guid}/match")]
     public async Task<IActionResult> UpdateItemMatch(Guid batchId, Guid itemId, [FromBody] UpdateItemMatchRequest request, CancellationToken ct)
     {
-        BatchScanItem? item = await batchRepo.GetItemByIdAsync(batchId, itemId, ct);
-        if (item is null)
+        try
+        {
+            BatchScanCmd.UpdateItemMatchResult result = await BatchScanCmd.UpdateItemMatchHandler.Handle(
+                new BatchScanCmd.UpdateItemMatch(batchId, itemId, request.CardPrintId), batchRepo, catalogRepo, ct);
+
+            BatchScanJob? job = await batchRepo.GetByIdAsync(batchId, ct);
+            HashSet<Guid> duplicateIds = GetDuplicateItemIds(job?.Items ?? []);
+
+            return Ok(new
+            {
+                result.Id,
+                batchId = result.BatchId,
+                result.SortOrder,
+                result.ImageUrl,
+                result.MatchStatus,
+                result.IsReviewed,
+                result.MatchedCardPrintId,
+                isDuplicateInBatch = duplicateIds.Contains(result.Id)
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
+        {
             return NotFound(new { error = "not_found", message = "Item not found." });
-
-        CardPrint? card = await catalogRepo.GetByIdAsync(request.CardPrintId, ct);
-        if (card is null)
-            return BadRequest(new { error = "invalid_card", message = "Card not found in catalog." });
-
-        item.MatchedCardPrintId = card.Id;
-        item.MatchStatus = BatchItemMatchStatus.Overridden;
-        item.IsReviewed = true;
-
-        await batchRepo.UpdateItemAsync(item, ct);
-
-        BatchScanJob? job = await batchRepo.GetByIdAsync(batchId, ct);
-        HashSet<Guid> duplicateIds = GetDuplicateItemIds(job?.Items ?? []);
-        return Ok(await MapItemToDetail(item, duplicateIds, ct));
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("catalog"))
+        {
+            return BadRequest(new { error = "invalid_card", message = ex.Message });
+        }
     }
 
     [HttpPut("{batchId:guid}/items/{itemId:guid}/no-match")]
     public async Task<IActionResult> MarkItemNoMatch(Guid batchId, Guid itemId, CancellationToken ct)
     {
-        BatchScanItem? item = await batchRepo.GetItemByIdAsync(batchId, itemId, ct);
-        if (item is null)
-            return NotFound(new { error = "not_found", message = "Item not found." });
-
-        item.MatchStatus = BatchItemMatchStatus.NoMatch;
-        item.IsReviewed = true;
-
-        await batchRepo.UpdateItemAsync(item, ct);
-
-        BatchScanJob? job = await batchRepo.GetByIdAsync(batchId, ct);
-        if (job is not null && job.Items.All(i => i.MatchStatus is BatchItemMatchStatus.Accepted or BatchItemMatchStatus.Rejected or BatchItemMatchStatus.NoMatch))
+        try
         {
-            job.Status = BatchStatus.Complete;
-            job.CompletedAt = DateTime.UtcNow;
-            await batchRepo.UpdateJobAsync(job, ct);
+            await BatchScanCmd.MarkItemNoMatchHandler.Handle(new BatchScanCmd.MarkItemNoMatch(batchId, itemId), batchRepo, ct);
+            BatchScanItem? item = await batchRepo.GetItemByIdAsync(batchId, itemId, ct);
+            return Ok(await MapItemToDetail(item!, [], ct));
         }
-
-        return Ok(await MapItemToDetail(item, [], ct));
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
+        {
+            return NotFound(new { error = "not_found", message = "Item not found." });
+        }
     }
 
     [HttpPut("{batchId:guid}/items/{itemId:guid}/reject")]
     public async Task<IActionResult> RejectItem(Guid batchId, Guid itemId, CancellationToken ct)
     {
-        BatchScanItem? item = await batchRepo.GetItemByIdAsync(batchId, itemId, ct);
-        if (item is null)
-            return NotFound(new { error = "not_found", message = "Item not found." });
-
-        item.MatchStatus = BatchItemMatchStatus.Rejected;
-        item.IsReviewed = true;
-        await batchRepo.UpdateItemAsync(item, ct);
-
-        BatchScanJob? job = await batchRepo.GetByIdAsync(batchId, ct);
-        if (job is not null && job.Items.All(i => i.MatchStatus is BatchItemMatchStatus.Accepted or BatchItemMatchStatus.Rejected or BatchItemMatchStatus.NoMatch))
+        try
         {
-            job.Status = BatchStatus.Complete;
-            job.CompletedAt = DateTime.UtcNow;
-            await batchRepo.UpdateJobAsync(job, ct);
+            await BatchScanCmd.RejectItemHandler.Handle(new BatchScanCmd.RejectItem(batchId, itemId), batchRepo, ct);
+            BatchScanItem? item = await batchRepo.GetItemByIdAsync(batchId, itemId, ct);
+            return Ok(await MapItemToDetail(item!, [], ct));
         }
-
-        return Ok(await MapItemToDetail(item, [], ct));
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
+        {
+            return NotFound(new { error = "not_found", message = "Item not found." });
+        }
     }
-
-    private static BatchScanItem CreateFailedItem(Guid batchId, int sortOrder, string reason) => new()
-    {
-        Id = Guid.NewGuid(),
-        BatchScanJobId = batchId,
-        SortOrder = sortOrder,
-        MatchStatus = BatchItemMatchStatus.Rejected,
-        IsReviewed = true,
-        FailureReason = reason
-    };
 
     private object MapToDetail(BatchScanJob job)
     {
@@ -453,10 +290,7 @@ public class BatchScanController(
         List<CandidateMatch>? candidates = null;
         if (item.OcrResult?.CandidateMatches is { } json && json != "[]")
         {
-            try
-            {
-                candidates = JsonSerializer.Deserialize<List<CandidateMatch>>(json);
-            }
+            try { candidates = JsonSerializer.Deserialize<List<CandidateMatch>>(json); }
             catch { }
         }
 

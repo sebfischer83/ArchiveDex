@@ -1,9 +1,7 @@
-using System.Text.Json;
 using ArchiveDex.Api.Models;
 using ArchiveDex.Application.Abstractions;
+using ArchiveDex.Application.Commands.Import;
 using ArchiveDex.Application.Queries.Import;
-using ArchiveDex.Domain.Entities;
-using ArchiveDex.Domain.Enums;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,22 +30,13 @@ public class ImportController(
     [HttpPost("jobs")]
     public async Task<IActionResult> StartJob([FromBody] ImportJobRequest request, CancellationToken ct)
     {
-        var jobId = Guid.NewGuid();
-        var job = new ImportJob
-        {
-            Id = jobId,
-            Source = request.Source,
-            SelectedSets = JsonSerializer.Serialize(request.SetIds),
-            SelectedCardLanguages = JsonSerializer.Serialize(request.CardLanguages),
-            Status = ImportJobStatus.Pending
-        };
-
-        await jobs.AddAsync(job, ct);
+        StartImportJobResult result = await StartImportJobHandler.Handle(
+            new StartImportJob(request.Source, request.SetIds, request.CardLanguages), jobs, ct);
 
         _ = backgroundJobs.Enqueue<IImportJobService>(
-            svc => svc.ExecuteAsync(jobId, request.Source, request.SetIds, request.CardLanguages));
+            svc => svc.ExecuteAsync(result.Id, request.Source, request.SetIds, request.CardLanguages));
 
-        return Accepted($"/api/import/jobs/{job.Id}", new { id = job.Id });
+        return Accepted($"/api/import/jobs/{result.Id}", result);
     }
 
     [HttpGet("sources")]
@@ -61,8 +50,5 @@ public class ImportController(
         CancellationToken ct) =>
         LoadImportSetsHandler.Handle(
             new LoadImportSets(cardLanguage, string.IsNullOrWhiteSpace(source) ? "TCGdex" : source),
-            sources,
-            setImport,
-            catalog,
-            ct);
+            sources, setImport, catalog, ct);
 }

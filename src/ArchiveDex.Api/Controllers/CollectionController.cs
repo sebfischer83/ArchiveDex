@@ -4,7 +4,6 @@ using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Commands.Collection;
 using ArchiveDex.Application.Common;
 using ArchiveDex.Application.Queries.Collection;
-using ArchiveDex.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArchiveDex.Api.Controllers;
@@ -28,8 +27,9 @@ public class CollectionController(
     [HttpGet("{entryId:guid}")]
     public async Task<IActionResult> Get(Guid entryId, CancellationToken ct)
     {
-        CollectionEntry? entry = await collectionRepository.GetByIdAsync(entryId, ct);
-        return entry is null ? NotFound() : Ok(CollectionEntryDto.FromEntry(entry));
+        CollectionEntryDto? entry = await GetCollectionEntryHandler.Handle(
+            new GetCollectionEntry(entryId), collectionRepository, ct);
+        return entry is null ? NotFound() : Ok(entry);
     }
 
     [HttpPost]
@@ -38,14 +38,9 @@ public class CollectionController(
         try
         {
             var command = new CreateCollectionEntry(
-                input.CardPrintId,
-                input.Condition,
-                input.Quantity,
-                input.PurchasePrice,
-                input.StorageLocation,
-                input.Notes,
-                input.ForceCreate,
-                input.MergeDuplicate);
+                input.CardPrintId, input.Condition, input.Quantity,
+                input.PurchasePrice, input.StorageLocation, input.Notes,
+                input.ForceCreate, input.MergeDuplicate);
 
             CreateCollectionResult result = await CreateCollectionEntryHandler.Handle(
                 command, catalogRepository, collectionRepository, ct);
@@ -67,24 +62,16 @@ public class CollectionController(
     [HttpPut("{entryId:guid}")]
     public async Task<IActionResult> Update(Guid entryId, [FromBody] CollectionUpdateRequest input, CancellationToken ct)
     {
-        CollectionEntry? entry = await collectionRepository.GetByIdAsync(entryId, ct);
-        if (entry is null)
-            return NotFound();
-
-        entry.Condition = input.Condition;
-        entry.Quantity = input.Quantity;
-        entry.PurchasePrice = input.PurchasePrice;
-        entry.StorageLocation = input.StorageLocation;
-        entry.Notes = input.Notes;
-
-        await collectionRepository.UpdateAsync(entry, ct);
-        return Ok(CollectionEntryDto.FromEntry(entry));
+        CollectionEntryDto dto = await UpdateCollectionEntryHandler.Handle(
+            new UpdateCollectionEntry(entryId, input.Condition, input.Quantity,
+                input.PurchasePrice, input.StorageLocation, input.Notes), collectionRepository, ct);
+        return Ok(dto);
     }
 
     [HttpDelete("{entryId:guid}")]
     public async Task<IActionResult> Delete(Guid entryId, CancellationToken ct)
     {
-        await collectionRepository.DeleteAsync(entryId, ct);
+        await DeleteCollectionEntryHandler.Handle(new DeleteCollectionEntry(entryId), collectionRepository, ct);
         return NoContent();
     }
 

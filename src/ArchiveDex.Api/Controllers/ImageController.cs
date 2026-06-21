@@ -1,4 +1,5 @@
 using ArchiveDex.Application.Abstractions;
+using ArchiveDex.Application.Queries.Image;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArchiveDex.Api.Controllers;
@@ -10,17 +11,14 @@ public class ImageController(IImageStore imageStore) : ControllerBase
     [HttpGet("{**fileName}")]
     public async Task<IActionResult> Get(string fileName, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(fileName) ||
-            fileName.Contains("..") ||
-            Path.IsPathRooted(fileName))
-        {
-            return BadRequest();
-        }
-
         try
         {
-            Stream stream = await imageStore.GetAsync(fileName, ct);
+            Stream stream = await GetImageHandler.Handle(new GetImage(fileName), imageStore, ct);
             return File(stream, GetContentType(fileName));
+        }
+        catch (ArgumentException)
+        {
+            return BadRequest();
         }
         catch (FileNotFoundException)
         {
