@@ -17,6 +17,8 @@ namespace ArchiveDex.Infrastructure.Tcg
 
         public string SourceName => "TCGdex";
 
+        public string[] SupportedLanguages => ["de", "en", "fr", "es", "it", "pt", "pt-br", "nl", "pl", "ru", "ja", "ko", "id", "th"];
+
         public async Task<IReadOnlyList<SetSummary>> GetAvailableSetsAsync(string language, CancellationToken ct = default)
         {
             TcgdexClient client = _client.WithLanguage(ToLanguage(language));

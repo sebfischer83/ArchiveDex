@@ -11,6 +11,8 @@ namespace ArchiveDex.Infrastructure.Tcg
 
         public string SourceName => "Limitless";
 
+        public string[] SupportedLanguages => ["de", "en", "es", "fr", "it", "ja", "pt"];
+
         public async Task<IReadOnlyList<SetSummary>> GetAvailableSetsAsync(string language, CancellationToken ct = default)
         {
             List<LimitlessSet> sets = await _client.GetSetsAsync(ToLimitlessLanguage(language), Translate(language), ct);
@@ -41,7 +43,48 @@ namespace ArchiveDex.Infrastructure.Tcg
                     c.ImageUrl))];
         }
 
-        public Task<CardDetailDto?> GetCardDetailAsync(string cardId, string language, CancellationToken ct = default) => Task.FromResult<CardDetailDto?>(null);
+        public async Task<CardDetailDto?> GetCardDetailAsync(string cardId, string language, CancellationToken ct = default)
+        {
+            var parts = cardId.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != 3)
+                return null;
+
+            var setCode = parts[0];
+            var langCode = parts[1];
+            var number = parts[2];
+            LimitlessCardDetail? detail = await _client.GetCardDetailAsync(setCode, number, ToLimitlessLanguage(langCode), ct);
+            if (detail is null)
+                return null;
+
+            return new CardDetailDto(
+                ExternalId: cardId,
+                Number: number,
+                Name: detail.Name ?? number,
+                Rarity: null,
+                ImageUrl: detail.ImageUrl,
+                Category: detail.Category,
+                Illustrator: detail.Illustrator,
+                Hp: detail.Hp,
+                Types: detail.Types,
+                Stage: detail.Stage,
+                EvolveFrom: null,
+                Description: null,
+                DexIds: null,
+                Level: null,
+                Suffix: null,
+                VariantNormal: false,
+                VariantHolo: false,
+                VariantReverse: false,
+                VariantFirstEdition: false,
+                RegulationMark: detail.RegulationMark,
+                LegalStandard: detail.LegalStandard,
+                LegalExpanded: detail.LegalExpanded,
+                Attacks: detail.Attacks?.Select(a => new CardAttackDto(a.Cost, a.Name, a.Effect, a.Damage)).ToList(),
+                Weaknesses: detail.Weaknesses?.Select(w => new CardTypeValueDto(w.Type, w.Value)).ToList(),
+                Resistances: detail.Resistances?.Select(r => new CardTypeValueDto(r.Type, r.Value)).ToList(),
+                Retreat: detail.Retreat
+            );
+        }
 
         public Task<CardImageDownload?> DownloadCardImageAsync(string imageUrl, CancellationToken ct = default) => ImageDownloadHelper.DownloadAsync(_http, imageUrl, ct);
 
@@ -49,6 +92,10 @@ namespace ArchiveDex.Infrastructure.Tcg
         {
             "de" => LimitlessLanguage.De,
             "ja" or "jp" => LimitlessLanguage.Jp,
+            "fr" => LimitlessLanguage.Fr,
+            "es" => LimitlessLanguage.Es,
+            "it" => LimitlessLanguage.It,
+            "pt" => LimitlessLanguage.Pt,
             _ => LimitlessLanguage.En
         };
 

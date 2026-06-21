@@ -23,4 +23,30 @@ namespace ArchiveDex.Limitless.Models
     {
         public string VendorId => $"{SetCode}/{Language.ToCode()}/{Number}";
     }
+
+    public record LimitlessCardDetail(
+        string? ImageUrl,
+        string? Name,
+        string? Category,
+        string? Stage,
+        IReadOnlyList<string>? Types,
+        int? Hp,
+        string? Illustrator,
+        string? RegulationMark,
+        bool? LegalStandard,
+        bool? LegalExpanded,
+        IReadOnlyList<LimitlessAttack>? Attacks,
+        IReadOnlyList<LimitlessTypeValue>? Weaknesses,
+        IReadOnlyList<LimitlessTypeValue>? Resistances,
+        int? Retreat
+    );
+
+    public record LimitlessAttack(
+        IReadOnlyList<string> Cost,
+        string Name,
+        string? Effect,
+        int? Damage
+    );
+
+    public record LimitlessTypeValue(string Type, string Value);
 }

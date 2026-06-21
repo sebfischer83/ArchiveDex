@@ -20,6 +20,15 @@ namespace ArchiveDex.Limitless
             return LimitlessParser.ParseCards(html, setCode, language);
         }
 
+        public async Task<LimitlessCardDetail?> GetCardDetailAsync(string setCode, string number, LimitlessLanguage language, CancellationToken ct = default)
+        {
+            var path = language == LimitlessLanguage.Jp
+                ? $"https://limitlesstcg.com/cards/jp/{Uri.EscapeDataString(setCode)}/{Uri.EscapeDataString(number)}"
+                : $"https://limitlesstcg.com/cards/{Uri.EscapeDataString(setCode)}/{Uri.EscapeDataString(number)}";
+            var html = await _http.GetStringAsync(path, ct);
+            return LimitlessParser.ParseCardDetail(html);
+        }
+
         private static string BuildSetsUrl(string langCode, string? translate)
         {
             var ub = new UriBuilder($"https://limitlesstcg.com/cards/{Uri.EscapeDataString(langCode)}");
@@ -45,7 +54,7 @@ namespace ArchiveDex.Limitless
         }
     }
 
-    public enum LimitlessLanguage { En, Jp, De }
+    public enum LimitlessLanguage { En, Jp, De, Fr, Es, It, Pt }
 
     public static class LimitlessLanguageExtensions
     {
@@ -54,6 +63,10 @@ namespace ArchiveDex.Limitless
             LimitlessLanguage.En => "en",
             LimitlessLanguage.Jp => "jp",
             LimitlessLanguage.De => "de",
+            LimitlessLanguage.Fr => "fr",
+            LimitlessLanguage.Es => "es",
+            LimitlessLanguage.It => "it",
+            LimitlessLanguage.Pt => "pt",
             _ => "en"
         };
     }

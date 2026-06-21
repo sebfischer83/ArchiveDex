@@ -3,6 +3,7 @@ namespace ArchiveDex.Application.Abstractions
     public interface ITcgDataSource
     {
         string SourceName { get; }
+        string[] SupportedLanguages { get; }
         Task<IReadOnlyList<SetSummary>> GetAvailableSetsAsync(string language, CancellationToken ct = default);
         /// <summary>Full set metadata (incl. release date + series) from the set-detail endpoint.</summary>
         Task<SetSummary?> GetSetMetaAsync(string setId, string language, CancellationToken ct = default);

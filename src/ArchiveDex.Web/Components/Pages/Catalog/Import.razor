@@ -22,7 +22,7 @@
             <div class="form-row">
                 <div class="form-field">
                     <label class="field-label" for="imp-source">Source</label>
-                    <select id="imp-source" @bind="_model.Source" class="field-select">
+                    <select id="imp-source" value="@_model.Source" @onchange="OnSourceChanged" class="field-select">
                         @foreach (var source in _sources)
                         {
                             <option value="@source">@source</option>
@@ -172,6 +172,7 @@
     private List<ImportJobSummaryView> _jobs = [];
     private string[] _sources = ["TCGdex"];
     private string[] _languages = ["de", "en", "ja", "ko", "zh-Hans", "zh-Hant"];
+    private Dictionary<string, string[]> _sourceLanguages = new();
     private PeriodicTimer? _statusTimer;
     private CancellationTokenSource? _pollingCts;
 
@@ -260,16 +261,31 @@
                     _model.Source = _sources[0];
             }
 
-            if (response.CardLanguages.Length > 0)
+            if (response.SourceLanguages.Count > 0)
             {
-                _languages = response.CardLanguages;
-                if (!_languages.Contains(_model.CardLanguage, StringComparer.OrdinalIgnoreCase))
-                    _model.CardLanguage = _languages[0];
+                _sourceLanguages = response.SourceLanguages;
+                UpdateLanguagesForSource(_model.Source);
             }
         }
         catch (Exception ex)
         {
             _message = ex.Message;
+        }
+    }
+
+    private void OnSourceChanged(ChangeEventArgs e)
+    {
+        _model.Source = e.Value?.ToString() ?? _model.Source;
+        UpdateLanguagesForSource(_model.Source);
+    }
+
+    private void UpdateLanguagesForSource(string source)
+    {
+        if (_sourceLanguages.TryGetValue(source, out string[]? langs) && langs.Length > 0)
+        {
+            _languages = langs;
+            if (!_languages.Contains(_model.CardLanguage, StringComparer.OrdinalIgnoreCase))
+                _model.CardLanguage = _languages[0];
         }
     }
 
@@ -395,7 +411,7 @@
 
     private sealed record ImportStartedResponse(Guid Id);
 
-    private sealed record ImportSourcesView(string[] Sources, string[] CardLanguages);
+    private sealed record ImportSourcesView(string[] Sources, Dictionary<string, string[]> SourceLanguages);
 
     private sealed record ImportJobStatusView(
         Guid Id,

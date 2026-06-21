@@ -6,14 +6,17 @@ namespace ArchiveDex.Application.Queries.Import
 
     public sealed record ImportSourcesResponse(
         string[] Sources,
-        string[] CardLanguages,
+        Dictionary<string, string[]> SourceLanguages,
         object[] Sets);
 
     public static class GetImportSourcesHandler
     {
         public static ImportSourcesResponse Handle(GetImportSources query, ITcgDataSourceRegistry sources) => new ImportSourcesResponse(
                 Sources: [.. sources.Sources],
-                CardLanguages: ["de", "en", "ja", "ko", "zh-Hans", "zh-Hant"],
+                SourceLanguages: sources.Sources.ToDictionary(
+                    s => s,
+                    s => sources.Resolve(s).SupportedLanguages,
+                    StringComparer.OrdinalIgnoreCase),
                 Sets: []);
     }
 }

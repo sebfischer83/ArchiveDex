@@ -11,6 +11,8 @@ namespace ArchiveDex.Infrastructure.Tcg
 
         public string SourceName => "Serebii";
 
+        public string[] SupportedLanguages => ["en", "ja"];
+
         public async Task<IReadOnlyList<SetSummary>> GetAvailableSetsAsync(string language, CancellationToken ct = default)
         {
             List<SerebiiSet> sets = await GetSets(language, ct);
