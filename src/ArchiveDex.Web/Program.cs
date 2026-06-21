@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ArchiveDex.Api.Handlers;
 using ArchiveDex.Infrastructure.BatchScan;
 using ArchiveDex.Application.Commands.Setup;
@@ -32,6 +33,10 @@ namespace ArchiveDex.Web
             });
 
             _ = builder.Services.AddWolverineHttp();
+            _ = builder.Services.ConfigureHttpJsonOptions(options =>
+            {
+                options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
 
             _ = builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
@@ -103,7 +108,10 @@ namespace ArchiveDex.Web
                 });
             }
 
-            _ = app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+            if (!isTesting)
+            {
+                _ = app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+            }
             _ = app.UseAntiforgery();
 
             _ = app.MapStaticAssets();

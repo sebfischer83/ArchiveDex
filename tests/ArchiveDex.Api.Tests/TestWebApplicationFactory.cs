@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Testcontainers.PostgreSql;
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Infrastructure.Persistence;
+using ArchiveDex.Infrastructure.Storage;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
@@ -52,6 +53,16 @@ namespace ArchiveDex.Api.Tests
                 }
 
                 _ = services.AddScoped<ITcgDataSource, FakeTcgDataSource>();
+
+                ServiceDescriptor? imageStoreDescriptor = services.SingleOrDefault(
+                    d => d.ServiceType == typeof(IImageStore));
+                if (imageStoreDescriptor is not null)
+                {
+                    _ = services.Remove(imageStoreDescriptor);
+                }
+
+                _ = services.AddScoped<IImageStore>(_ => new FileImageStore(
+                    Path.Combine(Path.GetTempPath(), "archivedex-api-tests", Guid.NewGuid().ToString("N"))));
 
                 var backgroundJobDescriptors = services
                     .Where(d => d.ServiceType == typeof(IBackgroundJobClient))
