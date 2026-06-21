@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using ArchiveDex.Api.Handlers;
 using ArchiveDex.Infrastructure.BatchScan;
 using ArchiveDex.Application.Commands.Setup;
 using ArchiveDex.Application.Scanning;
@@ -10,10 +9,8 @@ using ArchiveDex.Web.Components;
 using Hangfire;
 using Hangfire.AspNetCore;
 using Hangfire.PostgreSql;
-using JasperFx.CodeGeneration.Model;
 using Microsoft.EntityFrameworkCore;
 using Wolverine;
-using Wolverine.Http;
 
 namespace ArchiveDex.Web
 {
@@ -26,17 +23,14 @@ namespace ArchiveDex.Web
 
             _ = builder.Host.UseWolverine(opts =>
             {
-                _ = opts.Discovery.IncludeAssembly(typeof(SetupStateHandler).Assembly);
-                _ = opts.Discovery.IncludeAssembly(typeof(BatchScanHandlers).Assembly);
                 _ = opts.Discovery.IncludeAssembly(typeof(ValidateSetup).Assembly);
-                opts.ServiceLocationPolicy = ServiceLocationPolicy.AllowedButWarn;
             });
 
-            _ = builder.Services.AddWolverineHttp();
-            _ = builder.Services.ConfigureHttpJsonOptions(options =>
-            {
-                options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-            });
+            _ = builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
 
             _ = builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
@@ -115,7 +109,7 @@ namespace ArchiveDex.Web
             _ = app.UseAntiforgery();
 
             _ = app.MapStaticAssets();
-            app.MapWolverineEndpoints();
+            app.MapControllers();
             _ = app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode();
 
