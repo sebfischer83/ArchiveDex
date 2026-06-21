@@ -154,7 +154,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<Guid>("ImageAssetId")
+                    b.Property<Guid?>("ImageAssetId")
                         .HasColumnType("uuid");
 
                     b.Property<bool>("IsReviewed")
@@ -979,8 +979,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                     b.HasOne("ArchiveDex.Domain.Entities.ImageAsset", "ImageAsset")
                         .WithMany()
                         .HasForeignKey("ImageAssetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("ArchiveDex.Domain.Entities.CardPrint", "MatchedCardPrint")
                         .WithMany()

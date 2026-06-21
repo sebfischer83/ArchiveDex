@@ -6,7 +6,7 @@ namespace ArchiveDex.Domain.Entities
     {
         public Guid Id { get; set; }
         public Guid BatchScanJobId { get; set; }
-        public Guid ImageAssetId { get; set; }
+        public Guid? ImageAssetId { get; set; }
         public Guid? OcrResultId { get; set; }
         public Guid? MatchedCardPrintId { get; set; }
         public BatchItemMatchStatus MatchStatus { get; set; } = BatchItemMatchStatus.PendingReview;
@@ -16,7 +16,7 @@ namespace ArchiveDex.Domain.Entities
         public string? FailureReason { get; set; }
 
         public BatchScanJob BatchScanJob { get; set; } = null!;
-        public ImageAsset ImageAsset { get; set; } = null!;
+        public ImageAsset? ImageAsset { get; set; }
         public BatchScanResult? OcrResult { get; set; }
         public CardPrint? MatchedCardPrint { get; set; }
         public CollectionEntry? CollectionEntry { get; set; }

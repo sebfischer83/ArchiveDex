@@ -55,6 +55,7 @@ namespace ArchiveDex.Api.Handlers
 
             var items = new List<BatchScanItem>();
             var errors = new List<object>();
+            var validItemCount = 0;
 
             for (int i = 0; i < images.Count; i++)
             {
@@ -63,13 +64,17 @@ namespace ArchiveDex.Api.Handlers
 
                 if (!AllowedExtensions.Contains(ext))
                 {
-                    errors.Add(new { index = i, fileName = image.FileName, error = $"Unsupported format: {ext}. Allowed: JPEG, PNG, WebP." });
+                    var error = $"Unsupported format: {ext}. Allowed: JPEG, PNG, WebP.";
+                    errors.Add(new { index = i, fileName = image.FileName, error });
+                    items.Add(CreateFailedItem(job.Id, i, error));
                     continue;
                 }
 
                 if (image.Length > MaxFileSize)
                 {
-                    errors.Add(new { index = i, fileName = image.FileName, error = $"File exceeds 10 MB limit." });
+                    const string error = "File exceeds 10 MB limit.";
+                    errors.Add(new { index = i, fileName = image.FileName, error });
+                    items.Add(CreateFailedItem(job.Id, i, error));
                     continue;
                 }
 
@@ -83,20 +88,22 @@ namespace ArchiveDex.Api.Handlers
                         Id = Guid.NewGuid(),
                         BatchScanJobId = job.Id,
                         ImageAssetId = imageAsset.Id,
-                        SortOrder = items.Count,
+                        SortOrder = i,
                         MatchStatus = BatchItemMatchStatus.PendingReview,
                         ImageAsset = imageAsset
                     };
 
                     items.Add(item);
+                    validItemCount++;
                 }
                 catch (Exception ex)
                 {
                     errors.Add(new { index = i, fileName = image.FileName, error = ex.Message });
+                    items.Add(CreateFailedItem(job.Id, i, ex.Message));
                 }
             }
 
-            if (items.Count == 0 && errors.Count > 0)
+            if (validItemCount == 0 && errors.Count > 0)
             {
                 return Results.BadRequest(new { error = "validation_error", message = "No valid images in batch.", details = errors });
             }
@@ -104,7 +111,7 @@ namespace ArchiveDex.Api.Handlers
             job.Items = items;
             await batchRepo.AddJobAsync(job, ct);
 
-            if (items.Count > 0)
+            if (validItemCount > 0)
             {
                 BatchOcrQueue.Enqueue(job.Id);
             }
@@ -121,6 +128,16 @@ namespace ArchiveDex.Api.Handlers
 
             return Results.Created($"/api/batch-scans/{job.Id}", response);
         }
+
+        private static BatchScanItem CreateFailedItem(Guid batchId, int sortOrder, string reason) => new()
+        {
+            Id = Guid.NewGuid(),
+            BatchScanJobId = batchId,
+            SortOrder = sortOrder,
+            MatchStatus = BatchItemMatchStatus.Rejected,
+            IsReviewed = true,
+            FailureReason = reason
+        };
 
         [WolverineGet("/api/batch-scans/active")]
         public static async Task<IResult> GetActiveBatch(
@@ -187,7 +204,10 @@ namespace ArchiveDex.Api.Handlers
             {
                 try
                 {
-                    await imageStore.DeleteAsync(item.ImageAsset.RelativePath, ct);
+                    if (item.ImageAsset is not null)
+                    {
+                        await imageStore.DeleteAsync(item.ImageAsset.RelativePath, ct);
+                    }
                 }
                 catch { }
             }
@@ -254,13 +274,38 @@ namespace ArchiveDex.Api.Handlers
                 CollectionEntry? existing = await collectionRepo.FindByCardAndConditionAsync(card.Id, condition, ct);
                 if (existing is not null)
                 {
-                    duplicateConflicts.Add(new DuplicateConflictDto(
-                        item.Id,
-                        existing.Id,
-                        card.Name ?? "Unknown",
-                        condition.ToString(),
-                        $"Card already in collection. Merge quantities or create separate entry."));
-                    continue;
+                    var duplicateAction = acceptItem.DuplicateAction?.ToLowerInvariant() ?? "skip";
+                    if (duplicateAction == "merge")
+                    {
+                        existing.Quantity += quantity;
+                        decimal? purchasePrice = acceptItem.PurchasePrice ?? request.Defaults?.PurchasePrice;
+                        if (purchasePrice.HasValue)
+                        {
+                            existing.PurchasePrice = purchasePrice.Value;
+                        }
+
+                        existing.StorageLocation = acceptItem.StorageLocation ?? request.Defaults?.StorageLocation ?? existing.StorageLocation;
+                        existing.Notes = acceptItem.Notes ?? request.Defaults?.Notes ?? existing.Notes;
+                        await collectionRepo.UpdateAsync(existing, ct);
+
+                        item.CollectionEntryId = existing.Id;
+                        item.MatchStatus = BatchItemMatchStatus.Accepted;
+                        await batchRepo.UpdateItemAsync(item, ct);
+
+                        acceptedEntryIds.Add(existing.Id);
+                        continue;
+                    }
+
+                    if (duplicateAction != "separate")
+                    {
+                        duplicateConflicts.Add(new DuplicateConflictDto(
+                            item.Id,
+                            existing.Id,
+                            card.Name ?? "Unknown",
+                            condition.ToString(),
+                            $"Card already in collection. Merge quantities or create separate entry."));
+                        continue;
+                    }
                 }
 
                 var entry = new CollectionEntry
@@ -272,7 +317,7 @@ namespace ArchiveDex.Api.Handlers
                     PurchasePrice = acceptItem.PurchasePrice ?? request.Defaults?.PurchasePrice,
                     StorageLocation = acceptItem.StorageLocation ?? request.Defaults?.StorageLocation,
                     Notes = acceptItem.Notes ?? request.Defaults?.Notes,
-                    FrontImagePath = item.ImageAsset.RelativePath,
+                    FrontImagePath = item.ImageAsset?.RelativePath ?? string.Empty,
                     DateAdded = DateTime.UtcNow
                 };
 
@@ -334,7 +379,8 @@ namespace ArchiveDex.Api.Handlers
             int? Quantity,
             decimal? PurchasePrice,
             string? StorageLocation,
-            string? Notes);
+            string? Notes,
+            string? DuplicateAction);
 
         [WolverineGet("/api/batch-scans/{batchId}/items/{itemId}")]
         public static async Task<IResult> GetBatchItem(
@@ -342,6 +388,7 @@ namespace ArchiveDex.Api.Handlers
             Guid itemId,
             IBatchScanRepository batchRepo,
             IImageStore imageStore,
+            ICatalogRepository catalogRepo,
             CancellationToken ct)
         {
             BatchScanItem? item = await batchRepo.GetItemByIdAsync(batchId, itemId, ct);
@@ -357,7 +404,9 @@ namespace ArchiveDex.Api.Handlers
                 await batchRepo.UpdateItemAsync(item, ct);
             }
 
-            return Results.Ok(MapItemToDetail(item, imageStore));
+            BatchScanJob? job = await batchRepo.GetByIdAsync(batchId, ct);
+            HashSet<Guid> duplicateIds = GetDuplicateItemIds(job?.Items ?? []);
+            return Results.Ok(await MapItemToDetail(item, imageStore, catalogRepo, duplicateIds, ct));
         }
 
         [WolverinePut("/api/batch-scans/{batchId}/items/{itemId}/match")]
@@ -388,7 +437,9 @@ namespace ArchiveDex.Api.Handlers
 
             await batchRepo.UpdateItemAsync(item, ct);
 
-            return Results.Ok(MapItemToDetail(item, imageStore));
+            BatchScanJob? job = await batchRepo.GetByIdAsync(batchId, ct);
+            HashSet<Guid> duplicateIds = GetDuplicateItemIds(job?.Items ?? []);
+            return Results.Ok(await MapItemToDetail(item, imageStore, catalogRepo, duplicateIds, ct));
         }
 
         [WolverinePut("/api/batch-scans/{batchId}/items/{itemId}/no-match")]
@@ -410,7 +461,44 @@ namespace ArchiveDex.Api.Handlers
 
             await batchRepo.UpdateItemAsync(item, ct);
 
-            return Results.Ok(MapItemToDetail(item, imageStore));
+            BatchScanJob? job = await batchRepo.GetByIdAsync(batchId, ct);
+            if (job is not null && job.Items.All(i => i.MatchStatus is BatchItemMatchStatus.Accepted or BatchItemMatchStatus.Rejected or BatchItemMatchStatus.NoMatch))
+            {
+                job.Status = BatchStatus.Complete;
+                job.CompletedAt = DateTime.UtcNow;
+                await batchRepo.UpdateJobAsync(job, ct);
+            }
+
+            return Results.Ok(await MapItemToDetail(item, imageStore, null, [], ct));
+        }
+
+        [WolverinePut("/api/batch-scans/{batchId}/items/{itemId}/reject")]
+        public static async Task<IResult> RejectItem(
+            Guid batchId,
+            Guid itemId,
+            IBatchScanRepository batchRepo,
+            IImageStore imageStore,
+            CancellationToken ct)
+        {
+            BatchScanItem? item = await batchRepo.GetItemByIdAsync(batchId, itemId, ct);
+            if (item is null)
+            {
+                return Results.NotFound(new { error = "not_found", message = "Item not found." });
+            }
+
+            item.MatchStatus = BatchItemMatchStatus.Rejected;
+            item.IsReviewed = true;
+            await batchRepo.UpdateItemAsync(item, ct);
+
+            BatchScanJob? job = await batchRepo.GetByIdAsync(batchId, ct);
+            if (job is not null && job.Items.All(i => i.MatchStatus is BatchItemMatchStatus.Accepted or BatchItemMatchStatus.Rejected or BatchItemMatchStatus.NoMatch))
+            {
+                job.Status = BatchStatus.Complete;
+                job.CompletedAt = DateTime.UtcNow;
+                await batchRepo.UpdateJobAsync(job, ct);
+            }
+
+            return Results.Ok(await MapItemToDetail(item, imageStore, null, [], ct));
         }
 
         public sealed record UpdateItemMatchRequest(Guid CardPrintId);
@@ -422,9 +510,11 @@ namespace ArchiveDex.Api.Handlers
             var noMatchCount = job.Items.Count(i => i.MatchStatus == BatchItemMatchStatus.NoMatch);
             var pendingCount = job.Items.Count - acceptedCount - rejectedCount - noMatchCount;
 
+            HashSet<Guid> duplicateIds = GetDuplicateItemIds(job.Items);
+
             var items = job.Items
                 .OrderBy(i => i.SortOrder)
-                .Select(i => MapItemToSummary(i, imageStore))
+                .Select(i => MapItemToSummary(i, imageStore, duplicateIds))
                 .ToList();
 
             return new
@@ -445,17 +535,18 @@ namespace ArchiveDex.Api.Handlers
             };
         }
 
-        private static object MapItemToSummary(BatchScanItem item, IImageStore imageStore)
+        private static object MapItemToSummary(BatchScanItem item, IImageStore imageStore, HashSet<Guid> duplicateIds)
         {
-            // Detect within-batch duplicates
-            bool isDuplicate = item.MatchedCardPrintId.HasValue &&
-                item.MatchStatus is not BatchItemMatchStatus.NoMatch and not BatchItemMatchStatus.Rejected;
+            bool isDuplicate = duplicateIds.Contains(item.Id);
+            string? imageUrl = item.ImageAsset is null
+                ? null
+                : $"/api/images/{item.ImageAsset.RelativePath.Replace('\\', '/')}";
 
             return new
             {
                 item.Id,
                 item.SortOrder,
-                imageUrl = $"/api/images/{item.ImageAsset.RelativePath.Replace('\\', '/')}",
+                imageUrl,
                 matchStatus = item.MatchStatus.ToString(),
                 item.IsReviewed,
                 detectedName = item.OcrResult?.DetectedName,
@@ -468,7 +559,12 @@ namespace ArchiveDex.Api.Handlers
             };
         }
 
-        private static object MapItemToDetail(BatchScanItem item, IImageStore imageStore)
+        private static async Task<object> MapItemToDetail(
+            BatchScanItem item,
+            IImageStore imageStore,
+            ICatalogRepository? catalogRepo,
+            HashSet<Guid> duplicateIds,
+            CancellationToken ct)
         {
             List<CandidateMatch>? candidates = null;
             if (item.OcrResult?.CandidateMatches is { } json && json != "[]")
@@ -480,25 +576,30 @@ namespace ArchiveDex.Api.Handlers
                 catch { }
             }
 
-            var candidateDtos = candidates?.Select(c =>
+            var candidateDtos = new List<object>();
+            foreach (CandidateMatch c in candidates ?? [])
             {
-                CardPrint? card = item.MatchedCardPrint;
-                return new
+                CardPrint? card = catalogRepo is null ? item.MatchedCardPrint : await catalogRepo.GetByIdAsync(c.CardId, ct);
+                candidateDtos.Add(new
                 {
                     cardPrintId = c.CardId,
                     name = card?.Name ?? "",
                     number = card?.Number ?? "",
                     setName = card?.CardSet?.CanonicalName ?? "",
                     score = c.Score
-                };
-            }).ToList() ?? [];
+                });
+            }
+
+            string? imageUrl = item.ImageAsset is null
+                ? null
+                : $"/api/images/{item.ImageAsset.RelativePath.Replace('\\', '/')}";
 
             return new
             {
                 item.Id,
                 batchId = item.BatchScanJobId,
                 item.SortOrder,
-                imageUrl = $"/api/images/{item.ImageAsset.RelativePath.Replace('\\', '/')}",
+                imageUrl,
                 matchStatus = item.MatchStatus.ToString(),
                 item.IsReviewed,
                 matchedCardPrintId = item.MatchedCardPrintId,
@@ -514,8 +615,18 @@ namespace ArchiveDex.Api.Handlers
                 candidateMatches = candidateDtos,
                 collectionEntryId = item.CollectionEntryId,
                 item.FailureReason,
-                isDuplicateInBatch = item.MatchedCardPrintId.HasValue
+                isDuplicateInBatch = duplicateIds.Contains(item.Id)
             };
+        }
+
+        private static HashSet<Guid> GetDuplicateItemIds(IEnumerable<BatchScanItem> items)
+        {
+            return items
+                .Where(i => i.MatchedCardPrintId.HasValue && i.MatchStatus is not BatchItemMatchStatus.NoMatch and not BatchItemMatchStatus.Rejected)
+                .GroupBy(i => i.MatchedCardPrintId!.Value)
+                .Where(g => g.Count() > 1)
+                .SelectMany(g => g.Select(i => i.Id))
+                .ToHashSet();
         }
 
         private static bool MatchesFilter(object itemSummary, string statusFilter) => statusFilter.ToLowerInvariant() switch

@@ -31,7 +31,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     BatchScanJobId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ImageAssetId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ImageAssetId = table.Column<Guid>(type: "uuid", nullable: true),
                     OcrResultId = table.Column<Guid>(type: "uuid", nullable: true),
                     MatchedCardPrintId = table.Column<Guid>(type: "uuid", nullable: true),
                     MatchStatus = table.Column<string>(type: "text", nullable: false),
@@ -66,7 +66,7 @@ namespace ArchiveDex.Infrastructure.Migrations
                         column: x => x.ImageAssetId,
                         principalTable: "ImageAssets",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(

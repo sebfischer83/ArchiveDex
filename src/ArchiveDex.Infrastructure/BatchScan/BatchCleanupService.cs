@@ -49,7 +49,10 @@ namespace ArchiveDex.Infrastructure.BatchScan
                     {
                         try
                         {
-                            await imageStore.DeleteAsync(item.ImageAsset.RelativePath, ct);
+                            if (item.ImageAsset is not null)
+                            {
+                                await imageStore.DeleteAsync(item.ImageAsset.RelativePath, ct);
+                            }
                         }
                         catch (Exception ex)
                         {

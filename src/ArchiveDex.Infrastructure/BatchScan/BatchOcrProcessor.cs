@@ -13,6 +13,8 @@ namespace ArchiveDex.Infrastructure.BatchScan
     {
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            await RecoverPendingBatchAsync(stoppingToken);
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 Guid batchId;
@@ -50,7 +52,7 @@ namespace ArchiveDex.Infrastructure.BatchScan
             var matchRanking = scope.ServiceProvider.GetRequiredService<MatchRankingService>();
 
             BatchScanJob? job = await repo.GetByIdAsync(batchId, ct);
-            if (job is null || job.Status != BatchStatus.Uploading)
+            if (job is null || job.Status is not (BatchStatus.Uploading or BatchStatus.Processing))
             {
                 return;
             }
@@ -63,7 +65,7 @@ namespace ArchiveDex.Infrastructure.BatchScan
             {
                 ct.ThrowIfCancellationRequested();
 
-                if (item.FailureReason is not null)
+                if (item.FailureReason is not null || item.ImageAsset is null)
                 {
                     continue;
                 }
@@ -119,6 +121,17 @@ namespace ArchiveDex.Infrastructure.BatchScan
             {
                 job.Status = BatchStatus.ReadyForReview;
                 await repo.UpdateJobAsync(job, ct);
+            }
+        }
+
+        private async Task RecoverPendingBatchAsync(CancellationToken ct)
+        {
+            using IServiceScope scope = scopeFactory.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IBatchScanRepository>();
+            BatchScanJob? pending = await repo.GetPendingOcrBatchAsync(ct);
+            if (pending is not null)
+            {
+                BatchOcrQueue.Enqueue(pending.Id);
             }
         }
 

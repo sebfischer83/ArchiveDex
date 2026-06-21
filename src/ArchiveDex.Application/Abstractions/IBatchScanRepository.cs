@@ -13,5 +13,6 @@ namespace ArchiveDex.Application.Abstractions
         Task UpdateJobAsync(BatchScanJob job, CancellationToken ct = default);
         Task DeleteJobAsync(Guid batchId, CancellationToken ct = default);
         Task<IReadOnlyCollection<BatchScanJob>> GetExpiredBatchesAsync(int daysOld, CancellationToken ct = default);
+        Task<BatchScanJob?> GetPendingOcrBatchAsync(CancellationToken ct = default);
     }
 }

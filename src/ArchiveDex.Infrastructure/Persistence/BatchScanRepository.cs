@@ -84,10 +84,17 @@ namespace ArchiveDex.Infrastructure.Persistence
             var cutoff = DateTime.UtcNow.AddDays(-daysOld);
             return await db.BatchScanJobs
                 .Include(b => b.Items)
+                .ThenInclude(i => i.ImageAsset)
                 .Where(b => b.Status == BatchStatus.ReadyForReview
                     && b.CreatedAt <= cutoff
                     && b.Items.All(i => i.CollectionEntryId == null))
                 .ToListAsync(ct);
         }
+
+        public async Task<BatchScanJob?> GetPendingOcrBatchAsync(CancellationToken ct = default)
+            => await db.BatchScanJobs
+                .Include(b => b.Items)
+                .ThenInclude(i => i.ImageAsset)
+                .FirstOrDefaultAsync(b => b.Status == BatchStatus.Uploading || b.Status == BatchStatus.Processing, ct);
     }
 }

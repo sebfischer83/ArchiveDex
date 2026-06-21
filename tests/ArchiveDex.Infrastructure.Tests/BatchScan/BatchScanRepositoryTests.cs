@@ -203,5 +203,61 @@ namespace ArchiveDex.Infrastructure.Tests.BatchScan
             BatchScanJob? found = await repo.GetByIdAsync(job.Id);
             Assert.Null(found);
         }
+
+        [Fact]
+        public async Task AddJobAsync_AllowsFailedItemWithoutImage()
+        {
+            await using ArchiveDexDbContext db = CreateDbContext("test_batch_failed_item_no_image.db");
+            _ = await db.Database.EnsureDeletedAsync();
+            _ = await db.Database.EnsureCreatedAsync();
+
+            var repo = new BatchScanRepository(db);
+            var job = new BatchScanJob
+            {
+                Id = Guid.NewGuid(),
+                Status = BatchStatus.Uploading,
+                CreatedAt = DateTime.UtcNow
+            };
+            job.Items.Add(new BatchScanItem
+            {
+                Id = Guid.NewGuid(),
+                BatchScanJobId = job.Id,
+                MatchStatus = BatchItemMatchStatus.Rejected,
+                IsReviewed = true,
+                SortOrder = 0,
+                FailureReason = "Unsupported format"
+            });
+
+            await repo.AddJobAsync(job);
+
+            BatchScanJob? found = await repo.GetByIdAsync(job.Id);
+            Assert.NotNull(found);
+            BatchScanItem item = Assert.Single(found!.Items);
+            Assert.Null(item.ImageAssetId);
+            Assert.Equal(BatchItemMatchStatus.Rejected, item.MatchStatus);
+            Assert.Equal("Unsupported format", item.FailureReason);
+        }
+
+        [Fact]
+        public async Task GetPendingOcrBatchAsync_ReturnsUploadingOrProcessingBatch()
+        {
+            await using ArchiveDexDbContext db = CreateDbContext("test_batch_pending_ocr.db");
+            _ = await db.Database.EnsureDeletedAsync();
+            _ = await db.Database.EnsureCreatedAsync();
+
+            var repo = new BatchScanRepository(db);
+            var job = new BatchScanJob
+            {
+                Id = Guid.NewGuid(),
+                Status = BatchStatus.Processing,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await repo.AddJobAsync(job);
+
+            BatchScanJob? pending = await repo.GetPendingOcrBatchAsync();
+            Assert.NotNull(pending);
+            Assert.Equal(job.Id, pending!.Id);
+        }
     }
 }

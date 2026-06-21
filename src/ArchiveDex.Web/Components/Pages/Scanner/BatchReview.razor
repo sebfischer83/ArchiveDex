@@ -42,7 +42,14 @@
             @foreach (var item in _items)
             {
                 <div class="batch-item-card @(item.IsDuplicateInBatch ? "duplicate" : "")" @onclick="() => ViewItemDetail(item)">
-                    <img src="@item.ImageUrl" alt="Card" class="batch-item-img" />
+                    @if (!string.IsNullOrEmpty(item.ImageUrl))
+                    {
+                        <img src="@item.ImageUrl" alt="Card" class="batch-item-img" />
+                    }
+                    else
+                    {
+                        <div class="batch-item-img missing-image">No image</div>
+                    }
                     <div class="batch-item-info">
                         <span class="match-status @item.MatchStatus.ToLowerInvariant()">@item.MatchStatus</span>
                         @if (item.DetectedName is not null)
@@ -71,7 +78,14 @@
             <div class="item-detail-overlay" @onclick="() => _selectedItem = null">
                 <div class="item-detail-panel" @onclick:stopPropagation="true">
                     <h2>Item Detail</h2>
-                    <img src="@_selectedItem.ImageUrl" alt="Card" class="detail-img" />
+                    @if (!string.IsNullOrEmpty(_selectedItem.ImageUrl))
+                    {
+                        <img src="@_selectedItem.ImageUrl" alt="Card" class="detail-img" />
+                    }
+                    else
+                    {
+                        <div class="detail-img missing-image">No image available</div>
+                    }
                     <div class="ocr-details">
                         <p><strong>OCR:</strong> @_selectedItem.DetectedName (@_selectedItem.DetectedNumber)</p>
                         <p><strong>Confidence:</strong> @(_selectedItem.Confidence?.ToString("P0") ?? "N/A")</p>
@@ -83,6 +97,7 @@
                             @(_selectedItem.MatchedCardPrintId is not null ? "Change Match" : "Find Match")
                         </button>
                         <button class="btn-secondary" @onclick="MarkNoMatch">Mark No Match</button>
+                        <button class="btn-secondary" @onclick="RejectItem">Dismiss</button>
                         <button class="btn-secondary" @onclick="() => _selectedItem = null">Close</button>
                     </div>
 
@@ -220,7 +235,7 @@
 
         try
         {
-            var response = await Http.GetAsync($"/api/catalog/cards?query={Uri.EscapeDataString(_catalogSearchQuery)}&page=1&pageSize=10");
+            var response = await Http.GetAsync($"/api/catalog/cards?q={Uri.EscapeDataString(_catalogSearchQuery)}&page=1&pageSize=10");
             if (response.IsSuccessStatusCode)
             {
                 _catalogResults = await response.Content.ReadFromJsonAsync<List<CatalogCard>>() ?? [];
@@ -285,6 +300,28 @@
         }
     }
 
+    private async Task RejectItem()
+    {
+        if (_selectedItem is null) return;
+
+        try
+        {
+            var response = await Http.PutAsync(
+                $"/api/batch-scans/{BatchId}/items/{_selectedItem.Id}/reject", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _selectedItem.MatchStatus = "Rejected";
+                _selectedItem.IsDuplicateInBatch = false;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            _itemError = ex.Message;
+        }
+    }
+
     private void GoToAccept()
     {
         Navigation.NavigateTo($"/scan/batch/accept/{BatchId}");
@@ -330,7 +367,7 @@
     private class BatchItemSummary
     {
         public Guid Id { get; set; }
-        public string ImageUrl { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
         public string MatchStatus { get; set; } = string.Empty;
         public bool IsReviewed { get; set; }
         public string? DetectedName { get; set; }

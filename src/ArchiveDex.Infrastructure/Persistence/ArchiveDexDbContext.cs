@@ -157,7 +157,7 @@ namespace ArchiveDex.Infrastructure.Persistence
                 _ = e.Property(i => i.MatchStatus).HasConversion<string>().IsRequired();
                 _ = e.Property(i => i.FailureReason).HasMaxLength(500);
                 _ = e.HasOne(i => i.BatchScanJob).WithMany(b => b.Items).HasForeignKey(i => i.BatchScanJobId);
-                _ = e.HasOne(i => i.ImageAsset).WithMany().HasForeignKey(i => i.ImageAssetId).OnDelete(DeleteBehavior.Cascade);
+                _ = e.HasOne(i => i.ImageAsset).WithMany().HasForeignKey(i => i.ImageAssetId).OnDelete(DeleteBehavior.SetNull);
                 _ = e.HasOne(i => i.OcrResult).WithOne(r => r.BatchScanItem).HasForeignKey<BatchScanResult>(r => r.BatchScanItemId);
                 _ = e.HasOne(i => i.MatchedCardPrint).WithMany().HasForeignKey(i => i.MatchedCardPrintId).OnDelete(DeleteBehavior.SetNull);
                 _ = e.HasOne(i => i.CollectionEntry).WithMany().HasForeignKey(i => i.CollectionEntryId).OnDelete(DeleteBehavior.SetNull);
