@@ -89,7 +89,10 @@ namespace ArchiveDex.Web
                 _ = app.UseExceptionHandler("/Error", createScopeForErrors: true);
             }
 
-            _ = app.UseSetupGate();
+            if (!isTesting)
+            {
+                _ = app.UseSetupGate();
+            }
 
             if (!isTesting)
             {
