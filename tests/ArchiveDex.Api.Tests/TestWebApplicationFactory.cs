@@ -90,6 +90,7 @@ namespace ArchiveDex.Api.Tests
         private sealed class FakeTcgDataSource : ITcgDataSource
         {
             public string SourceName => "TCGdex";
+            public string[] SupportedLanguages => ["en"];
 
             public Task<IReadOnlyList<SetSummary>> GetAvailableSetsAsync(
                 string language,

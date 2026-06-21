@@ -420,6 +420,7 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
             private readonly string? _overrideRarity = overrideRarity;
 
             public string SourceName { get; } = sourceName;
+            public string[] SupportedLanguages => ["en"];
 
             public Task<IReadOnlyList<SetSummary>> GetAvailableSetsAsync(string language, CancellationToken ct = default) =>
                 // Return empty: the import is driven by the explicit setIds parameter,

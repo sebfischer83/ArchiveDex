@@ -163,6 +163,7 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
             private readonly string? _setImageUrl = setImageUrl;
 
             public string SourceName { get; } = sourceName;
+            public string[] SupportedLanguages => ["en"];
 
             public int DownloadCount { get; private set; }
 
