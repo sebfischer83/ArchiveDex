@@ -60,7 +60,9 @@
         {
             @foreach (var entry in _entries)
             {
-                <div class="coll-card" tabindex="0" role="button" aria-label="@entry.CardName">
+                <div class="coll-card" tabindex="0" role="button" aria-label="@entry.CardName"
+                     @onclick="() => OpenEntry(entry.Id)"
+                     @onkeydown="e => OnEntryKeyDown(e, entry.Id)">
                     <div class="card-art-wrap">
                         @if (!string.IsNullOrWhiteSpace(entry.FrontImageUrl))
                         {
@@ -206,6 +208,16 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private void OpenEntry(Guid id) => Navigation.NavigateTo($"/collection/card/{id}");
+
+    private void OnEntryKeyDown(KeyboardEventArgs e, Guid id)
+    {
+        if (e.Key is "Enter" or " ")
+        {
+            OpenEntry(id);
         }
     }
 

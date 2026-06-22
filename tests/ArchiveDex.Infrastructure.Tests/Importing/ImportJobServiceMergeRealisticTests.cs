@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Sets;
 using ArchiveDex.Domain.Entities;
@@ -47,19 +49,19 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
             // Each source reports the same cards (by set+language+number) but with
             // different external ids. The merge engine should combine them into
             // a single CardPrint per physical card.
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "TCGdex",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "TCGdex",
                 externalSetId: "sv08pt5",
                 cardIdPrefix: "tcgdex/sv08pt5/en/",
                 setName: SetName,
                 imageUrl: false);
 
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "Limitless",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "Limitless",
                 externalSetId: "PRE",
                 cardIdPrefix: "limitless/PRE/",
                 setName: SetName,
                 imageUrl: true);
 
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "Serebii",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "Serebii",
                 externalSetId: "prismaticevolutions",
                 cardIdPrefix: "serebii/prismaticevolutions/",
                 setName: SetName,
@@ -87,13 +89,13 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
             (FakeRegistry? registry, FakeJobStore? jobStore, FakeImageStore? imageStore) = CreateInfrastructure();
 
             // First source: basic names
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "TCGdex",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "TCGdex",
                 externalSetId: "sv08pt5", cardIdPrefix: "tcgdex/sv08pt5/en/",
                 setName: SetName, imageUrl: false,
                 cardSuffix: "");
 
             // Second source: richer metadata (Master Ball variant, Holo rarity)
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "Limitless",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "Limitless",
                 externalSetId: "PRE", cardIdPrefix: "limitless/PRE/",
                 setName: SetName, imageUrl: true,
                 cardSuffix: " (Master Ball)", overrideRarity: "Rare Holo");
@@ -116,13 +118,13 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
 
             // All three sources report same name, release date, counts and series.
             // SetMatchingService scores: name(35) + date(30) + counts(20) + series(10) = 95 ≥ 90.
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "TCGdex",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "TCGdex",
                 externalSetId: "sv08pt5", cardIdPrefix: "tcgdex/sv08pt5/en/",
                 setName: SetName, imageUrl: true);
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "Limitless",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "Limitless",
                 externalSetId: "PRE", cardIdPrefix: "limitless/PRE/",
                 setName: SetName, imageUrl: true);
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "Serebii",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "Serebii",
                 externalSetId: "prismaticevolutions", cardIdPrefix: "serebii/prismaticevolutions/",
                 setName: SetName, imageUrl: true);
 
@@ -152,7 +154,7 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
             (FakeRegistry? registry, FakeJobStore? jobStore, FakeImageStore? imageStore) = CreateInfrastructure();
 
             // Import with a standard name first
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "TCGdex",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "TCGdex",
                 externalSetId: "sv08pt5", cardIdPrefix: "tcgdex/sv08pt5/en/",
                 setName: SetName, imageUrl: false);
 
@@ -161,7 +163,7 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
             // "Scarlet & Violet: Prismatic Evolutions" vs "Prismatic Evolutions" →
             // Normalized: "scarletvioletprismaticevolutions" vs "prismaticevolutions"
             // dist ≈ 14, max=29, sim ≈ 0.52, nameScore ≈ 18 + 30 + 20 + 10 = 78 (between 70-90)
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "Serebii",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "Serebii",
                 externalSetId: "prismaticevolutions", cardIdPrefix: "serebii/prismaticevolutions/",
                 setName: "Scarlet & Violet: Prismatic Evolutions", imageUrl: true);
 
@@ -189,12 +191,12 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
             (FakeRegistry? registry, FakeJobStore? jobStore, FakeImageStore? imageStore) = CreateInfrastructure();
 
             // First import without images
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "TCGdex",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "TCGdex",
                 externalSetId: "sv08pt5", cardIdPrefix: "tcgdex/sv08pt5/en/",
                 setName: SetName, imageUrl: false);
 
             // Second import WITH images → should download for cards missing images
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "Limitless",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "Limitless",
                 externalSetId: "PRE", cardIdPrefix: "limitless/PRE/",
                 setName: SetName, imageUrl: true);
 
@@ -214,14 +216,14 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
             (FakeRegistry? registry, FakeJobStore? jobStore, FakeImageStore? imageStore) = CreateInfrastructure();
 
             // First import WITH images
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "TCGdex",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "TCGdex",
                 externalSetId: "sv08pt5", cardIdPrefix: "tcgdex/sv08pt5/en/",
                 setName: SetName, imageUrl: true);
 
             List<string?> firstImages = await db.CardPrints.Select(c => c.ImagePath).ToListAsync();
 
             // Second import also has images — existing images should be preserved
-            _ = await ImportFromSource(db, registry, jobStore, imageStore, "Limitless",
+            _ = await ImportFromSource(dbName, registry, jobStore, imageStore, "Limitless",
                 externalSetId: "PRE", cardIdPrefix: "limitless/PRE/",
                 setName: SetName, imageUrl: true);
 
@@ -239,21 +241,21 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
             (FakeRegistry? registry, FakeJobStore? jobStore, FakeImageStore? imageStore) = CreateInfrastructure();
 
             // Source 1: all 4 cards are new → 0 merged, 4 imported
-            ImportJob job1 = await ImportFromSource(db, registry, jobStore, imageStore, "TCGdex",
+            ImportJob job1 = await ImportFromSource(dbName, registry, jobStore, imageStore, "TCGdex",
                 externalSetId: "sv08pt5", cardIdPrefix: "tcgdex/sv08pt5/en/",
                 setName: SetName, imageUrl: false);
             Assert.Equal(4, job1.ImportedCount);
             Assert.Equal(0, job1.MergedCount);
 
             // Source 2: all 4 cards already exist → 4 merged, 0 imported
-            ImportJob job2 = await ImportFromSource(db, registry, jobStore, imageStore, "Limitless",
+            ImportJob job2 = await ImportFromSource(dbName, registry, jobStore, imageStore, "Limitless",
                 externalSetId: "PRE", cardIdPrefix: "limitless/PRE/",
                 setName: SetName, imageUrl: true);
             Assert.Equal(0, job2.ImportedCount);
             Assert.Equal(4, job2.MergedCount);
 
             // Source 3: all 4 cards already exist → 4 merged
-            ImportJob job3 = await ImportFromSource(db, registry, jobStore, imageStore, "Serebii",
+            ImportJob job3 = await ImportFromSource(dbName, registry, jobStore, imageStore, "Serebii",
                 externalSetId: "prismaticevolutions", cardIdPrefix: "serebii/prismaticevolutions/",
                 setName: SetName, imageUrl: true);
             Assert.Equal(0, job3.ImportedCount);
@@ -281,7 +283,7 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
         /// <paramref name="cardIdPrefix"/> to generate realistic external ids.
         /// </summary>
         private static async Task<ImportJob> ImportFromSource(
-            ArchiveDexDbContext db,
+            string dbName,
             FakeRegistry registry,
             FakeJobStore jobStore,
             FakeImageStore imageStore,
@@ -293,10 +295,10 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
             string cardSuffix = "",
             string? overrideRarity = null)
         {
+            using var db = CreateDb(dbName);
             var setRepo = new SetRepository(db);
             var matching = new SetMatchingService(setRepo);
             var setImport = new SetImportService(setRepo, matching);
-            var catalog = new CatalogRepository(db);
 
             var tcgSource = new RealisticCardsDataSource(
                 source, externalSetId, cardIdPrefix, setName,
@@ -312,7 +314,15 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
             };
             jobStore.AddJob(job);
 
-            var service = new ImportJobService(registry, catalog, setImport, imageStore, jobStore, setRepo);
+            var services = new ServiceCollection();
+            _ = services.AddDbContext<ArchiveDexDbContext>(options =>
+                options.UseSqlite($"Data Source={dbName}.db"));
+            _ = services.AddScoped<ICatalogRepository, CatalogRepository>();
+            _ = services.AddScoped<IImageStore>(_ => imageStore);
+            _ = services.AddScoped<ITcgDataSourceRegistry>(_ => registry);
+            var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+
+            var service = new ImportJobService(registry, scopeFactory, setImport, jobStore, setRepo, NullLogger<ImportJobService>.Instance);
             await service.ExecuteAsync(job.Id, source, [externalSetId], ["en"]);
 
             return new ImportJob

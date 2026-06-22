@@ -6,7 +6,7 @@
 @inject ArchiveDex.Web.Services.ScannerSession Scanner
 @inject IStringLocalizer<SharedResources> Loc
 
-<div class="confirm-page">
+<div class="confirm-page ad-page ad-page--focus">
     @if (Scanner.LastScanId is null)
     {
         <div class="empty-state">
@@ -90,9 +90,9 @@
         }
         else if (!string.IsNullOrEmpty(_error))
         {
-            <div class="error-box">
+            <div class="ad-error">
                 <p>@_error</p>
-                <button class="btn-retry" @onclick="ResetError">@Loc["Scanner.ScanAnother"]</button>
+                <button class="ad-btn ad-btn--primary" @onclick="ResetError">@Loc["Scanner.ScanAnother"]</button>
             </div>
         }
         else

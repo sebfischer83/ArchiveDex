@@ -1,152 +1,203 @@
 .result-page {
     display: flex;
-    flex-direction: column;
     flex: 1;
-    gap: 16px;
+    flex-direction: column;
+    gap: var(--ad-space-4);
 }
 
 .result-title {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #fff;
     margin: 0;
+    color: var(--ad-text);
+    font-size: var(--ad-text-lg);
+    font-weight: var(--ad-weight-bold);
 }
 
-/* OCR detected info */
 .ocr-info {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--ad-space-2);
+}
+
+.ocr-badge,
+.card-rarity,
+.card-lang {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    border-radius: var(--ad-radius-full);
+    font-size: var(--ad-text-xs);
+    font-weight: var(--ad-weight-medium);
 }
 
 .ocr-badge {
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    background: rgba(102, 126, 234, 0.2);
-    color: #a8b4ff;
+    padding: var(--ad-space-1) var(--ad-space-3);
+    background: var(--ad-accent-soft);
+    color: var(--ad-accent);
 }
 
 .name-badge {
-    background: rgba(118, 75, 162, 0.2);
-    color: #c9a0f0;
+    background: var(--ad-surface-hover);
+    color: var(--ad-text-secondary);
 }
 
 .confidence-badge {
-    background: rgba(76, 175, 80, 0.2);
-    color: #81c784;
+    background: color-mix(in srgb, var(--ad-success) 12%, transparent);
+    color: var(--ad-success);
 }
 
-/* Tap hint */
 .tap-hint {
-    font-size: 0.85rem;
-    color: #888;
     margin: 0;
+    color: var(--ad-text-muted);
+    font-size: var(--ad-text-sm);
     text-align: center;
 }
 
-/* Candidate cards */
 .candidate-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding-bottom: 20px;
+    gap: var(--ad-space-3);
+    padding-bottom: var(--ad-space-5);
 }
 
 .candidate-card {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--ad-space-2);
     width: 100%;
-    padding: 16px;
-    background: #1a1a2e;
-    border: 2px solid #2a2a4a;
-    border-radius: 14px;
+    padding: var(--ad-space-4);
+    border: 1px solid var(--ad-border);
+    border-radius: var(--ad-radius-lg);
+    background: var(--ad-surface);
+    box-shadow: var(--ad-shadow-sm);
+    color: inherit;
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition:
+        border-color var(--ad-motion-fast) var(--ad-ease-standard),
+        box-shadow var(--ad-motion-fast) var(--ad-ease-standard),
+        transform var(--ad-motion-fast) var(--ad-ease-standard);
     -webkit-tap-highlight-color: transparent;
 }
 
+.candidate-card:hover {
+    border-color: color-mix(in srgb, var(--ad-accent) 32%, var(--ad-border));
+    box-shadow: var(--ad-shadow-md);
+}
+
 .candidate-card:active {
-    border-color: #667eea;
-    background: #1e1e3a;
+    transform: translateY(1px);
+}
+
+.candidate-card:focus-visible,
+.btn-back:focus-visible,
+.btn-nav-back:focus-visible {
+    outline: 2px solid var(--ad-accent);
+    outline-offset: 2px;
 }
 
 .card-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    gap: var(--ad-space-3);
 }
 
 .card-number {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #fff;
+    color: var(--ad-text);
+    font-family: var(--ad-font-mono);
+    font-size: var(--ad-text-base);
+    font-weight: var(--ad-weight-bold);
 }
 
 .card-score {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #667eea;
+    color: var(--ad-accent);
+    font-size: var(--ad-text-sm);
+    font-weight: var(--ad-weight-bold);
 }
 
 .card-name {
-    font-size: 1rem;
-    color: #ddd;
-    line-height: 1.3;
+    color: var(--ad-text);
+    font-size: var(--ad-text-base);
+    line-height: 1.35;
 }
 
 .card-meta {
     display: flex;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: var(--ad-space-2);
 }
 
 .card-rarity {
-    font-size: 0.8rem;
-    color: #c9a0f0;
-    background: rgba(118, 75, 162, 0.2);
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: 2px var(--ad-space-2);
+    background: var(--ad-surface-hover);
+    color: var(--ad-text-secondary);
 }
 
 .card-lang {
-    font-size: 0.8rem;
-    color: #888;
+    padding: 2px var(--ad-space-2);
+    background: var(--ad-surface-sunk);
+    color: var(--ad-text-muted);
 }
 
-/* Empty states */
 .empty-state,
 .no-candidates {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
-    padding: 40px 20px;
+    gap: var(--ad-space-4);
+    padding: var(--ad-space-6) var(--ad-space-5);
+    border: 1px solid var(--ad-border);
+    border-radius: var(--ad-radius-lg);
+    background: var(--ad-surface);
+    box-shadow: var(--ad-shadow-sm);
+    color: var(--ad-text-muted);
     text-align: center;
-    color: #888;
 }
 
 .btn-back,
 .btn-nav-back {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 10px 0;
-    font-size: 0.95rem;
-    background: none;
-    border: none;
-    color: #667eea;
+    align-self: flex-start;
+    gap: var(--ad-space-2);
+    min-height: 44px;
+    padding: 0 var(--ad-space-3);
+    border: 0;
+    border-radius: var(--ad-radius-md);
+    background: transparent;
+    color: var(--ad-accent);
+    font: inherit;
+    font-size: var(--ad-text-sm);
+    font-weight: var(--ad-weight-medium);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    align-self: flex-start;
+}
+
+.btn-back {
+    align-self: center;
+    padding: 0 var(--ad-space-5);
+    background: var(--ad-accent);
+    color: var(--ad-text-onaccent);
+}
+
+.btn-nav-back:hover {
+    background: var(--ad-surface-hover);
 }
 
 .back-icon {
     width: 20px;
     height: 20px;
     fill: none;
-    stroke: #667eea;
+    stroke: currentColor;
     stroke-width: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .candidate-card {
+        transition: none;
+    }
+
+    .candidate-card:active {
+        transform: none;
+    }
 }

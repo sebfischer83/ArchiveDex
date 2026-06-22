@@ -28,4 +28,9 @@ namespace ArchiveDex.Serebii.Models
     {
         public string VendorId => $"serebii/{SetSlug}/{Number}";
     }
+
+    public record SerebiiCardDetail(
+        string? ImageUrl,
+        string? Illustrator
+    );
 }

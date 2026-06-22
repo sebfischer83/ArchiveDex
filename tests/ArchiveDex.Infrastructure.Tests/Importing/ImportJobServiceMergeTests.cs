@@ -1,9 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Domain.Entities;
 using ArchiveDex.Domain.Enums;
 using ArchiveDex.Infrastructure.Importing;
 using ArchiveDex.Infrastructure.Persistence;
+using ArchiveDex.Infrastructure.Storage;
 
 namespace ArchiveDex.Infrastructure.Tests.Importing
 {
@@ -80,6 +84,80 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
             Assert.Equal(0, source.DownloadCount);
         }
 
+        [Fact]
+        public async Task ExecuteAsync_PersistsTranslation_ForNewCard()
+        {
+            var dbName = $"translation-new-{Guid.NewGuid():N}";
+            await using ArchiveDexDbContext db = CreateDb(dbName);
+            var set = new CardSet
+            {
+                Id = Guid.NewGuid(),
+                CanonicalName = "JP Set",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _ = db.CardSets.Add(set);
+            _ = await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var job = new ImportJob { Id = Guid.NewGuid(), Source = "Limitless", Status = ImportJobStatus.Pending };
+            var jobStore = new FakeImportJobStore(job);
+            var source = new FakeTranslatingDataSource();
+            ImportJobService service = CreateService(db, jobStore, source, set);
+
+            await service.ExecuteAsync(job.Id, "Limitless", ["set"], ["ja"]);
+
+            CardPrint card = await db.CardPrints.Include(c => c.Translations).SingleAsync();
+            Assert.Equal("トロピウス", card.Name); // primary stays Japanese
+            CardTranslation tr = Assert.Single(card.Translations);
+            Assert.Equal("en", tr.Language);
+            Assert.Equal("Tropius", tr.Name);
+            Assert.Equal("Pokémon", tr.Category);
+            Assert.Equal("Basic", tr.Stage);
+            Assert.NotNull(tr.AttacksJson);
+            Assert.Contains("Solar Beam", tr.AttacksJson);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_AddsTranslation_ToExistingCardWithout_Duplicating()
+        {
+            var dbName = $"translation-existing-{Guid.NewGuid():N}";
+            await using ArchiveDexDbContext db = CreateDb(dbName);
+            var set = new CardSet
+            {
+                Id = Guid.NewGuid(),
+                CanonicalName = "JP Set",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            var card = new CardPrint
+            {
+                Id = Guid.NewGuid(),
+                CardSetId = set.Id,
+                CardLanguage = CardLanguage.ja,
+                Number = "001",
+                Name = "トロピウス",
+                Origin = Origin.Imported
+            };
+            _ = db.CardSets.Add(set);
+            _ = db.CardPrints.Add(card);
+            _ = await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var job = new ImportJob { Id = Guid.NewGuid(), Source = "Limitless", Status = ImportJobStatus.Pending };
+            var jobStore = new FakeImportJobStore(job);
+            var source = new FakeTranslatingDataSource();
+
+            // Run import twice; translation must be upserted, not duplicated.
+            await CreateService(db, jobStore, source, set).ExecuteAsync(job.Id, "Limitless", ["set"], ["ja"]);
+            db.ChangeTracker.Clear();
+            await CreateService(db, jobStore, source, set).ExecuteAsync(job.Id, "Limitless", ["set"], ["ja"]);
+
+            CardPrint reloaded = await db.CardPrints.Include(c => c.Translations).SingleAsync();
+            CardTranslation tr = Assert.Single(reloaded.Translations);
+            Assert.Equal("Tropius", tr.Name);
+        }
+
         private static ArchiveDexDbContext CreateDb(string dbName)
         {
             DbContextOptions<ArchiveDexDbContext> options = new DbContextOptionsBuilder<ArchiveDexDbContext>()
@@ -135,15 +213,25 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
         private static ImportJobService CreateService(
             ArchiveDexDbContext db,
             FakeImportJobStore jobStore,
-            FakeTcgDataSource source,
+            ITcgDataSource source,
             CardSet set,
-            IImageStore? imageStore = null) => new ImportJobService(
+            IImageStore? imageStoreOverride = null)
+        {
+            var imageStore = imageStoreOverride ?? new FakeImageStore("unused.webp");
+            var services = new ServiceCollection();
+            _ = services.AddScoped<ICatalogRepository>(_ => new CatalogRepository(db));
+            _ = services.AddScoped<IImageStore>(_ => imageStore);
+            _ = services.AddScoped<ITcgDataSourceRegistry>(_ => new FakeSourceRegistry(source));
+            var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+
+            return new ImportJobService(
                 new FakeSourceRegistry(source),
-                new CatalogRepository(db),
+                scopeFactory,
                 new FakeSetImportService(set),
-                imageStore ?? new FakeImageStore("unused.webp"),
                 jobStore,
-                new FakeSetRepository(db));
+                new FakeSetRepository(db),
+                NullLogger<ImportJobService>.Instance);
+        }
 
         private sealed class FakeSourceRegistry(ITcgDataSource source) : ITcgDataSourceRegistry
         {
@@ -192,6 +280,71 @@ namespace ArchiveDex.Infrastructure.Tests.Importing
                 var stream = new MemoryStream([1, 2, 3]);
                 return Task.FromResult<CardImageDownload?>(new(stream, Path.GetFileName(new Uri(imageUrl).AbsolutePath)));
             }
+        }
+
+        private sealed class FakeTranslatingDataSource : ITcgDataSource
+        {
+            public string SourceName => "Limitless";
+            public string[] SupportedLanguages => ["ja", "en"];
+
+            public Task<IReadOnlyList<SetSummary>> GetAvailableSetsAsync(string language, CancellationToken ct = default)
+            {
+                IReadOnlyList<SetSummary> sets = [new("set", "JP Set", language, 1, 1)];
+                return Task.FromResult(sets);
+            }
+
+            public Task<SetSummary?> GetSetMetaAsync(string setId, string language, CancellationToken ct = default)
+                => Task.FromResult<SetSummary?>(new(setId, "JP Set", language, 1, 1));
+
+            public Task<IReadOnlyList<CardImportDto>> GetCardsForSetAsync(string setId, string language, CancellationToken ct = default)
+            {
+                IReadOnlyList<CardImportDto> cards = [new("limitless/set/ja/001", "001", "トロピウス", "Rare", null)];
+                return Task.FromResult(cards);
+            }
+
+            public Task<CardDetailDto?> GetCardDetailAsync(string cardId, string language, CancellationToken ct = default)
+            {
+                var translation = new CardTranslationDto(
+                    Language: "en",
+                    Name: "Tropius",
+                    Category: "Pokémon",
+                    Stage: "Basic",
+                    Description: null,
+                    Attacks: [new CardAttackDto(["G", "C"], "Solar Beam", "Deals damage.", 60)]);
+
+                var detail = new CardDetailDto(
+                    ExternalId: cardId,
+                    Number: "001",
+                    Name: "トロピウス",
+                    Rarity: null,
+                    ImageUrl: null,
+                    Category: "ポケモン",
+                    Illustrator: null,
+                    Hp: 100,
+                    Types: null,
+                    Stage: "たね",
+                    EvolveFrom: null,
+                    Description: null,
+                    DexIds: null,
+                    Level: null,
+                    Suffix: null,
+                    VariantNormal: false,
+                    VariantHolo: false,
+                    VariantReverse: false,
+                    VariantFirstEdition: false,
+                    RegulationMark: null,
+                    LegalStandard: null,
+                    LegalExpanded: null,
+                    Attacks: null,
+                    Weaknesses: null,
+                    Resistances: null,
+                    Retreat: null,
+                    Translation: translation);
+                return Task.FromResult<CardDetailDto?>(detail);
+            }
+
+            public Task<CardImageDownload?> DownloadCardImageAsync(string imageUrl, CancellationToken ct = default)
+                => Task.FromResult<CardImageDownload?>(null);
         }
 
         private sealed class FakeSetImportService(CardSet set) : ISetImportService

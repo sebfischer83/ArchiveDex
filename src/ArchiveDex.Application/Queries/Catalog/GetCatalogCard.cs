@@ -42,10 +42,19 @@ namespace ArchiveDex.Application.Queries.Catalog
         IReadOnlyList<CatalogTypeValue>? Weaknesses,
         IReadOnlyList<CatalogTypeValue>? Resistances,
         int? Retreat,
-        bool HasLocalCorrection);
+        bool HasLocalCorrection,
+        IReadOnlyList<CatalogCardTranslation>? Translations = null);
 
     public sealed record CatalogAttack(IReadOnlyList<string> Cost, string Name, string? Effect, int? Damage);
     public sealed record CatalogTypeValue(string Type, string Value);
+
+    public sealed record CatalogCardTranslation(
+        string Language,
+        string? Name,
+        string? Category,
+        string? Stage,
+        string? Description,
+        IReadOnlyList<CatalogAttack>? Attacks);
 
     public static class GetCatalogCardHandler
     {
@@ -90,7 +99,15 @@ namespace ArchiveDex.Application.Queries.Catalog
                 Weaknesses: Deserialize<List<CatalogTypeValue>>(card.WeaknessesJson, _jsonOpts),
                 Resistances: Deserialize<List<CatalogTypeValue>>(card.ResistancesJson, _jsonOpts),
                 Retreat: card.Retreat,
-                HasLocalCorrection: card.LocalCorrection is not null);
+                HasLocalCorrection: card.LocalCorrection is not null,
+                Translations: card.Translations.Count == 0 ? null :
+                    [.. card.Translations.Select(t => new CatalogCardTranslation(
+                        t.Language,
+                        t.Name,
+                        t.Category,
+                        t.Stage,
+                        t.Description,
+                        Deserialize<List<CatalogAttack>>(t.AttacksJson, _jsonOpts)))]);
         }
 
         private static T? Deserialize<T>(string? json, JsonSerializerOptions opts) where T : class

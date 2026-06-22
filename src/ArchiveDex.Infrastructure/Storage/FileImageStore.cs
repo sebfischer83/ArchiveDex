@@ -1,6 +1,7 @@
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Domain.Entities;
 using ArchiveDex.Domain.Enums;
+using SkiaSharp;
 
 namespace ArchiveDex.Infrastructure.Storage
 {
@@ -20,6 +21,7 @@ namespace ArchiveDex.Infrastructure.Storage
         };
 
         private const long MaxSizeBytes = 10 * 1024 * 1024;
+        private const int JpegWebPQuality = 92;
 
         public async Task<ImageAsset> StoreAsync(Stream imageStream, string fileName, CancellationToken ct = default)
         {
@@ -29,23 +31,33 @@ namespace ArchiveDex.Infrastructure.Storage
                 throw new InvalidOperationException($"Unsupported image format: {ext}. Allowed: JPEG, PNG, WebP.");
             }
 
-            ImageFormat format = ext.ToLowerInvariant() switch
-            {
-                ".jpg" or ".jpeg" => ImageFormat.Jpeg,
-                ".png" => ImageFormat.Png,
-                ".webp" => ImageFormat.WebP,
-                _ => throw new InvalidOperationException("Unsupported format")
-            };
+            using var ms = new MemoryStream();
+            await imageStream.CopyToAsync(ms, ct);
+            ms.Position = 0;
 
             var id = Guid.NewGuid().ToString("N");
-            var relativePath = Path.Combine(id[..2], id[2..4], $"{id}{ext}");
+            var outExt = ".webp";
+            var relativePath = Path.Combine(id[..2], id[2..4], $"{id}{outExt}");
             var fullPath = Path.Combine(_basePath, relativePath);
             _ = Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
 
-            await using var fs = new FileStream(fullPath, FileMode.Create);
-            await imageStream.CopyToAsync(fs, ct);
-            var sizeBytes = fs.Length;
+            var isJpeg = ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+                || ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase);
 
+            ms.Position = 0;
+            using var bitmap = SKBitmap.Decode(ms);
+            if (bitmap is null)
+            {
+                throw new InvalidOperationException("Failed to decode image.");
+            }
+
+            var quality = isJpeg ? JpegWebPQuality : 100;
+            using var data = bitmap.Encode(SKEncodedImageFormat.Webp, quality);
+
+            await using var fs = new FileStream(fullPath, FileMode.Create);
+            data.SaveTo(fs);
+
+            var sizeBytes = new FileInfo(fullPath).Length;
             if (sizeBytes > MaxSizeBytes)
             {
                 File.Delete(fullPath);
@@ -56,7 +68,7 @@ namespace ArchiveDex.Infrastructure.Storage
             {
                 Id = Guid.NewGuid(),
                 RelativePath = relativePath,
-                Format = format,
+                Format = ImageFormat.WebP,
                 SizeBytes = sizeBytes,
                 CreatedAt = DateTime.UtcNow
             };

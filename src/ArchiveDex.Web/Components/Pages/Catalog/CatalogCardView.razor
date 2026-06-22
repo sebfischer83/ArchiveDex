@@ -242,6 +242,46 @@
                     }
                 </section>
 
+                @* Translations *@
+                @if (_card.Translations is { Count: > 0 })
+                {
+                    @foreach (var tr in _card.Translations)
+                    {
+                        <section class="detail-section">
+                            <h2 class="section-label">Translation (@tr.Language.ToUpperInvariant())</h2>
+                            @if (!string.IsNullOrWhiteSpace(tr.Name))
+                            {
+                                <div class="meta-row"><span class="meta-key">Name</span><span class="meta-val">@tr.Name</span></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(tr.Category) || !string.IsNullOrWhiteSpace(tr.Stage))
+                            {
+                                <div class="meta-row"><span class="meta-key">Type</span><span class="meta-val">@string.Join(" · ", new[] { tr.Category, tr.Stage }.Where(s => !string.IsNullOrWhiteSpace(s)))</span></div>
+                            }
+                            @if (tr.Attacks is { Count: > 0 })
+                            {
+                                <div class="attacks-list">
+                                    @foreach (var atk in tr.Attacks)
+                                    {
+                                        <div class="attack-card">
+                                            <div class="attack-header">
+                                                <span class="attack-name">@atk.Name</span>
+                                                @if (atk.Damage.HasValue && atk.Damage > 0)
+                                                {
+                                                    <span class="attack-damage">@atk.Damage</span>
+                                                }
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(atk.Effect))
+                                            {
+                                                <p class="attack-effect">@atk.Effect</p>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </section>
+                    }
+                }
+
             </div>
         </div>
     }

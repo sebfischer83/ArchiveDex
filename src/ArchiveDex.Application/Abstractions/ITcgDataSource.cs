@@ -56,7 +56,8 @@ namespace ArchiveDex.Application.Abstractions
         IReadOnlyList<CardAttackDto>? Attacks,
         IReadOnlyList<CardTypeValueDto>? Weaknesses,
         IReadOnlyList<CardTypeValueDto>? Resistances,
-        int? Retreat);
+        int? Retreat,
+        CardTranslationDto? Translation = null);
 
     public sealed record CardAttackDto(
         IReadOnlyList<string> Cost,
@@ -65,6 +66,14 @@ namespace ArchiveDex.Application.Abstractions
         int? Damage);
 
     public sealed record CardTypeValueDto(string Type, string Value);
+
+    public sealed record CardTranslationDto(
+        string Language,
+        string? Name,
+        string? Category,
+        string? Stage,
+        string? Description,
+        IReadOnlyList<CardAttackDto>? Attacks);
 
     public sealed record CardImageDownload(Stream Content, string FileName);
 

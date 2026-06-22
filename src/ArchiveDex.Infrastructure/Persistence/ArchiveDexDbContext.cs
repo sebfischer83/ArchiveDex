@@ -16,6 +16,7 @@ namespace ArchiveDex.Infrastructure.Persistence
         public DbSet<SetRelation> SetRelations => Set<SetRelation>();
         public DbSet<CardPrint> CardPrints => Set<CardPrint>();
         public DbSet<CardExternalId> CardExternalIds => Set<CardExternalId>();
+        public DbSet<CardTranslation> CardTranslations => Set<CardTranslation>();
         public DbSet<LocalCorrection> LocalCorrections => Set<LocalCorrection>();
         public DbSet<CollectionEntry> CollectionEntries => Set<CollectionEntry>();
         public DbSet<ScanJob> ScanJobs => Set<ScanJob>();
@@ -95,12 +96,20 @@ namespace ArchiveDex.Infrastructure.Persistence
                 _ = e.HasOne(c => c.CardSet).WithMany(s => s.Cards).HasForeignKey(c => c.CardSetId);
                 _ = e.HasOne(c => c.LocalCorrection).WithOne(lc => lc.CardPrint).HasForeignKey<LocalCorrection>(lc => lc.CardPrintId);
                 _ = e.HasMany(c => c.ExternalIds).WithOne(x => x.CardPrint).HasForeignKey(x => x.CardPrintId);
+                _ = e.HasMany(c => c.Translations).WithOne(t => t.CardPrint).HasForeignKey(t => t.CardPrintId);
             });
 
             _ = modelBuilder.Entity<CardExternalId>(e =>
             {
                 _ = e.HasKey(x => x.Id);
                 _ = e.HasIndex(x => new { x.Source, x.ExternalId, x.Language }).IsUnique();
+            });
+
+            _ = modelBuilder.Entity<CardTranslation>(e =>
+            {
+                _ = e.HasKey(t => t.Id);
+                _ = e.HasIndex(t => new { t.CardPrintId, t.Language }).IsUnique();
+                _ = e.Property(t => t.Language).IsRequired();
             });
 
             _ = modelBuilder.Entity<LocalCorrection>(e =>

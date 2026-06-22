@@ -1,24 +1,29 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Domain.Entities;
 using ArchiveDex.Domain.Enums;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace ArchiveDex.Infrastructure.Importing
 {
     public class ImportJobService(
         ITcgDataSourceRegistry sources,
-        ICatalogRepository catalog,
+        IServiceScopeFactory scopeFactory,
         ISetImportService setImport,
-        IImageStore imageStore,
         IImportJobStore jobs,
-        ISetRepository setRepo) : IImportJobService
+        ISetRepository setRepo,
+        ILogger<ImportJobService> logger) : IImportJobService
     {
         private readonly ITcgDataSourceRegistry _sources = sources;
-        private readonly ICatalogRepository _catalog = catalog;
+        private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
         private readonly ISetImportService _setImport = setImport;
-        private readonly IImageStore _imageStore = imageStore;
         private readonly IImportJobStore _jobs = jobs;
         private readonly ISetRepository _setRepo = setRepo;
+        private readonly ILogger<ImportJobService> _logger = logger;
+
+        private const int MaxConcurrentCards = 8;
 
         public async Task ExecuteAsync(Guid jobId, string source, List<string> setIds, List<string> cardLanguages)
         {
@@ -27,8 +32,12 @@ namespace ArchiveDex.Infrastructure.Importing
             ImportJob? job = await _jobs.GetAsync(jobId, ct);
             if (job is null)
             {
+                _logger.LogWarning("Import job {JobId} not found", jobId);
                 return;
             }
+
+            _logger.LogInformation("Starting import job {JobId} from {Source} for languages [{Languages}]",
+                jobId, source, string.Join(", ", cardLanguages));
 
             job.Status = ImportJobStatus.Running;
             job.StartedAt = DateTime.UtcNow;
@@ -39,7 +48,9 @@ namespace ArchiveDex.Infrastructure.Importing
                 ITcgDataSource tcg = _sources.Resolve(source);
                 foreach (var language in cardLanguages)
                 {
+                    _logger.LogInformation("Fetching available sets for language {Language} from {Source}", language, source);
                     IReadOnlyList<SetSummary> availableSets = await tcg.GetAvailableSetsAsync(language, ct);
+                    _logger.LogInformation("Found {Count} available sets for language {Language}", availableSets.Count, language);
 
                     // Register set identity for every available set (idempotent, may queue pending mappings).
                     // List-only metadata here; imported sets are enriched with full detail below.
@@ -54,9 +65,14 @@ namespace ArchiveDex.Infrastructure.Importing
                     job.SelectedSets = JsonSerializer.Serialize(resolvedSetIds);
                     await _jobs.SaveChangesAsync(ct);
 
+                    var setIndex = 0;
                     foreach (var externalSetId in resolvedSetIds)
                     {
+                        setIndex++;
                         ct.ThrowIfCancellationRequested();
+
+                        _logger.LogInformation("Processing set {Index}/{Total}: {SetId} ({Language})",
+                            setIndex, resolvedSetIds.Count, externalSetId, language);
 
                         // Fetch full set detail (release date + series) so matching can score properly.
                         SetSummary? meta = await tcg.GetSetMetaAsync(externalSetId, language, ct);
@@ -72,39 +88,80 @@ namespace ArchiveDex.Infrastructure.Importing
                             var imageUrl = meta?.LogoUrl ?? meta?.SymbolUrl;
                             if (!string.IsNullOrWhiteSpace(imageUrl))
                             {
+                                _logger.LogInformation("Downloading set image for {SetId}: {Url}", externalSetId, imageUrl);
                                 CardImageDownload? download = await tcg.DownloadCardImageAsync(imageUrl, ct);
                                 if (download is not null)
                                 {
                                     await using Stream stream = download.Content;
-                                    ImageAsset asset = await _imageStore.StoreAsync(stream, download.FileName, ct);
+                                    using var imgScope = _scopeFactory.CreateAsyncScope();
+                                    var scopedImageStore = imgScope.ServiceProvider.GetRequiredService<IImageStore>();
+                                    ImageAsset asset = await scopedImageStore.StoreAsync(stream, download.FileName, ct);
                                     cardSet.ImagePath = asset.RelativePath;
                                     await _setRepo.SaveChangesAsync(ct);
+                                    _logger.LogInformation("Set image stored: {Path} ({Bytes} bytes)", asset.RelativePath, asset.SizeBytes);
                                 }
                             }
                         }
 
                         IReadOnlyList<CardImportDto> cards = await tcg.GetCardsForSetAsync(externalSetId, language, ct);
+                        _logger.LogInformation("Fetched {Count} cards for set {SetId}, processing in parallel ({Max} concurrent)",
+                            cards.Count, externalSetId, MaxConcurrentCards);
 
-                        var seenCards = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                        foreach (CardImportDto dto in cards)
+                        var seenCards = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
+                        var imported = 0;
+                        var updated = 0;
+                        var merged = 0;
+                        var failed = 0;
+                        await Parallel.ForEachAsync(cards, new ParallelOptions
                         {
-                            if (!seenCards.Add(dto.ExternalId))
+                            MaxDegreeOfParallelism = MaxConcurrentCards,
+                            CancellationToken = ct
+                        }, async (dto, innerCt) =>
+                        {
+                            if (!seenCards.TryAdd(dto.ExternalId, 0))
                             {
-                                continue;
+                                return;
                             }
 
-                            await UpsertCardAsync(tcg, dto, cardSet, source, language, job, ct);
-                        }
+                            try
+                            {
+                                await using var scope = _scopeFactory.CreateAsyncScope();
+                                var scopedCatalog = scope.ServiceProvider.GetRequiredService<ICatalogRepository>();
+                                var scopedImageStore = scope.ServiceProvider.GetRequiredService<IImageStore>();
+                                var scopedRegistry = scope.ServiceProvider.GetRequiredService<ITcgDataSourceRegistry>();
+                                var scopedTcg = scopedRegistry.Resolve(source);
+
+                                var (isMerged, isUpdated, isImported) = await UpsertCardAsync(scopedCatalog, scopedImageStore, scopedTcg, dto, cardSet, source, language, innerCt);
+                                if (isMerged) Interlocked.Increment(ref merged);
+                                else if (isUpdated) Interlocked.Increment(ref updated);
+                                else if (isImported) Interlocked.Increment(ref imported);
+                            }
+                            catch (Exception ex)
+                            {
+                                Interlocked.Increment(ref failed);
+                                _logger.LogWarning(ex, "Failed to process card {ExternalId}", dto.ExternalId);
+                            }
+                        });
+
+                        job.ImportedCount += imported;
+                        job.UpdatedCount += updated;
+                        job.MergedCount += merged;
+
+                        _logger.LogInformation("Set {SetId} done: +{Imported} imported, ~{Updated} updated, ~{Merged} merged, {Failed} failed",
+                            externalSetId, imported, updated, merged, failed);
 
                         await _jobs.SaveChangesAsync(ct);
                     }
                 }
                 job.Status = ImportJobStatus.Completed;
+                _logger.LogInformation("Import job {JobId} completed successfully. Total: +{Imported} ~{Updated} ~{Merged}",
+                    jobId, job.ImportedCount, job.UpdatedCount, job.MergedCount);
             }
             catch (Exception ex)
             {
                 job.Status = ImportJobStatus.Failed;
                 job.Errors = ex.Message;
+                _logger.LogError(ex, "Import job {JobId} failed", jobId);
                 throw;
             }
             finally
@@ -121,46 +178,42 @@ namespace ArchiveDex.Infrastructure.Importing
                 PrintedTotal: s.TotalCards,
                 OfficialTotal: s.OfficialCards);
 
-        private async Task UpsertCardAsync(
+        private async Task<(bool IsMerged, bool IsUpdated, bool IsImported)> UpsertCardAsync(
+            ICatalogRepository catalog,
+            IImageStore imageStore,
             ITcgDataSource tcg,
             CardImportDto dto,
             CardSet cardSet,
             string source,
             string language,
-            ImportJob job,
             CancellationToken ct)
         {
-            CardPrint? existing = await _catalog.FindByExternalIdAsync(source, dto.ExternalId, language, ct);
+            CardPrint? existing = await catalog.FindByExternalIdAsync(source, dto.ExternalId, language, ct);
             var isMerge = false;
             if (existing is null)
             {
-                existing = await _catalog.FindBySetLanguageNumberAsync(cardSet.Id, language, dto.Number, ct);
+                existing = await catalog.FindBySetLanguageNumberAsync(cardSet.Id, language, dto.Number, ct);
                 isMerge = existing is not null;
             }
 
             CardDetailDto? detail = await tcg.GetCardDetailAsync(dto.ExternalId, language, ct);
 
             var imageUrl = detail?.ImageUrl ?? dto.ImageUrl;
-            var imagePath = await DownloadImageIfNeeded(tcg, imageUrl, existing?.ImagePath, ct);
+            var forceRedownload = detail?.ImageUrl is not null && detail.ImageUrl != dto.ImageUrl;
+            var imagePath = await DownloadImageIfNeeded(tcg, imageStore, imageUrl, forceRedownload ? null : existing?.ImagePath, ct);
 
             if (existing is not null)
             {
                 existing.Number = dto.Number;
                 existing.Name = dto.Name;
-                existing.Rarity = dto.Rarity;
+                if (!string.IsNullOrWhiteSpace(dto.Rarity)) existing.Rarity = dto.Rarity;
                 existing.CardSetId = cardSet.Id;
                 existing.ImagePath = imagePath ?? existing.ImagePath;
                 EnsureExternalId(existing, source, dto.ExternalId, language);
                 ApplyDetail(existing, detail);
-                await _catalog.UpdateAsync(existing, ct);
-                if (isMerge)
-                {
-                    job.MergedCount++;
-                }
-                else
-                {
-                    job.UpdatedCount++;
-                }
+                ApplyTranslation(existing, detail?.Translation);
+                await catalog.UpdateAsync(existing, ct);
+                return (isMerge, !isMerge, false);
             }
             else
             {
@@ -187,8 +240,9 @@ namespace ArchiveDex.Infrastructure.Importing
                     ]
                 };
                 ApplyDetail(card, detail);
-                _ = await _catalog.AddAsync(card, ct);
-                job.ImportedCount++;
+                ApplyTranslation(card, detail?.Translation);
+                _ = await catalog.AddAsync(card, ct);
+                return (false, false, true);
             }
         }
 
@@ -210,6 +264,32 @@ namespace ArchiveDex.Infrastructure.Importing
             });
         }
 
+        private static void ApplyTranslation(CardPrint card, CardTranslationDto? t)
+        {
+            if (t is null || string.IsNullOrWhiteSpace(t.Language))
+            {
+                return;
+            }
+
+            CardTranslation? existing = card.Translations.FirstOrDefault(x => x.Language == t.Language);
+            if (existing is null)
+            {
+                existing = new CardTranslation
+                {
+                    Id = Guid.NewGuid(),
+                    CardPrintId = card.Id,
+                    Language = t.Language
+                };
+                card.Translations.Add(existing);
+            }
+
+            if (!string.IsNullOrWhiteSpace(t.Name)) existing.Name = t.Name;
+            if (!string.IsNullOrWhiteSpace(t.Category)) existing.Category = t.Category;
+            if (!string.IsNullOrWhiteSpace(t.Stage)) existing.Stage = t.Stage;
+            if (!string.IsNullOrWhiteSpace(t.Description)) existing.Description = t.Description;
+            if (t.Attacks is { Count: > 0 }) existing.AttacksJson = JsonSerializer.Serialize(t.Attacks);
+        }
+
         private static void ApplyDetail(CardPrint card, CardDetailDto? d)
         {
             if (d is null)
@@ -217,31 +297,34 @@ namespace ArchiveDex.Infrastructure.Importing
                 return;
             }
 
-            card.Category = d.Category;
-            card.Illustrator = d.Illustrator;
-            card.Hp = d.Hp;
-            card.TypesJson = d.Types is { Count: > 0 } ? JsonSerializer.Serialize(d.Types) : null;
-            card.Stage = d.Stage;
-            card.EvolveFrom = d.EvolveFrom;
-            card.Description = d.Description;
-            card.DexIdsJson = d.DexIds is { Count: > 0 } ? JsonSerializer.Serialize(d.DexIds) : null;
-            card.Level = d.Level;
-            card.Suffix = d.Suffix;
-            card.VariantNormal = d.VariantNormal;
-            card.VariantHolo = d.VariantHolo;
-            card.VariantReverse = d.VariantReverse;
-            card.VariantFirstEdition = d.VariantFirstEdition;
-            card.RegulationMark = d.RegulationMark;
-            card.LegalStandard = d.LegalStandard;
-            card.LegalExpanded = d.LegalExpanded;
-            card.AttacksJson = d.Attacks is { Count: > 0 } ? JsonSerializer.Serialize(d.Attacks) : null;
-            card.WeaknessesJson = d.Weaknesses is { Count: > 0 } ? JsonSerializer.Serialize(d.Weaknesses) : null;
-            card.ResistancesJson = d.Resistances is { Count: > 0 } ? JsonSerializer.Serialize(d.Resistances) : null;
-            card.Retreat = d.Retreat;
+            if (d.Category is not null) card.Category = d.Category;
+            if (d.Illustrator is not null) card.Illustrator = d.Illustrator;
+            if (d.Hp.HasValue) card.Hp = d.Hp;
+            if (d.Types is { Count: > 0 }) card.TypesJson = JsonSerializer.Serialize(d.Types);
+            if (d.Stage is not null) card.Stage = d.Stage;
+            if (d.EvolveFrom is not null) card.EvolveFrom = d.EvolveFrom;
+            if (d.Description is not null) card.Description = d.Description;
+            if (d.DexIds is { Count: > 0 }) card.DexIdsJson = JsonSerializer.Serialize(d.DexIds);
+            if (d.Level is not null) card.Level = d.Level;
+            if (d.Suffix is not null) card.Suffix = d.Suffix;
+            // OR-merge: variant flags are non-nullable bools, so we can't tell
+            // "not provided" from "false". Only ever set true, never un-set a known variant.
+            card.VariantNormal |= d.VariantNormal;
+            card.VariantHolo |= d.VariantHolo;
+            card.VariantReverse |= d.VariantReverse;
+            card.VariantFirstEdition |= d.VariantFirstEdition;
+            if (d.RegulationMark is not null) card.RegulationMark = d.RegulationMark;
+            if (d.LegalStandard.HasValue) card.LegalStandard = d.LegalStandard;
+            if (d.LegalExpanded.HasValue) card.LegalExpanded = d.LegalExpanded;
+            if (d.Attacks is { Count: > 0 }) card.AttacksJson = JsonSerializer.Serialize(d.Attacks);
+            if (d.Weaknesses is { Count: > 0 }) card.WeaknessesJson = JsonSerializer.Serialize(d.Weaknesses);
+            if (d.Resistances is { Count: > 0 }) card.ResistancesJson = JsonSerializer.Serialize(d.Resistances);
+            if (d.Retreat.HasValue) card.Retreat = d.Retreat;
         }
 
-        private async Task<string?> DownloadImageIfNeeded(
+        private static async Task<string?> DownloadImageIfNeeded(
             ITcgDataSource tcg,
+            IImageStore imageStore,
             string? imageUrl,
             string? existingImagePath,
             CancellationToken ct)
@@ -258,7 +341,7 @@ namespace ArchiveDex.Infrastructure.Importing
             }
 
             await using Stream stream = download.Content;
-            ImageAsset asset = await _imageStore.StoreAsync(stream, download.FileName, ct);
+            ImageAsset asset = await imageStore.StoreAsync(stream, download.FileName, ct);
             return asset.RelativePath;
         }
 

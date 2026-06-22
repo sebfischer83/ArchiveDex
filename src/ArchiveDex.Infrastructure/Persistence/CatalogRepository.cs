@@ -12,6 +12,7 @@ namespace ArchiveDex.Infrastructure.Persistence
         public async Task<CardPrint?> GetByIdAsync(Guid id, CancellationToken ct = default) => await _db.CardPrints
                 .Include(c => c.CardSet)
                 .Include(c => c.LocalCorrection)
+                .Include(c => c.Translations)
                 .FirstOrDefaultAsync(c => c.Id == id, ct);
 
         public async Task<IReadOnlyList<CatalogSetSummary>> GetSetSummariesAsync(CancellationToken ct = default)
@@ -108,6 +109,7 @@ namespace ArchiveDex.Infrastructure.Persistence
         {
             CardExternalId? extId = await _db.CardExternalIds
                 .Include(x => x.CardPrint)
+                    .ThenInclude(c => c.Translations)
                 .FirstOrDefaultAsync(x => x.Source == source
                     && x.ExternalId == externalId
                     && x.Language == language, ct);
@@ -124,6 +126,7 @@ namespace ArchiveDex.Infrastructure.Persistence
                 ? null
                 : await _db.CardPrints
                 .Include(c => c.ExternalIds)
+                .Include(c => c.Translations)
                 .FirstOrDefaultAsync(c => c.CardSetId == cardSetId
                     && c.CardLanguage == cardLanguage
                     && c.Number == number, ct);

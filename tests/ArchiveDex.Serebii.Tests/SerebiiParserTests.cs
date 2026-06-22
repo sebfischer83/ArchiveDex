@@ -91,6 +91,39 @@ namespace ArchiveDex.Serebii.Tests
         }
 
         [Fact]
+        public void ParseSets_JapaneseLayout_NoIconColumn_ExtractsSets()
+        {
+            // Japanese page has 4 columns (Logo, Set Name, Number of Cards, Release Date)
+            // with no icon/thumbnail column, unlike the 5-column English page.
+            var html = """
+<html><body>
+<table width="100%" border="1" cellspacing="0" cellpadding="4"><tr>
+<td class="fooevo">Logo</td>
+<td class="fooevo">Set Name</td>
+<td class="fooevo">Number of Cards</td>
+<td class="fooevo">Release Date</td></tr>
+<tr>
+<td class="cen"><a href="/card/30thcelebrationjapan"><img src="/card/logo/30thcelebrationjapan.png" alt="30th Celebration Japan Set Icon" height="40" /></a></td>
+<td class="cen"><a href="/card/30thcelebrationjapan">30th Celebration Japan</a></td>
+<td class="cen">190</td>
+<td class="cen"><a href="/card/30thcelebrationjapan">September 18th 2026</a></td>
+</tr>
+</table>
+</body></html>
+""";
+
+            List<SerebiiSet> sets = SerebiiParser.ParseSets(html);
+
+            SerebiiSet set = Assert.Single(sets);
+            Assert.Equal("30thcelebrationjapan", set.Slug);
+            Assert.Equal("30th Celebration Japan", set.Name);
+            Assert.Equal(190, set.CardCount);
+            Assert.Equal("September 18th 2026", set.ReleaseDate);
+            Assert.Contains("30thcelebrationjapan.png", set.LogoUrl);
+            Assert.Null(set.ThumbUrl);
+        }
+
+        [Fact]
         public void ParseCards_EmptyHtml_ReturnsEmpty()
         {
             List<SerebiiCard> cards = SerebiiParser.ParseCards("<html></html>");
@@ -188,6 +221,44 @@ namespace ArchiveDex.Serebii.Tests
             Assert.Equal(2, umbreon.RetreatCost);
         }
 
+        [Fact]
+        public void ParseCardDetailImage_ExtractsFromOgImage()
+        {
+            var html = GetDetailPageSampleHtml();
+            var imageUrl = SerebiiParser.ParseCardDetailImage(html);
+
+            Assert.Equal("https://www.serebii.net/card/megadreamex/1.jpg", imageUrl);
+        }
+
+        [Fact]
+        public void ParseCardDetailImage_FallsBackToCardImg()
+        {
+            var html = GetDetailPageNoOgImageHtml();
+            var imageUrl = SerebiiParser.ParseCardDetailImage(html);
+
+            Assert.Equal("https://www.serebii.net/card/megadreamex/1.jpg", imageUrl);
+        }
+
+        [Fact]
+        public void ParseCardDetailIllustrator_ExtractsFromLink()
+        {
+            var html = """
+<html><body><table><tr>
+<td colspan="3" align="left">Illustration: <a href="/card/dex/artist/susumumaeya.shtml"><u>Susumu Maeya</u></a></td>
+</tr></table></body></html>
+""";
+
+            var illustrator = SerebiiParser.ParseCardDetailIllustrator(html);
+
+            Assert.Equal("Susumu Maeya", illustrator);
+        }
+
+        [Fact]
+        public void ParseCardDetailIllustrator_MissingReturnsNull()
+        {
+            Assert.Null(SerebiiParser.ParseCardDetailIllustrator("<html><body></body></html>"));
+        }
+
         private static string GetSetsSampleHtml() => """
 <html><body>
 <table width="100%" border="1" cellspacing="0" cellpadding="4"><tr>
@@ -281,6 +352,20 @@ namespace ArchiveDex.Serebii.Tests
 <td><img src="/card/image/grass.png" />x2</td><td>&nbsp;</td><td><img src="/card/image/colorless.png" /><img src="/card/image/colorless.png" /></td>
 </table></td>
 </tr></table>
+</body></html>
+""";
+
+        private static string GetDetailPageSampleHtml() => """
+<html><head>
+<meta property="og:image" content="https://www.serebii.net/card/megadreamex/1.jpg">
+</head><body>
+<td class="foocard" align="center"><a href="/card/megadreamex/1.jpg" title="#1 Pinsir"><img src="/card/megadreamex/1.jpg" loading="lazy" class="card"></a></td>
+</body></html>
+""";
+
+        private static string GetDetailPageNoOgImageHtml() => """
+<html><head></head><body>
+<td class="foocard" align="center"><a href="/card/megadreamex/1.jpg" title="#1 Pinsir"><img src="/card/megadreamex/1.jpg" loading="lazy" class="card"></a></td>
 </body></html>
 """;
     }

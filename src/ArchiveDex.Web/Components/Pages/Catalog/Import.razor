@@ -22,7 +22,7 @@
             <div class="form-row">
                 <div class="form-field">
                     <label class="field-label" for="imp-source">Source</label>
-                    <select id="imp-source" value="@_model.Source" @onchange="OnSourceChanged" class="field-select">
+                    <select id="imp-source" @bind="_model.Source" @bind:after="() => UpdateLanguagesForSource(_model.Source)" class="field-select">
                         @foreach (var source in _sources)
                         {
                             <option value="@source">@source</option>
@@ -70,6 +70,16 @@
 
             <p class="job-id">Job <span class="ad-mono">@ShortId(_currentJob.Id)</span></p>
 
+            <div class="job-meta">
+                <span>Source: @_currentJob.Source</span>
+                @if (!string.IsNullOrWhiteSpace(_currentJob.SelectedCardLanguages))
+                {
+                    <span>Language: @_currentJob.SelectedCardLanguages</span>
+                }
+                <span>Started: @FormatDate(_currentJob.StartedAt)</span>
+                <span>Finished: @FormatDate(_currentJob.FinishedAt)</span>
+            </div>
+
             <div class="stat-grid">
                 <div class="stat">
                     <span class="stat-value">@_currentJob.ImportedCount</span>
@@ -87,11 +97,6 @@
                     <span class="stat-value">@_currentJob.SkippedCount</span>
                     <span class="stat-label">Skipped</span>
                 </div>
-            </div>
-
-            <div class="job-meta">
-                <span>Started: @FormatDate(_currentJob.StartedAt)</span>
-                <span>Finished: @FormatDate(_currentJob.FinishedAt)</span>
             </div>
 
             @if (IsActiveStatus(_currentJob.Status))
@@ -136,6 +141,10 @@
                             </button>
                             <span class="status-chip status-chip--@StatusCssClass(job.Status)">@job.Status</span>
                             <span class="job-source ad-text-muted">@job.Source</span>
+                            @if (!string.IsNullOrWhiteSpace(job.SelectedCardLanguages))
+                            {
+                                <span class="ad-text-muted">(@job.SelectedCardLanguages)</span>
+                            }
                         </div>
                         <div class="job-row-counts">
                             <span>&#8679; @job.ImportedCount</span>
@@ -180,7 +189,6 @@
     {
         await LoadSources();
         await LoadJobs();
-        await LoadSets();
     }
 
     private async Task StartImport()
@@ -273,19 +281,16 @@
         }
     }
 
-    private void OnSourceChanged(ChangeEventArgs e)
-    {
-        _model.Source = e.Value?.ToString() ?? _model.Source;
-        UpdateLanguagesForSource(_model.Source);
-    }
-
     private void UpdateLanguagesForSource(string source)
     {
         if (_sourceLanguages.TryGetValue(source, out string[]? langs) && langs.Length > 0)
         {
+            var previous = _model.CardLanguage;
             _languages = langs;
-            if (!_languages.Contains(_model.CardLanguage, StringComparer.OrdinalIgnoreCase))
+            if (!_languages.Contains(previous, StringComparer.OrdinalIgnoreCase))
                 _model.CardLanguage = _languages[0];
+            else
+                _model.CardLanguage = previous;
         }
     }
 
@@ -415,12 +420,14 @@
 
     private sealed record ImportJobStatusView(
         Guid Id,
+        string Source,
         string Status,
         int ImportedCount,
         int UpdatedCount,
         int MergedCount,
         int SkippedCount,
         string? Errors,
+        string? SelectedCardLanguages,
         DateTime? StartedAt,
         DateTime? FinishedAt);
 
@@ -433,6 +440,7 @@
         int MergedCount,
         int SkippedCount,
         string? Errors,
+        string? SelectedCardLanguages,
         DateTime? StartedAt,
         DateTime? FinishedAt);
 

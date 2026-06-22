@@ -15,7 +15,7 @@ namespace ArchiveDex.Infrastructure.Tcg
 
         public async Task<IReadOnlyList<SetSummary>> GetAvailableSetsAsync(string language, CancellationToken ct = default)
         {
-            List<LimitlessSet> sets = await _client.GetSetsAsync(ToLimitlessLanguage(language), Translate(language), ct);
+            List<LimitlessSet> sets = await _client.GetSetsAsync(ToLimitlessLanguage(language), translate: null, ct);
             return [.. sets.Select(s => new SetSummary(
                     s.Code,
                     s.Name,
@@ -34,7 +34,7 @@ namespace ArchiveDex.Infrastructure.Tcg
 
         public async Task<IReadOnlyList<CardImportDto>> GetCardsForSetAsync(string setId, string language, CancellationToken ct = default)
         {
-            List<LimitlessCard> cards = await _client.GetCardsAsync(setId, ToLimitlessLanguage(language), Translate(language), ct);
+            List<LimitlessCard> cards = await _client.GetCardsAsync(setId, ToLimitlessLanguage(language), translate: null, ct);
             return [.. cards.Select(c => new CardImportDto(
                     c.VendorId,
                     c.Number,
@@ -52,9 +52,27 @@ namespace ArchiveDex.Infrastructure.Tcg
             var setCode = parts[0];
             var langCode = parts[1];
             var number = parts[2];
-            LimitlessCardDetail? detail = await _client.GetCardDetailAsync(setCode, number, ToLimitlessLanguage(langCode), ct);
+            LimitlessLanguage limitlessLang = ToLimitlessLanguage(langCode);
+            LimitlessCardDetail? detail = await _client.GetCardDetailAsync(setCode, number, limitlessLang, translate: null, ct);
             if (detail is null)
                 return null;
+
+            // Japanese cards: also fetch the English translation and store it alongside.
+            CardTranslationDto? translation = null;
+            if (limitlessLang == LimitlessLanguage.Jp)
+            {
+                LimitlessCardDetail? translated = await _client.GetCardDetailAsync(setCode, number, limitlessLang, translate: "en", ct);
+                if (translated is not null)
+                {
+                    translation = new CardTranslationDto(
+                        Language: "en",
+                        Name: translated.Name,
+                        Category: translated.Category,
+                        Stage: translated.Stage,
+                        Description: null,
+                        Attacks: translated.Attacks?.Select(a => new CardAttackDto(a.Cost, a.Name, a.Effect, a.Damage)).ToList());
+                }
+            }
 
             return new CardDetailDto(
                 ExternalId: cardId,
@@ -82,7 +100,8 @@ namespace ArchiveDex.Infrastructure.Tcg
                 Attacks: detail.Attacks?.Select(a => new CardAttackDto(a.Cost, a.Name, a.Effect, a.Damage)).ToList(),
                 Weaknesses: detail.Weaknesses?.Select(w => new CardTypeValueDto(w.Type, w.Value)).ToList(),
                 Resistances: detail.Resistances?.Select(r => new CardTypeValueDto(r.Type, r.Value)).ToList(),
-                Retreat: detail.Retreat
+                Retreat: detail.Retreat,
+                Translation: translation
             );
         }
 
@@ -104,9 +123,6 @@ namespace ArchiveDex.Infrastructure.Tcg
             "jp" => "ja",
             _ => language
         };
-
-        private static string? Translate(string language) =>
-            ToLimitlessLanguage(language) == LimitlessLanguage.Jp ? "en" : null;
 
         private static DateOnly? ParseSerebiiStyleDate(string? value)
         {

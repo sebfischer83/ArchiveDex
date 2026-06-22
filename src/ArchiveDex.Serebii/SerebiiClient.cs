@@ -28,6 +28,20 @@ namespace ArchiveDex.Serebii
             return SerebiiParser.ParseCards(html);
         }
 
+        public async Task<string?> GetCardDetailImageAsync(Uri detailUrl, CancellationToken ct = default)
+        {
+            var html = await _http.GetStringAsync(detailUrl, ct);
+            return SerebiiParser.ParseCardDetailImage(html);
+        }
+
+        public async Task<SerebiiCardDetail> GetCardDetailAsync(Uri detailUrl, CancellationToken ct = default)
+        {
+            var html = await _http.GetStringAsync(detailUrl, ct);
+            return new SerebiiCardDetail(
+                ImageUrl: SerebiiParser.ParseCardDetailImage(html),
+                Illustrator: SerebiiParser.ParseCardDetailIllustrator(html));
+        }
+
         private static Uri BuildUrl(string path) => new Uri(new Uri(BaseUrl), path);
     }
 }

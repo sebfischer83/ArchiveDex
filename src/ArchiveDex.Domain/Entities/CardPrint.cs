@@ -48,5 +48,6 @@ namespace ArchiveDex.Domain.Entities
         public LocalCorrection? LocalCorrection { get; set; }
         public List<CollectionEntry> CollectionEntries { get; set; } = [];
         public List<CardExternalId> ExternalIds { get; set; } = [];
+        public List<CardTranslation> Translations { get; set; } = [];
     }
 }

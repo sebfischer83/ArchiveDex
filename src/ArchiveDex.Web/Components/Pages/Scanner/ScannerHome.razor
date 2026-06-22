@@ -6,7 +6,7 @@
 @inject ArchiveDex.Web.Services.ScannerSession Scanner
 @inject IStringLocalizer<SharedResources> Loc
 
-<div class="scanner-home">
+<div class="scanner-home ad-page ad-page--focus">
     <h1 class="scanner-title">@(Scanner.IsBatchMode ? "Batch Scan" : Loc["Scanner.TakePhoto"])</h1>
 
     <div class="scan-mode-toggle">
@@ -33,7 +33,7 @@
             @if (_batchFiles.Any())
             {
                 <p class="batch-hint">@_batchFiles.Count image(s) selected</p>
-                <button class="btn-primary" @onclick="UploadBatch">Upload Batch</button>
+                <button class="ad-btn ad-btn--primary" @onclick="UploadBatch">Upload Batch</button>
             }
             else
             {
@@ -52,9 +52,9 @@
 
         @if (!string.IsNullOrEmpty(Scanner.Error))
         {
-            <div class="error-box">
+            <div class="ad-error">
                 <p>@Scanner.Error</p>
-                <button class="btn-retry" @onclick="ResetScan">Retry</button>
+                <button class="ad-btn ad-btn--primary" @onclick="ResetScan">Retry</button>
             </div>
         }
     }
@@ -70,9 +70,9 @@
         }
         else if (!string.IsNullOrEmpty(Scanner.Error))
         {
-            <div class="error-box">
+            <div class="ad-error">
                 <p>@Scanner.Error</p>
-                <button class="btn-retry" @onclick="ResetScan">@Loc["Scanner.ScanAnother"]</button>
+                <button class="ad-btn ad-btn--primary" @onclick="ResetScan">@Loc["Scanner.ScanAnother"]</button>
             </div>
         }
         else

@@ -20,12 +20,18 @@ namespace ArchiveDex.Limitless
             return LimitlessParser.ParseCards(html, setCode, language);
         }
 
-        public async Task<LimitlessCardDetail?> GetCardDetailAsync(string setCode, string number, LimitlessLanguage language, CancellationToken ct = default)
+        public async Task<LimitlessCardDetail?> GetCardDetailAsync(string setCode, string number, LimitlessLanguage language, string? translate = null, CancellationToken ct = default)
         {
-            var path = language == LimitlessLanguage.Jp
+            var basePath = language == LimitlessLanguage.Jp
                 ? $"https://limitlesstcg.com/cards/jp/{Uri.EscapeDataString(setCode)}/{Uri.EscapeDataString(number)}"
                 : $"https://limitlesstcg.com/cards/{Uri.EscapeDataString(setCode)}/{Uri.EscapeDataString(number)}";
-            var html = await _http.GetStringAsync(path, ct);
+            var ub = new UriBuilder(basePath);
+            if (!string.IsNullOrWhiteSpace(translate))
+            {
+                ub.Query = $"translate={Uri.EscapeDataString(translate)}";
+            }
+
+            var html = await _http.GetStringAsync(ub.Uri, ct);
             return LimitlessParser.ParseCardDetail(html);
         }
 

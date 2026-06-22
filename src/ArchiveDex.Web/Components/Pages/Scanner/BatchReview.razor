@@ -5,8 +5,13 @@
 @inject NavigationManager Navigation
 @inject ArchiveDex.Web.Services.ScannerSession Scanner
 
-<div class="batch-review">
-    <h1>Batch Review</h1>
+<div class="batch-review ad-page ad-stack">
+    <header class="ad-page-header">
+        <div>
+            <h1 class="ad-page-title">Batch Review</h1>
+            <p class="ad-page-subtitle">Check OCR matches before adding cards to your collection.</p>
+        </div>
+    </header>
 
     @if (_isLoading)
     {
@@ -17,31 +22,31 @@
     }
     else if (!string.IsNullOrEmpty(_error))
     {
-        <div class="error-box">
+        <div class="ad-error">
             <p>@_error</p>
-            <button class="btn-retry" @onclick="LoadBatch">Retry</button>
+            <button class="ad-btn ad-btn--primary" @onclick="LoadBatch">Retry</button>
         </div>
     }
     else if (_batch is not null)
     {
-        <div class="batch-status-bar">
+        <div class="batch-status-bar ad-toolbar">
             <span>Status: <strong>@_batch.Batch?.Status</strong></span>
             <span>@_batch.Batch?.AcceptedCount accepted / @_batch.Batch?.RejectedCount rejected / @_batch.Batch?.NoMatchCount no match</span>
             <span>@_batch.Batch?.PendingCount left</span>
         </div>
 
-        <div class="status-filter">
-            <button class="filter-btn @(_statusFilter == "all" ? "active" : "")" @onclick="SetFilterAll">All</button>
-            <button class="filter-btn @(_statusFilter == "low-confidence" ? "active" : "")" @onclick="SetFilterLowConfidence">Low Confidence</button>
-            <button class="filter-btn @(_statusFilter == "no-match" ? "active" : "")" @onclick="SetFilterNoMatch">No Match</button>
-            <button class="filter-btn @(_statusFilter == "needs-review" ? "active" : "")" @onclick="SetFilterNeedsReview">Needs Review</button>
-            <button class="filter-btn @(_statusFilter == "reviewed" ? "active" : "")" @onclick="SetFilterReviewed">Reviewed</button>
+        <div class="status-filter ad-toolbar">
+            <button class="filter-btn ad-btn @(_statusFilter == "all" ? "ad-btn--primary active" : "ad-btn--ghost")" @onclick="SetFilterAll">All</button>
+            <button class="filter-btn ad-btn @(_statusFilter == "low-confidence" ? "ad-btn--primary active" : "ad-btn--ghost")" @onclick="SetFilterLowConfidence">Low Confidence</button>
+            <button class="filter-btn ad-btn @(_statusFilter == "no-match" ? "ad-btn--primary active" : "ad-btn--ghost")" @onclick="SetFilterNoMatch">No Match</button>
+            <button class="filter-btn ad-btn @(_statusFilter == "needs-review" ? "ad-btn--primary active" : "ad-btn--ghost")" @onclick="SetFilterNeedsReview">Needs Review</button>
+            <button class="filter-btn ad-btn @(_statusFilter == "reviewed" ? "ad-btn--primary active" : "ad-btn--ghost")" @onclick="SetFilterReviewed">Reviewed</button>
         </div>
 
-        <div class="batch-items-grid">
+        <div class="batch-items-grid ad-grid--cards">
             @foreach (var item in _items)
             {
-                <div class="batch-item-card @(item.IsDuplicateInBatch ? "duplicate" : "")" @onclick="() => ViewItemDetail(item)">
+                <button class="batch-item-card ad-panel @(item.IsDuplicateInBatch ? "duplicate" : "")" @onclick="() => ViewItemDetail(item)">
                     @if (!string.IsNullOrEmpty(item.ImageUrl))
                     {
                         <img src="@item.ImageUrl" alt="Card" class="batch-item-img" />
@@ -69,15 +74,18 @@
                             <span class="duplicate-warning">⚠ Duplicate</span>
                         }
                     </div>
-                </div>
+                </button>
             }
         </div>
 
         @if (_selectedItem is not null)
         {
             <div class="item-detail-overlay" @onclick="() => _selectedItem = null">
-                <div class="item-detail-panel" @onclick:stopPropagation="true">
-                    <h2>Item Detail</h2>
+                <div class="item-detail-panel ad-panel" @onclick:stopPropagation="true">
+                    <div class="ad-panel__header">
+                        <h2 class="ad-page-title">Item Detail</h2>
+                    </div>
+                    <div class="ad-panel__body ad-stack">
                     @if (!string.IsNullOrEmpty(_selectedItem.ImageUrl))
                     {
                         <img src="@_selectedItem.ImageUrl" alt="Card" class="detail-img" />
@@ -92,24 +100,26 @@
                         <p><strong>Status:</strong> @_selectedItem.MatchStatus</p>
                     </div>
 
-                    <div class="action-buttons">
-                        <button class="btn-primary" @onclick="() => _showCatalogSearch = !_showCatalogSearch">
+                    <div class="action-buttons ad-cluster">
+                        <button class="ad-btn ad-btn--primary" @onclick="() => _showCatalogSearch = !_showCatalogSearch">
                             @(_selectedItem.MatchedCardPrintId is not null ? "Change Match" : "Find Match")
                         </button>
-                        <button class="btn-secondary" @onclick="MarkNoMatch">Mark No Match</button>
-                        <button class="btn-secondary" @onclick="RejectItem">Dismiss</button>
-                        <button class="btn-secondary" @onclick="() => _selectedItem = null">Close</button>
+                        <button class="ad-btn ad-btn--secondary" @onclick="MarkNoMatch">Mark No Match</button>
+                        <button class="ad-btn ad-btn--secondary" @onclick="RejectItem">Dismiss</button>
+                        <button class="ad-btn ad-btn--ghost" @onclick="() => _selectedItem = null">Close</button>
                     </div>
 
                     @if (_showCatalogSearch && _selectedItem is not null)
                     {
-                        <div class="catalog-search">
-                            <input type="text" @bind="_catalogSearchQuery" placeholder="Search catalog..." />
-                            <button class="btn-primary" @onclick="SearchCatalog">Search</button>
+                        <div class="catalog-search ad-stack">
+                            <div class="ad-cluster">
+                                <input class="ad-input" type="text" @bind="_catalogSearchQuery" placeholder="Search catalog..." />
+                                <button class="ad-btn ad-btn--primary" @onclick="SearchCatalog">Search</button>
+                            </div>
 
                             @if (_catalogResults.Any())
                             {
-                                <div class="catalog-results">
+                                <div class="catalog-results ad-grid--rows">
                                     @foreach (var card in _catalogResults)
                                     {
                                         <div class="catalog-result-item" @onclick="() => AssignCard(card)">
@@ -123,17 +133,18 @@
 
                     @if (_itemError is not null)
                     {
-                        <div class="error-box"><p>@_itemError</p></div>
+                        <div class="ad-error"><p>@_itemError</p></div>
                     }
+                    </div>
                 </div>
             </div>
         }
 
         @if (_batch.Batch?.PendingCount > 0 && _batch.Items.Any(i => i.MatchStatus is "Matched" or "Overridden"))
         {
-            <div class="batch-actions">
-                <button class="btn-accept" @onclick="GoToAccept">Accept Into Collection</button>
-                <button class="btn-discard" @onclick="DiscardBatch">Discard Batch</button>
+            <div class="batch-actions ad-action-bar">
+                <button class="ad-btn ad-btn--primary" @onclick="GoToAccept">Accept Into Collection</button>
+                <button class="ad-btn ad-btn--danger" @onclick="DiscardBatch">Discard Batch</button>
             </div>
         }
     }

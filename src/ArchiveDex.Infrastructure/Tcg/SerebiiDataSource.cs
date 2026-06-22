@@ -22,7 +22,8 @@ namespace ArchiveDex.Infrastructure.Tcg
                     NormalizeLanguage(language),
                     s.CardCount,
                     s.CardCount,
-                    ParseDate(s.ReleaseDate)))];
+                    ParseDate(s.ReleaseDate),
+                    LogoUrl: s.LogoUrl))];
         }
 
         public async Task<SetSummary?> GetSetMetaAsync(string setId, string language, CancellationToken ct = default)
@@ -50,20 +51,22 @@ namespace ArchiveDex.Infrastructure.Tcg
                 return null;
             }
 
-            List<SerebiiCard> cards = await _client.GetCardsAsync(parts[1], ct);
-            SerebiiCard? card = cards.FirstOrDefault(c => string.Equals(c.Number, parts[2], StringComparison.OrdinalIgnoreCase));
-            return card is null
-                ? null
-                : new CardDetailDto(
-                ExternalId: card.VendorId,
-                Number: card.Number,
-                Name: card.Name,
-                Rarity: card.Rarity,
-                ImageUrl: card.ThumbUrl,
+            var setSlug = parts[1];
+            var number = parts[2];
+            var paddedNumber = number.PadLeft(3, '0');
+            var detailUrl = new Uri($"https://www.serebii.net/card/{Uri.EscapeDataString(setSlug)}/{paddedNumber}.shtml");
+            SerebiiCardDetail detail = await _client.GetCardDetailAsync(detailUrl, ct);
+
+            return new CardDetailDto(
+                ExternalId: cardId,
+                Number: number,
+                Name: "",
+                Rarity: null,
+                ImageUrl: detail.ImageUrl,
                 Category: null,
-                Illustrator: null,
-                Hp: card.Hp,
-                Types: string.IsNullOrWhiteSpace(card.Type) ? null : [card.Type],
+                Illustrator: detail.Illustrator,
+                Hp: null,
+                Types: null,
                 Stage: null,
                 EvolveFrom: null,
                 Description: null,
@@ -78,9 +81,9 @@ namespace ArchiveDex.Infrastructure.Tcg
                 LegalStandard: null,
                 LegalExpanded: null,
                 Attacks: null,
-                Weaknesses: string.IsNullOrWhiteSpace(card.Weakness) ? null : [new CardTypeValueDto(card.Weakness, string.Empty)],
-                Resistances: string.IsNullOrWhiteSpace(card.Resistance) ? null : [new CardTypeValueDto(card.Resistance, string.Empty)],
-                Retreat: card.RetreatCost);
+                Weaknesses: null,
+                Resistances: null,
+                Retreat: null);
         }
 
         public Task<CardImageDownload?> DownloadCardImageAsync(string imageUrl, CancellationToken ct = default) => ImageDownloadHelper.DownloadAsync(_http, imageUrl, ct);

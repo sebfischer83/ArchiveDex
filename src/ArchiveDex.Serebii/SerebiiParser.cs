@@ -40,12 +40,19 @@ namespace ArchiveDex.Serebii
             foreach (HtmlNode row in rows)
             {
                 HtmlNodeCollection? tds = row.SelectNodes("./td");
-                if (tds is null || tds.Count < 5)
+                if (tds is null || tds.Count < 4)
                 {
                     continue;
                 }
 
-                HtmlNode? nameLink = tds[2].SelectSingleNode(".//a");
+                // English layout has 5 columns (Logo, Icon, Name, Count, Date);
+                // Japanese layout has 4 columns (Logo, Name, Count, Date) with no icon cell.
+                var hasIconColumn = tds.Count >= 5;
+                var nameIndex = hasIconColumn ? 2 : 1;
+                var countIndex = nameIndex + 1;
+                var dateIndex = nameIndex + 2;
+
+                HtmlNode? nameLink = tds[nameIndex].SelectSingleNode(".//a");
                 if (nameLink is null)
                 {
                     continue;
@@ -58,14 +65,15 @@ namespace ArchiveDex.Serebii
                 HtmlNode logoImg = tds[0].SelectSingleNode(".//img");
                 var logoUrl = logoImg?.GetAttributeValue("src", "");
 
-                HtmlNode thumbImg = tds[1].SelectSingleNode(".//img");
-                var thumbUrl = thumbImg?.GetAttributeValue("src", "");
+                var thumbUrl = hasIconColumn
+                    ? tds[1].SelectSingleNode(".//img")?.GetAttributeValue("src", "")
+                    : null;
 
-                var cardCountText = WebUtility.HtmlDecode(tds[3].InnerText.Trim());
+                var cardCountText = WebUtility.HtmlDecode(tds[countIndex].InnerText.Trim());
                 _ = int.TryParse(cardCountText, out var cardCount);
 
-                HtmlNode dateLink = tds[4].SelectSingleNode(".//a");
-                var releaseDate = WebUtility.HtmlDecode(dateLink?.InnerText.Trim() ?? tds[4].InnerText.Trim());
+                HtmlNode dateLink = tds[dateIndex].SelectSingleNode(".//a");
+                var releaseDate = WebUtility.HtmlDecode(dateLink?.InnerText.Trim() ?? tds[dateIndex].InnerText.Trim());
 
                 sets.Add(new SerebiiSet(
                     Slug: slug,
@@ -241,6 +249,40 @@ namespace ArchiveDex.Serebii
             }
 
             return cards;
+        }
+
+        public static string? ParseCardDetailImage(string html)
+        {
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            HtmlNode? ogImage = doc.DocumentNode.SelectSingleNode("//meta[@property='og:image']");
+            var imageUrl = ogImage?.GetAttributeValue("content", "");
+            if (!string.IsNullOrWhiteSpace(imageUrl))
+            {
+                return imageUrl;
+            }
+
+            HtmlNode? cardImg = doc.DocumentNode.SelectSingleNode("//td[contains(@class,'foocard')]//img[contains(@class,'card')]");
+            return AbsoluteUrl(cardImg?.GetAttributeValue("src", ""));
+        }
+
+        public static string? ParseCardDetailIllustrator(string html)
+        {
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            // Layout: <td ...>Illustration: <a href="...">Susumu Maeya</a></td>
+            HtmlNode? cell = doc.DocumentNode.SelectSingleNode("//td[starts-with(normalize-space(.),'Illustration:')]");
+            if (cell is null)
+            {
+                return null;
+            }
+
+            HtmlNode? link = cell.SelectSingleNode(".//a");
+            var raw = link is not null ? link.InnerText : cell.InnerText.Replace("Illustration:", "", StringComparison.OrdinalIgnoreCase);
+            var illustrator = WebUtility.HtmlDecode(raw).Trim();
+            return string.IsNullOrWhiteSpace(illustrator) ? null : illustrator;
         }
     }
 }

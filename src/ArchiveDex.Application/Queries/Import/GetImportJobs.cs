@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Domain.Entities;
 
@@ -14,6 +15,7 @@ namespace ArchiveDex.Application.Queries.Import
         int MergedCount,
         int SkippedCount,
         string? Errors,
+        string? SelectedCardLanguages,
         DateTime? StartedAt,
         DateTime? FinishedAt);
 
@@ -35,8 +37,23 @@ namespace ArchiveDex.Application.Queries.Import
                     job.MergedCount,
                     job.SkippedCount,
                     job.Errors,
+                    FormatLanguages(job.SelectedCardLanguages),
                     job.StartedAt,
                     job.FinishedAt))];
+        }
+
+        private static string? FormatLanguages(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return null;
+            try
+            {
+                var langs = JsonSerializer.Deserialize<string[]>(json);
+                return langs is { Length: > 0 } ? string.Join(", ", langs) : null;
+            }
+            catch
+            {
+                return json;
+            }
         }
     }
 }
