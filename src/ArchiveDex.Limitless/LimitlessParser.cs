@@ -276,7 +276,7 @@ namespace ArchiveDex.Limitless
                 var number = href.Split('/').Last();
 
                 HtmlNode? img = link.SelectSingleNode(".//img");
-                var imageUrl = img?.GetAttributeValue("src", "");
+                var imageUrl = img?.GetAttributeValue("data-src", null) ?? img?.GetAttributeValue("src", null) ?? "";
                 var name = WebUtility.HtmlDecode(img?.GetAttributeValue("alt", "").Trim() ?? "");
 
                 if (!string.IsNullOrEmpty(number) && !string.IsNullOrEmpty(imageUrl))

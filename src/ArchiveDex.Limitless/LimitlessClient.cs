@@ -24,7 +24,7 @@ namespace ArchiveDex.Limitless
         {
             var basePath = language == LimitlessLanguage.Jp
                 ? $"https://limitlesstcg.com/cards/jp/{Uri.EscapeDataString(setCode)}/{Uri.EscapeDataString(number)}"
-                : $"https://limitlesstcg.com/cards/{Uri.EscapeDataString(setCode)}/{Uri.EscapeDataString(number)}";
+                : $"https://limitlesstcg.com/cards/{language.ToCode()}/{Uri.EscapeDataString(setCode)}/{Uri.EscapeDataString(number)}";
             var ub = new UriBuilder(basePath);
             if (!string.IsNullOrWhiteSpace(translate))
             {
