@@ -15,28 +15,37 @@ namespace ArchiveDex.Infrastructure.Tests.CatalogImport
         }
 
         [Fact]
-        public void RepeatedImport_DoesNotCreateDuplicateCardPrints()
+        public void RepeatedImport_ExistingCardPrints_AreSkipped()
         {
             var firstRun = new[] { new CardPrintIdentifier("sv01", "001", "en") };
             var secondRun = new[] { new CardPrintIdentifier("sv01", "001", "en") };
-            var duplicates = CatalogImportDeduplication.FindDuplicateCardPrints(firstRun, secondRun);
-            Assert.Empty(duplicates);
+            var alreadyExists = CatalogImportDeduplication.FindExistingCardPrints(firstRun, secondRun);
+            Assert.Single(alreadyExists);
         }
 
         [Fact]
-        public void RepeatedImport_DoesNotCreateDuplicateExternalIds()
+        public void RepeatedImport_ExistingExternalIds_AreSkipped()
         {
             var firstRun = new[] { new ExternalIdKey("TCGdex", "sv01", "en") };
             var secondRun = new[] { new ExternalIdKey("TCGdex", "sv01", "en") };
-            var duplicates = CatalogImportDeduplication.FindDuplicateExternalIds(firstRun, secondRun);
-            Assert.Empty(duplicates);
+            var alreadyExists = CatalogImportDeduplication.FindExistingExternalIds(firstRun, secondRun);
+            Assert.Single(alreadyExists);
         }
 
         [Fact]
-        public void RepeatedImport_NewData_CreatesNewRecords()
+        public void RepeatedImport_NewCards_AreFoundInSecondRun()
         {
             var firstRun = new[] { new CardPrintIdentifier("sv01", "001", "en") };
-            var secondRun = new[] { new CardPrintIdentifier("sv02", "001", "en") };
+            var secondRun = new[] { new CardPrintIdentifier("sv01", "001", "en"), new CardPrintIdentifier("sv02", "001", "en") };
+            var newRecords = CatalogImportDeduplication.FindNewCardPrints(firstRun, secondRun);
+            Assert.Single(newRecords);
+        }
+
+        [Fact]
+        public void RepeatedImport_NoExistingCards_AllAreNew()
+        {
+            var firstRun = Array.Empty<CardPrintIdentifier>();
+            var secondRun = new[] { new CardPrintIdentifier("sv01", "001", "en") };
             var newRecords = CatalogImportDeduplication.FindNewCardPrints(firstRun, secondRun);
             Assert.Single(newRecords);
         }

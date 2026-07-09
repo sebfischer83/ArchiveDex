@@ -32,12 +32,13 @@ namespace ArchiveDex.Application.Tests.CatalogImport
         [Fact]
         public void MatchByFallback_SameSetNumberLanguage_ReturnsMatch()
         {
+            var setId = Guid.NewGuid();
             var cardId = Guid.NewGuid();
             var result = CatalogImportCardMatcher.MatchByFallback(
-                setId: Guid.NewGuid(),
+                setId: setId,
                 normalizedNumber: "001",
                 language: "en",
-                candidates: [new(Guid.NewGuid(), "001", "en", cardId)]);
+                candidates: [new(setId, "001", "en", cardId)]);
 
             Assert.NotNull(result);
             Assert.Equal(cardId, result!.CardPrintId);
@@ -46,12 +47,13 @@ namespace ArchiveDex.Application.Tests.CatalogImport
         [Fact]
         public void MatchByFallback_DifferentLanguage_ReturnsNull()
         {
+            var setId = Guid.NewGuid();
             var cardId = Guid.NewGuid();
             var result = CatalogImportCardMatcher.MatchByFallback(
-                setId: Guid.NewGuid(),
+                setId: setId,
                 normalizedNumber: "001",
                 language: "en",
-                candidates: [new(Guid.NewGuid(), "001", "ja", cardId)]);
+                candidates: [new(setId, "001", "ja", cardId)]);
 
             Assert.Null(result);
         }
