@@ -48,14 +48,20 @@ namespace ArchiveDex.Infrastructure.CatalogImport
             };
 
             await _repository.AddRunAsync(run, ct);
-
-            _ = Task.Run(() => ExecuteAsync(run, options, CancellationToken.None));
-
             return run.Id;
         }
 
-        private async Task ExecuteAsync(CatalogImportRun run, CatalogImportOptions options, CancellationToken ct)
+        public async Task ExecuteAsync(Guid importRunId, CancellationToken ct = default)
         {
+            var run = await _repository.GetByIdAsync(importRunId, ct);
+            if (run == null)
+            {
+                _logger.LogError("CatalogImportRun {RunId} not found", importRunId);
+                return;
+            }
+
+            var options = DeserializeOptions(run);
+
             try
             {
                 run.Status = CatalogImportStatus.Running;
@@ -257,10 +263,19 @@ namespace ArchiveDex.Infrastructure.CatalogImport
             if (run == null) return;
             if (run.Status != CatalogImportStatus.Cancelled && run.Status != CatalogImportStatus.Failed) return;
             run.Status = CatalogImportStatus.Pending;
+            run.FinishedAt = null;
             await _repository.UpdateRunAsync(run, ct);
         }
 
         public async Task<bool> IsActiveImportRunningAsync(CancellationToken ct = default)
             => await _repository.HasActiveImportAsync(ct);
+
+        private static CatalogImportOptions DeserializeOptions(CatalogImportRun run)
+        {
+            var sources = System.Text.Json.JsonSerializer.Deserialize<List<string>>(run.SelectedSourcesJson) ?? [];
+            var languages = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, List<string>>>(run.SelectedLanguagesJson)
+                ?? new Dictionary<string, List<string>>();
+            return new CatalogImportOptions(sources, languages, run.IsDryRun, run.DownloadImages);
+        }
     }
 }

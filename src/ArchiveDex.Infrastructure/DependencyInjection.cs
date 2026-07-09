@@ -60,6 +60,8 @@ namespace ArchiveDex.Infrastructure
             _ = services.AddScoped<CatalogReconciler>();
             _ = services.AddScoped<IImageCandidateAnalyzer, ImageCandidateAnalyzer>();
             _ = services.AddScoped<ICatalogImportOrchestrator, CatalogImportOrchestrator>();
+            _ = services.AddScoped<ICatalogImportExecutionService, CatalogImportExecutionService>();
+            _ = services.AddScoped<CatalogImportOrchestrator>();
             _ = services.AddScoped<ICatalogSourceAdapter>(sp => sp.GetRequiredService<TcgDexCatalogSourceAdapter>());
             _ = services.AddScoped<ICatalogSourceAdapter>(sp => sp.GetRequiredService<LimitlessCatalogSourceAdapter>());
             _ = services.AddScoped<ICatalogSourceAdapter>(sp => sp.GetRequiredService<SerebiiCatalogSourceAdapter>());

@@ -1,6 +1,7 @@
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.CatalogImport.DTOs;
 using ArchiveDex.Application.CatalogImport.Options;
+using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArchiveDex.Api.Controllers;
@@ -9,7 +10,8 @@ namespace ArchiveDex.Api.Controllers;
 [Route("api/catalog-imports")]
 public class CatalogImportController(
     ICatalogImportRepository repository,
-    ICatalogImportOrchestrator orchestrator) : ControllerBase
+    ICatalogImportOrchestrator orchestrator,
+    IBackgroundJobClient backgroundJobs) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> StartImport([FromBody] StartCatalogImportRequest request, CancellationToken ct)
@@ -24,6 +26,7 @@ public class CatalogImportController(
             DownloadImages: request.DownloadImages);
 
         var runId = await orchestrator.StartAsync(options, ct);
+        _ = backgroundJobs.Enqueue<ICatalogImportExecutionService>(svc => svc.ExecuteAsync(runId));
 
         var run = await repository.GetByIdAsync(runId, ct);
         return Created($"/api/catalog-imports/{runId}", run != null ? MapRunDto(run) : null);
@@ -63,6 +66,7 @@ public class CatalogImportController(
         var run = await repository.GetByIdAsync(importRunId, ct);
         if (run == null) return NotFound();
         await orchestrator.ResumeAsync(importRunId, ct);
+        _ = backgroundJobs.Enqueue<ICatalogImportExecutionService>(svc => svc.ExecuteAsync(importRunId));
         return Accepted();
     }
 
