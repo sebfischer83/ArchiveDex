@@ -26,6 +26,13 @@ namespace ArchiveDex.Infrastructure.Persistence
         public DbSet<BatchScanJob> BatchScanJobs => Set<BatchScanJob>();
         public DbSet<BatchScanItem> BatchScanItems => Set<BatchScanItem>();
         public DbSet<BatchScanResult> BatchScanResults => Set<BatchScanResult>();
+        public DbSet<CatalogImportRun> CatalogImportRuns => Set<CatalogImportRun>();
+        public DbSet<CatalogImportCheckpoint> CatalogImportCheckpoints => Set<CatalogImportCheckpoint>();
+        public DbSet<SourceSetSnapshot> SourceSetSnapshots => Set<SourceSetSnapshot>();
+        public DbSet<SourceCardSnapshot> SourceCardSnapshots => Set<SourceCardSnapshot>();
+        public DbSet<SourceImportError> SourceImportErrors => Set<SourceImportError>();
+        public DbSet<ImageCandidateMetadata> ImageCandidateMetadata => Set<ImageCandidateMetadata>();
+        public DbSet<CatalogImageAsset> CatalogImageAssets => Set<CatalogImageAsset>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -178,6 +185,58 @@ namespace ArchiveDex.Infrastructure.Persistence
                 _ = e.HasIndex(r => r.BatchScanItemId).IsUnique();
                 _ = e.Property(r => r.DetectedCardLanguage).HasConversion<string>();
                 _ = e.Property(r => r.CandidateMatches).IsRequired();
+            });
+
+            _ = modelBuilder.Entity<CatalogImportRun>(e =>
+            {
+                _ = e.HasKey(r => r.Id);
+                _ = e.Property(r => r.Status).HasConversion<string>().IsRequired();
+                _ = e.HasMany(r => r.Checkpoints).WithOne(c => c.ImportRun).HasForeignKey(c => c.ImportRunId);
+            });
+
+            _ = modelBuilder.Entity<CatalogImportCheckpoint>(e =>
+            {
+                _ = e.HasKey(c => c.Id);
+                _ = e.HasIndex(c => new { c.ImportRunId, c.Source, c.Language, c.SetExternalId, c.Phase }).IsUnique();
+                _ = e.Property(c => c.Phase).HasConversion<string>().IsRequired();
+            });
+
+            _ = modelBuilder.Entity<SourceSetSnapshot>(e =>
+            {
+                _ = e.HasKey(s => s.Id);
+                _ = e.HasIndex(s => new { s.ImportRunId, s.Source, s.Language, s.ExternalSetId }).IsUnique();
+                _ = e.HasOne(s => s.ImportRun).WithMany().HasForeignKey(s => s.ImportRunId);
+            });
+
+            _ = modelBuilder.Entity<SourceCardSnapshot>(e =>
+            {
+                _ = e.HasKey(c => c.Id);
+                _ = e.HasIndex(c => new { c.ImportRunId, c.Source, c.Language, c.ExternalCardId }).IsUnique();
+                _ = e.HasOne(c => c.ImportRun).WithMany().HasForeignKey(c => c.ImportRunId);
+            });
+
+            _ = modelBuilder.Entity<SourceImportError>(e =>
+            {
+                _ = e.HasKey(err => err.Id);
+                _ = e.HasIndex(err => err.ImportRunId);
+                _ = e.HasIndex(err => new { err.ImportRunId, err.Severity });
+                _ = e.Property(err => err.Phase).HasConversion<string>();
+                _ = e.HasOne(err => err.ImportRun).WithMany().HasForeignKey(err => err.ImportRunId);
+            });
+
+            _ = modelBuilder.Entity<ImageCandidateMetadata>(e =>
+            {
+                _ = e.HasKey(m => m.Id);
+                _ = e.HasIndex(m => m.ImportRunId);
+                _ = e.Property(m => m.EntityType).HasConversion<string>().IsRequired();
+                _ = e.HasOne(m => m.ImportRun).WithMany().HasForeignKey(m => m.ImportRunId);
+            });
+
+            _ = modelBuilder.Entity<CatalogImageAsset>(e =>
+            {
+                _ = e.HasKey(a => a.Id);
+                _ = e.HasIndex(a => new { a.EntityType, a.EntityId });
+                _ = e.Property(a => a.EntityType).HasConversion<string>().IsRequired();
             });
         }
     }

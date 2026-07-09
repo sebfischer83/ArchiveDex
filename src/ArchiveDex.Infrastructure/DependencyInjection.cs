@@ -6,6 +6,7 @@ using ArchiveDex.Infrastructure.Ocr;
 using ArchiveDex.Infrastructure.Persistence;
 using ArchiveDex.Infrastructure.Setup;
 using ArchiveDex.Infrastructure.Storage;
+using ArchiveDex.Infrastructure.CatalogImport;
 
 namespace ArchiveDex.Infrastructure
 {
@@ -53,6 +54,18 @@ namespace ArchiveDex.Infrastructure
             _ = services.AddScoped<ITcgDataSource>(sp => sp.GetRequiredService<Tcg.LimitlessDataSource>());
             _ = services.AddScoped<ITcgDataSource>(sp => sp.GetRequiredService<Tcg.SerebiiDataSource>());
             _ = services.AddScoped<ITcgDataSourceRegistry, Tcg.TcgDataSourceRegistry>();
+
+            _ = services.AddScoped<ICatalogImportRepository, CatalogImportRepository>();
+            _ = services.AddScoped<CatalogNormalizer>();
+            _ = services.AddScoped<CatalogReconciler>();
+            _ = services.AddScoped<IImageCandidateAnalyzer, ImageCandidateAnalyzer>();
+            _ = services.AddScoped<ICatalogImportOrchestrator, CatalogImportOrchestrator>();
+            _ = services.AddScoped<ICatalogSourceAdapter>(sp => sp.GetRequiredService<TcgDexCatalogSourceAdapter>());
+            _ = services.AddScoped<ICatalogSourceAdapter>(sp => sp.GetRequiredService<LimitlessCatalogSourceAdapter>());
+            _ = services.AddScoped<ICatalogSourceAdapter>(sp => sp.GetRequiredService<SerebiiCatalogSourceAdapter>());
+            _ = services.AddScoped<TcgDexCatalogSourceAdapter>();
+            _ = services.AddScoped<LimitlessCatalogSourceAdapter>();
+            _ = services.AddScoped<SerebiiCatalogSourceAdapter>();
 
             _ = services.AddArchiveDexIdentity();
 

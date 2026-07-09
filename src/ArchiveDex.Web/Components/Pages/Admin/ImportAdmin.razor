@@ -1,0 +1,186 @@
+@page "/admin/import"
+@rendermode InteractiveServer
+@using ArchiveDex.Application.Abstractions
+@using ArchiveDex.Application.CatalogImport.DTOs
+@using ArchiveDex.Application.CatalogImport.Options
+@inject ICatalogImportRepository Repository
+@inject ICatalogImportOrchestrator Orchestrator
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<PageTitle>Catalog Import</PageTitle>
+
+<h1 class="ad-heading">Catalog Import</h1>
+
+@if (_error != null)
+{
+    <div class="ad-alert ad-alert-error">@_error</div>
+}
+
+@if (_activeRun == null && !_isStarting)
+{
+    <div class="ad-card">
+        <h2>Start New Import</h2>
+        <EditForm Model="@_startRequest" OnValidSubmit="HandleStartImport">
+            <div class="ad-form-group">
+                <label><InputCheckbox @bind-Value="_startRequest.DryRun" /> Dry Run (no changes to catalog)</label>
+            </div>
+            <div class="ad-form-group">
+                <label><InputCheckbox @bind-Value="_startRequest.DownloadImages" /> Download Images</label>
+            </div>
+            <div class="ad-form-group">
+                <p class="ad-note">Price import: Deferred (not available in this version)</p>
+            </div>
+            <button type="submit" class="ad-btn ad-btn-primary" disabled="@_isStarting">
+                Start Import
+            </button>
+        </EditForm>
+    </div>
+}
+else if (_activeRun != null)
+{
+    <div class="ad-card">
+        <h2>Import Status</h2>
+        <dl class="ad-dl">
+            <dt>ID</dt><dd>@_activeRun.Id</dd>
+            <dt>Status</dt><dd>@_activeRun.Status</dd>
+            <dt>Imported</dt><dd>@_activeRun.ImportedCount</dd>
+            <dt>Errors</dt><dd>@_activeRun.ErrorCount</dd>
+        </dl>
+
+        @if (_activeRun.Status == "Running")
+        {
+            <button type="button" class="ad-btn ad-btn-warning" @onclick="HandleCancel">Cancel</button>
+        }
+        else if (_activeRun.Status == "Cancelled" || _activeRun.Status == "Failed")
+        {
+            <button type="button" class="ad-btn ad-btn-primary" @onclick="HandleResume">Resume</button>
+        }
+    </div>
+}
+else if (_isStarting)
+{
+    <div class="ad-card">
+        <p>Starting import...</p>
+    </div>
+}
+
+@if (_activeRun?.Checkpoints is { Count: > 0 })
+{
+    <div class="ad-card">
+        <h3>Progress</h3>
+        @foreach (var cp in _activeRun.Checkpoints)
+        {
+            <div class="ad-row">
+                <span>@cp.Source / @cp.Language</span>
+                <span>@cp.Phase</span>
+                <span>@(cp.IsCompleted ? "Done" : "Processing")</span>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private CatalogImportRunDto? _activeRun;
+    private readonly StartCatalogImportRequest _startRequest = new()
+    {
+        Sources = ["TCGdex", "Limitless", "Serebii"],
+        LanguagesBySource = new Dictionary<string, List<string>>
+        {
+            ["TCGdex"] = ["en", "de", "ja"],
+            ["Limitless"] = ["en", "ja"],
+            ["Serebii"] = ["en", "ja"]
+        }
+    };
+    private bool _isStarting;
+    private string? _error;
+    private PeriodicTimer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStatusAsync();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        _ = PollAsync();
+    }
+
+    private async Task PollAsync()
+    {
+        while (_timer != null && await _timer.WaitForNextTickAsync())
+        {
+            await LoadStatusAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadStatusAsync()
+    {
+        try
+        {
+            var run = await Repository.GetActiveImportAsync();
+            _activeRun = run != null ? MapToDto(run) : null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task HandleStartImport()
+    {
+        _isStarting = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var options = new CatalogImportOptions(
+                _startRequest.Sources, _startRequest.LanguagesBySource,
+                _startRequest.DryRun, _startRequest.DownloadImages);
+            await Orchestrator.StartAsync(options);
+
+            var run = await Repository.GetActiveImportAsync();
+            _activeRun = run != null ? MapToDto(run) : null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isStarting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        if (_activeRun == null) return;
+        await Orchestrator.CancelAsync(_activeRun.Id);
+        await LoadStatusAsync();
+    }
+
+    private async Task HandleResume()
+    {
+        if (_activeRun == null) return;
+        await Orchestrator.ResumeAsync(_activeRun.Id);
+        await LoadStatusAsync();
+    }
+
+    private static CatalogImportRunDto MapToDto(Domain.Entities.CatalogImportRun run)
+    {
+        return new CatalogImportRunDto(
+            run.Id, run.Status.ToString(), run.IsDryRun, run.DownloadImages,
+            run.StartedAt, run.FinishedAt,
+            run.ImportedCount, run.UpdatedCount, run.MergedCount,
+            run.SkippedCount, run.ErrorCount, run.WarningCount,
+            run.Checkpoints.Select(c => new CatalogImportCheckpointDto(
+                c.Source, c.Language, c.SetExternalId, c.Phase.ToString(),
+                c.IsCompleted, c.ProcessedCount, c.UpdatedAt)).ToList());
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+        _timer = null;
+    }
+}

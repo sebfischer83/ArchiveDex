@@ -1,0 +1,333 @@
+openapi: 3.0.3
+info:
+  title: ArchiveDex Catalog Import API
+  version: 0.1.0
+  description: API contract for starting, monitoring, cancelling, resuming, and reporting full catalog imports.
+paths:
+  /api/catalog-imports:
+    post:
+      summary: Start a catalog import
+      operationId: startCatalogImport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartCatalogImportRequest'
+      responses:
+        '201':
+          description: Import run created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogImportRunDto'
+        '400':
+          description: Invalid source/language/options selection
+        '409':
+          description: Another import is already running
+  /api/catalog-imports/active:
+    get:
+      summary: Get active catalog import, if any
+      operationId: getActiveCatalogImport
+      responses:
+        '200':
+          description: Active import or null
+          content:
+            application/json:
+              schema:
+                nullable: true
+                $ref: '#/components/schemas/CatalogImportRunDto'
+  /api/catalog-imports/{importRunId}:
+    get:
+      summary: Get catalog import status
+      operationId: getCatalogImportStatus
+      parameters:
+        - $ref: '#/components/parameters/ImportRunId'
+      responses:
+        '200':
+          description: Import status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogImportRunDto'
+        '404':
+          description: Import run not found
+  /api/catalog-imports/{importRunId}/cancel:
+    post:
+      summary: Cancel a running catalog import
+      operationId: cancelCatalogImport
+      parameters:
+        - $ref: '#/components/parameters/ImportRunId'
+      responses:
+        '202':
+          description: Cancellation requested
+        '404':
+          description: Import run not found
+        '409':
+          description: Import run is not cancellable
+  /api/catalog-imports/{importRunId}/resume:
+    post:
+      summary: Resume a cancelled or failed catalog import
+      operationId: resumeCatalogImport
+      parameters:
+        - $ref: '#/components/parameters/ImportRunId'
+      responses:
+        '202':
+          description: Resume requested
+        '404':
+          description: Import run not found
+        '409':
+          description: Import run is not resumable or another import is active
+  /api/catalog-imports/{importRunId}/report:
+    get:
+      summary: Get final or current catalog import report
+      operationId: getCatalogImportReport
+      parameters:
+        - $ref: '#/components/parameters/ImportRunId'
+      responses:
+        '200':
+          description: Import report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogImportReportDto'
+        '404':
+          description: Import run not found
+  /api/catalog-imports/{importRunId}/errors:
+    get:
+      summary: Get import errors and warnings
+      operationId: getCatalogImportErrors
+      parameters:
+        - $ref: '#/components/parameters/ImportRunId'
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [Error, Warning]
+      responses:
+        '200':
+          description: Import errors and warnings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SourceImportErrorDto'
+  /api/catalog-imports/{importRunId}/image-quality:
+    get:
+      summary: Get image candidate quality results
+      operationId: getCatalogImportImageQuality
+      parameters:
+        - $ref: '#/components/parameters/ImportRunId'
+      responses:
+        '200':
+          description: Image quality summary and candidates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageQualityReportDto'
+components:
+  parameters:
+    ImportRunId:
+      name: importRunId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    StartCatalogImportRequest:
+      type: object
+      required: [sources, languagesBySource, dryRun, downloadImages]
+      properties:
+        sources:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum: [TCGdex, Limitless, Serebii]
+        languagesBySource:
+          type: object
+          additionalProperties:
+            type: array
+            minItems: 1
+            items:
+              type: string
+        dryRun:
+          type: boolean
+        downloadImages:
+          type: boolean
+        reanalyzeExistingImages:
+          type: boolean
+          default: true
+    CatalogImportRunDto:
+      type: object
+      required: [id, status, dryRun, downloadImages, importedCount, updatedCount, mergedCount, skippedCount, errorCount, warningCount, checkpoints]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [Pending, Running, Cancelling, Cancelled, Completed, Failed]
+        dryRun:
+          type: boolean
+        downloadImages:
+          type: boolean
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        importedCount:
+          type: integer
+        updatedCount:
+          type: integer
+        mergedCount:
+          type: integer
+        skippedCount:
+          type: integer
+        errorCount:
+          type: integer
+        warningCount:
+          type: integer
+        checkpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogImportCheckpointDto'
+    CatalogImportCheckpointDto:
+      type: object
+      required: [source, language, phase, completed, processedCount]
+      properties:
+        source:
+          type: string
+        language:
+          type: string
+        setExternalId:
+          type: string
+          nullable: true
+        phase:
+          type: string
+        completed:
+          type: boolean
+        processedCount:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+    CatalogImportReportDto:
+      type: object
+      properties:
+        run:
+          $ref: '#/components/schemas/CatalogImportRunDto'
+        sourceSummaries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceSummaryDto'
+        imageSummary:
+          $ref: '#/components/schemas/ImageQualitySummaryDto'
+        pendingMappingCount:
+          type: integer
+    SourceSummaryDto:
+      type: object
+      properties:
+        source:
+          type: string
+        language:
+          type: string
+        setsProcessed:
+          type: integer
+        cardsProcessed:
+          type: integer
+        errors:
+          type: integer
+        warnings:
+          type: integer
+    SourceImportErrorDto:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum: [Error, Warning]
+        source:
+          type: string
+          nullable: true
+        language:
+          type: string
+          nullable: true
+        setExternalId:
+          type: string
+          nullable: true
+        cardExternalId:
+          type: string
+          nullable: true
+        phase:
+          type: string
+          nullable: true
+        code:
+          type: string
+        message:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+    ImageQualityReportDto:
+      type: object
+      properties:
+        summary:
+          $ref: '#/components/schemas/ImageQualitySummaryDto'
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageCandidateDto'
+    ImageQualitySummaryDto:
+      type: object
+      properties:
+        selectedImages:
+          type: integer
+        failedDownloads:
+          type: integer
+        cardsWithoutImages:
+          type: integer
+        setsWithoutImages:
+          type: integer
+        candidatesAnalyzed:
+          type: integer
+    ImageCandidateDto:
+      type: object
+      properties:
+        entityType:
+          type: string
+          enum: [CardSet, CardPrint]
+        entityId:
+          type: string
+          format: uuid
+          nullable: true
+        source:
+          type: string
+        sourceUrl:
+          type: string
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        format:
+          type: string
+          nullable: true
+        fileSizeBytes:
+          type: integer
+          format: int64
+          nullable: true
+        qualityScore:
+          type: number
+          nullable: true
+        selected:
+          type: boolean
+        error:
+          type: string
+          nullable: true

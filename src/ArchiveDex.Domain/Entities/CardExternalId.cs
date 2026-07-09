@@ -7,6 +7,9 @@ namespace ArchiveDex.Domain.Entities
         public string Source { get; set; } = string.Empty;     // "TCGdex", "Limitless"
         public string ExternalId { get; set; } = string.Empty;
         public string Language { get; set; } = string.Empty;   // "en", "ja"
+        public bool IsMissingFromSource { get; set; }
+        public DateTime? LastSeenAt { get; set; }
+        public DateTime? MissingDetectedAt { get; set; }
 
         public CardPrint CardPrint { get; set; } = null!;
     }

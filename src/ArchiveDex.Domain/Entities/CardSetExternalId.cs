@@ -16,6 +16,9 @@ namespace ArchiveDex.Domain.Entities
         public DateOnly? SourceReleaseDate { get; set; }
         public int? SourcePrintedTotal { get; set; }
         public int? SourceOfficialTotal { get; set; }
+        public bool IsMissingFromSource { get; set; }
+        public DateTime? LastSeenAt { get; set; }
+        public DateTime? MissingDetectedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
