@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using ArchiveDex.Infrastructure.BatchScan;
 using ArchiveDex.Application.Commands.Setup;
+using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Scanning;
 using ArchiveDex.Infrastructure;
 using ArchiveDex.Infrastructure.Ocr;
@@ -62,6 +63,12 @@ namespace ArchiveDex.Web
             _ = builder.Services.AddScoped<MatchRankingService>();
             _ = builder.Services.AddScoped<Services.ScannerSession>();
 
+            _ = builder.Services.AddHostedService(sp =>
+            {
+                var recovery = sp.GetRequiredService<ICatalogTransferRecovery>();
+                return new CatalogTransferRecoveryBootstrapper(recovery);
+            });
+
             _ = builder.Services.AddScoped(sp =>
             {
                 var urls = builder.Configuration["ASPNETCORE_URLS"] ?? "http://localhost:8080";
@@ -82,6 +89,9 @@ namespace ArchiveDex.Web
 
             _ = app.UseArchiveDexErrorHandling();
             _ = app.UseRequestLocalization();
+
+            _ = app.UseAuthentication();
+            _ = app.UseAuthorization();
 
             if (!app.Environment.IsDevelopment())
             {

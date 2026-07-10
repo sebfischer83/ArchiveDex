@@ -11,7 +11,11 @@ namespace ArchiveDex.Infrastructure.Setup
             _ = services.AddAuthentication(IdentityConstants.ApplicationScheme)
                 .AddCookie(IdentityConstants.ApplicationScheme);
 
-            _ = services.AddAuthorization();
+            _ = services.AddAuthorization(options =>
+            {
+                options.AddPolicy("Administrator", policy =>
+                    policy.RequireRole("Administrator"));
+            });
 
             _ = services.AddIdentityCore<Administrator>(options =>
             {
@@ -20,6 +24,7 @@ namespace ArchiveDex.Infrastructure.Setup
                 options.Password.RequireNonAlphanumeric = false;
                 options.User.RequireUniqueEmail = false;
             })
+            .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<Persistence.ArchiveDexDbContext>()
             .AddDefaultTokenProviders();
 

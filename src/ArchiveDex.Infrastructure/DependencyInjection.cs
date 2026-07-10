@@ -69,6 +69,21 @@ namespace ArchiveDex.Infrastructure
             _ = services.AddScoped<LimitlessCatalogSourceAdapter>();
             _ = services.AddScoped<SerebiiCatalogSourceAdapter>();
 
+            _ = services.AddScoped<ICatalogTransferRepository, CatalogTransfer.CatalogTransferRepository>();
+            _ = services.AddScoped<ICatalogSnapshotStore, CatalogTransfer.CatalogSnapshotStore>();
+            _ = services.AddScoped<ICatalogTransferArchive, CatalogTransfer.CatalogTransferArchive>();
+            _ = services.AddScoped<ICatalogImageStore>(_ => new Storage.CatalogTransferImageStore("/app/images"));
+            _ = services.AddScoped<CatalogTransfer.CatalogTransferPackageValidator>();
+            _ = services.AddScoped<ICatalogTransferOrchestrator, CatalogTransfer.CatalogTransferOrchestrator>();
+            _ = services.AddScoped<CatalogTransfer.CatalogExportService>();
+            _ = services.AddScoped<CatalogTransfer.CatalogImportValidationService>();
+            _ = services.AddScoped<CatalogTransfer.CatalogImportEligibilityService>();
+            _ = services.AddScoped<CatalogTransfer.CatalogImportRestoreService>();
+            _ = services.AddScoped<CatalogTransfer.CatalogImportFinalizationService>();
+            _ = services.AddScoped<CatalogTransfer.CatalogTransferReportService>();
+            _ = services.AddScoped<ICatalogTransferExecutionService, CatalogTransfer.CatalogTransferExecutionService>();
+            _ = services.AddScoped<ICatalogTransferRecovery, CatalogTransfer.CatalogTransferRecoveryService>();
+
             _ = services.AddArchiveDexIdentity();
 
             return services;

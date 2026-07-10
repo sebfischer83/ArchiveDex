@@ -5,9 +5,12 @@ using ArchiveDex.Domain.Enums;
 
 namespace ArchiveDex.Infrastructure.Persistence
 {
-    public class CatalogRepository(ArchiveDexDbContext db) : ICatalogRepository
+    public class CatalogRepository(
+        ArchiveDexDbContext db,
+        ICatalogTransferRepository? transferRepository = null) : ICatalogRepository
     {
         private readonly ArchiveDexDbContext _db = db;
+        private readonly ICatalogTransferRepository? _transferRepository = transferRepository;
 
         public async Task<CardPrint?> GetByIdAsync(Guid id, CancellationToken ct = default) => await _db.CardPrints
                 .Include(c => c.CardSet)
@@ -134,6 +137,7 @@ namespace ArchiveDex.Infrastructure.Persistence
 
         public async Task<CardPrint> AddAsync(CardPrint card, CancellationToken ct = default)
         {
+            await EnsureCatalogWritesAllowedAsync(ct);
             _ = _db.CardPrints.Add(card);
             _ = await _db.SaveChangesAsync(ct);
             return card;
@@ -141,12 +145,19 @@ namespace ArchiveDex.Infrastructure.Persistence
 
         public async Task UpdateAsync(CardPrint card, CancellationToken ct = default)
         {
+            await EnsureCatalogWritesAllowedAsync(ct);
             if (_db.Entry(card).State == EntityState.Detached)
             {
                 _ = _db.CardPrints.Update(card);
             }
 
             _ = await _db.SaveChangesAsync(ct);
+        }
+
+        private async Task EnsureCatalogWritesAllowedAsync(CancellationToken ct)
+        {
+            if (_transferRepository is not null && await _transferRepository.HasActiveOperationAsync(ct))
+                throw new InvalidOperationException("A catalog transfer is active; catalog changes are blocked.");
         }
 
         public async Task<IReadOnlyDictionary<(Guid SetId, string CardLanguage), int>> GetOwnedCountsBySetIdAsync(CancellationToken ct = default)

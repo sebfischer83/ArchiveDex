@@ -4,13 +4,17 @@ using ArchiveDex.Domain.Enums;
 
 namespace ArchiveDex.Application.Sets
 {
-    public class SetMappingService(ISetRepository repo) : ISetMappingService
+    public class SetMappingService(
+        ISetRepository repo,
+        ICatalogTransferRepository? transferRepository = null) : ISetMappingService
     {
         private readonly ISetRepository _repo = repo;
+        private readonly ICatalogTransferRepository? _transferRepository = transferRepository;
 
         /// <summary>Accept: attach the incoming external id to the chosen set, merging the provisional set into it.</summary>
         public async Task AcceptPendingMappingAsync(Guid pendingMappingId, Guid cardSetId, CancellationToken ct)
         {
+            await EnsureCatalogWritesAllowedAsync(ct);
             PendingSetMapping pending = await GetOpenPendingAsync(pendingMappingId, ct);
 
             CardSetExternalId ext = await _repo.FindExternalIdAsync(
@@ -32,6 +36,7 @@ namespace ArchiveDex.Application.Sets
 
         public async Task RejectPendingMappingAsync(Guid pendingMappingId, CancellationToken ct)
         {
+            await EnsureCatalogWritesAllowedAsync(ct);
             PendingSetMapping pending = await GetOpenPendingAsync(pendingMappingId, ct);
             Close(pending, MappingStatus.Rejected);
             await _repo.SaveChangesAsync(ct);
@@ -40,6 +45,7 @@ namespace ArchiveDex.Application.Sets
         /// <summary>Keep the provisional set as its own canonical set; record a verified manual mapping.</summary>
         public async Task CreateNewSetFromPendingAsync(Guid pendingMappingId, CancellationToken ct)
         {
+            await EnsureCatalogWritesAllowedAsync(ct);
             PendingSetMapping pending = await GetOpenPendingAsync(pendingMappingId, ct);
 
             CardSetExternalId ext = await _repo.FindExternalIdAsync(
@@ -57,6 +63,7 @@ namespace ArchiveDex.Application.Sets
         /// <summary>Not the same set: relate the provisional set to a target and keep both.</summary>
         public async Task CreateRelationFromPendingAsync(Guid pendingMappingId, Guid targetCardSetId, SetRelationType relationType, CancellationToken ct)
         {
+            await EnsureCatalogWritesAllowedAsync(ct);
             PendingSetMapping pending = await GetOpenPendingAsync(pendingMappingId, ct);
 
             CardSetExternalId ext = await _repo.FindExternalIdAsync(
@@ -91,6 +98,12 @@ namespace ArchiveDex.Application.Sets
             return pending.Status != MappingStatus.Pending
                 ? throw new InvalidOperationException($"Pending mapping already resolved as {pending.Status}.")
                 : pending;
+        }
+
+        private async Task EnsureCatalogWritesAllowedAsync(CancellationToken ct)
+        {
+            if (_transferRepository is not null && await _transferRepository.HasActiveOperationAsync(ct))
+                throw new InvalidOperationException("A catalog transfer is active; catalog changes are blocked.");
         }
 
         private static void Close(PendingSetMapping pending, MappingStatus status)

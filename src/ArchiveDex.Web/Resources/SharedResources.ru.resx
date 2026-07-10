@@ -235,4 +235,82 @@
   <data name="BatchScan.BackToReview" xml:space="preserve">
     <value>Назад к просмотру</value>
   </data>
+  <data name="Nav.CatalogTransfer" xml:space="preserve">
+    <value>Передача</value>
+  </data>
+  <data name="CatalogTransfer.ExportStart" xml:space="preserve">
+    <value>Начать экспорт</value>
+  </data>
+  <data name="CatalogTransfer.ValidatePackage" xml:space="preserve">
+    <value>Проверить пакет</value>
+  </data>
+  <data name="CatalogTransfer.Completed" xml:space="preserve">
+    <value>Передача успешно завершена.</value>
+  </data>
+  <data name="CatalogTransfer.Failed" xml:space="preserve">
+    <value>Передача не удалась.</value>
+  </data>
+  <data name="CatalogTransfer.Conflict" xml:space="preserve">
+    <value>Другая операция с каталогом уже активна.</value>
+  </data>
+  <data name="CatalogTransfer.Title" xml:space="preserve">
+    <value>Передача каталога</value>
+  </data>
+  <data name="CatalogTransfer.ExportHeading" xml:space="preserve">
+    <value>Экспорт каталога</value>
+  </data>
+  <data name="CatalogTransfer.ExportDescription" xml:space="preserve">
+    <value>Создать переносимый пакет со всеми данными каталога и изображениями.</value>
+  </data>
+  <data name="CatalogTransfer.ImportHeading" xml:space="preserve">
+    <value>Импорт каталога</value>
+  </data>
+  <data name="CatalogTransfer.ImportDescription" xml:space="preserve">
+    <value>Проверить и восстановить ранее экспортированный пакет каталога.</value>
+  </data>
+  <data name="CatalogTransfer.SelectedFile" xml:space="preserve">
+    <value>Выбрано: {0} ({1} КБ)</value>
+  </data>
+  <data name="CatalogTransfer.StatusHeading" xml:space="preserve">
+    <value>Статус передачи</value>
+  </data>
+  <data name="CatalogTransfer.Kind" xml:space="preserve">
+    <value>Тип</value>
+  </data>
+  <data name="CatalogTransfer.Status" xml:space="preserve">
+    <value>Статус</value>
+  </data>
+  <data name="CatalogTransfer.Phase" xml:space="preserve">
+    <value>Фаза</value>
+  </data>
+  <data name="CatalogTransfer.Records" xml:space="preserve">
+    <value>Записи</value>
+  </data>
+  <data name="CatalogTransfer.Images" xml:space="preserve">
+    <value>Изображения</value>
+  </data>
+  <data name="CatalogTransfer.Errors" xml:space="preserve">
+    <value>Ошибки</value>
+  </data>
+  <data name="CatalogTransfer.Cancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="CatalogTransfer.StartImport" xml:space="preserve">
+    <value>Начать импорт</value>
+  </data>
+  <data name="CatalogTransfer.WarningsErrors" xml:space="preserve">
+    <value>Предупреждения / Ошибки</value>
+  </data>
+  <data name="CatalogTransfer.DownloadPackage" xml:space="preserve">
+    <value>Скачать пакет</value>
+  </data>
+  <data name="CatalogTransfer.Starting" xml:space="preserve">
+    <value>Запуск передачи...</value>
+  </data>
+  <data name="CatalogTransfer.ExportStatus" xml:space="preserve">
+    <value>Экспорт</value>
+  </data>
+  <data name="CatalogTransfer.ImportStatus" xml:space="preserve">
+    <value>Импорт</value>
+  </data>
 </root>
