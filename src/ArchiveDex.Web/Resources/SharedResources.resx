@@ -235,4 +235,82 @@
   <data name="BatchScan.BackToReview" xml:space="preserve">
     <value>Back to Review</value>
   </data>
+  <data name="Nav.CatalogTransfer" xml:space="preserve">
+    <value>Transfer</value>
+  </data>
+  <data name="CatalogTransfer.ExportStart" xml:space="preserve">
+    <value>Start Export</value>
+  </data>
+  <data name="CatalogTransfer.ValidatePackage" xml:space="preserve">
+    <value>Validate Package</value>
+  </data>
+  <data name="CatalogTransfer.Completed" xml:space="preserve">
+    <value>Transfer completed successfully.</value>
+  </data>
+  <data name="CatalogTransfer.Failed" xml:space="preserve">
+    <value>Transfer failed.</value>
+  </data>
+  <data name="CatalogTransfer.Conflict" xml:space="preserve">
+    <value>Another catalog operation is already active.</value>
+  </data>
+  <data name="CatalogTransfer.Title" xml:space="preserve">
+    <value>Catalog Transfer</value>
+  </data>
+  <data name="CatalogTransfer.ExportHeading" xml:space="preserve">
+    <value>Export Catalog</value>
+  </data>
+  <data name="CatalogTransfer.ExportDescription" xml:space="preserve">
+    <value>Create a portable package containing all catalog data and images.</value>
+  </data>
+  <data name="CatalogTransfer.ImportHeading" xml:space="preserve">
+    <value>Import Catalog</value>
+  </data>
+  <data name="CatalogTransfer.ImportDescription" xml:space="preserve">
+    <value>Validate and restore a previously exported catalog package.</value>
+  </data>
+  <data name="CatalogTransfer.SelectedFile" xml:space="preserve">
+    <value>Selected: {0} ({1} KB)</value>
+  </data>
+  <data name="CatalogTransfer.StatusHeading" xml:space="preserve">
+    <value>Transfer Status</value>
+  </data>
+  <data name="CatalogTransfer.Kind" xml:space="preserve">
+    <value>Kind</value>
+  </data>
+  <data name="CatalogTransfer.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="CatalogTransfer.Phase" xml:space="preserve">
+    <value>Phase</value>
+  </data>
+  <data name="CatalogTransfer.Records" xml:space="preserve">
+    <value>Records</value>
+  </data>
+  <data name="CatalogTransfer.Images" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="CatalogTransfer.Errors" xml:space="preserve">
+    <value>Errors</value>
+  </data>
+  <data name="CatalogTransfer.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="CatalogTransfer.StartImport" xml:space="preserve">
+    <value>Start Import</value>
+  </data>
+  <data name="CatalogTransfer.WarningsErrors" xml:space="preserve">
+    <value>Warnings / Errors</value>
+  </data>
+  <data name="CatalogTransfer.DownloadPackage" xml:space="preserve">
+    <value>Download Package</value>
+  </data>
+  <data name="CatalogTransfer.Starting" xml:space="preserve">
+    <value>Starting transfer...</value>
+  </data>
+  <data name="CatalogTransfer.ExportStatus" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="CatalogTransfer.ImportStatus" xml:space="preserve">
+    <value>Import</value>
+  </data>
 </root>

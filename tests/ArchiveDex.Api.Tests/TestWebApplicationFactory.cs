@@ -10,6 +10,8 @@ using ArchiveDex.Infrastructure.Storage;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
+using Microsoft.AspNetCore.Authentication;
+using ArchiveDex.Api.Tests.CatalogTransfer;
 
 namespace ArchiveDex.Api.Tests
 {
@@ -73,6 +75,14 @@ namespace ArchiveDex.Api.Tests
                 }
 
                 _ = services.AddSingleton<IBackgroundJobClient, FakeBackgroundJobClient>();
+
+                _ = services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = CatalogTransferTestAuthentication.Scheme;
+                    options.DefaultChallengeScheme = CatalogTransferTestAuthentication.Scheme;
+                    options.DefaultForbidScheme = CatalogTransferTestAuthentication.Scheme;
+                }).AddScheme<AuthenticationSchemeOptions, CatalogTransferTestAuthHandler>(
+                    CatalogTransferTestAuthentication.Scheme, _ => { });
             });
         }
 

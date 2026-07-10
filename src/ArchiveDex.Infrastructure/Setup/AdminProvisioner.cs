@@ -5,9 +5,13 @@ using ArchiveDex.Domain.Enums;
 
 namespace ArchiveDex.Infrastructure.Setup
 {
-    public class AdminProvisioner(UserManager<Administrator> userManager, IPasswordHasher<Administrator> passwordHasher) : IAdminProvisioner
+    public class AdminProvisioner(
+        UserManager<Administrator> userManager,
+        RoleManager<IdentityRole<Guid>> roleManager,
+        IPasswordHasher<Administrator> passwordHasher) : IAdminProvisioner
     {
         private readonly UserManager<Administrator> _userManager = userManager;
+        private readonly RoleManager<IdentityRole<Guid>> _roleManager = roleManager;
         private readonly IPasswordHasher<Administrator> _passwordHasher = passwordHasher;
 
         public async Task ProvisionAsync(string username, string password, UiCulture preferredCulture, CancellationToken ct = default)
@@ -26,7 +30,22 @@ namespace ArchiveDex.Infrastructure.Setup
                 PasswordHash = _passwordHasher.HashPassword(null!, password)
             };
 
-            _ = await _userManager.CreateAsync(admin, password);
+            IdentityResult createResult = await _userManager.CreateAsync(admin, password);
+            if (!createResult.Succeeded)
+                throw new InvalidOperationException(string.Join("; ", createResult.Errors.Select(e => e.Description)));
+
+            const string administratorRole = "Administrator";
+            if (!await _roleManager.RoleExistsAsync(administratorRole))
+            {
+                IdentityResult roleResult = await _roleManager.CreateAsync(
+                    new IdentityRole<Guid>(administratorRole) { Id = Guid.NewGuid() });
+                if (!roleResult.Succeeded)
+                    throw new InvalidOperationException(string.Join("; ", roleResult.Errors.Select(e => e.Description)));
+            }
+
+            IdentityResult assignmentResult = await _userManager.AddToRoleAsync(admin, administratorRole);
+            if (!assignmentResult.Succeeded)
+                throw new InvalidOperationException(string.Join("; ", assignmentResult.Errors.Select(e => e.Description)));
         }
     }
 }

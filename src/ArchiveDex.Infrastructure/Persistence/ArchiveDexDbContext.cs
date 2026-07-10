@@ -33,6 +33,9 @@ namespace ArchiveDex.Infrastructure.Persistence
         public DbSet<SourceImportError> SourceImportErrors => Set<SourceImportError>();
         public DbSet<ImageCandidateMetadata> ImageCandidateMetadata => Set<ImageCandidateMetadata>();
         public DbSet<CatalogImageAsset> CatalogImageAssets => Set<CatalogImageAsset>();
+        public DbSet<CatalogTransferOperation> CatalogTransferOperations => Set<CatalogTransferOperation>();
+        public DbSet<CatalogTransferError> CatalogTransferErrors => Set<CatalogTransferError>();
+        public DbSet<CatalogTransferJournal> CatalogTransferJournals => Set<CatalogTransferJournal>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -237,6 +240,30 @@ namespace ArchiveDex.Infrastructure.Persistence
                 _ = e.HasKey(a => a.Id);
                 _ = e.HasIndex(a => new { a.EntityType, a.EntityId });
                 _ = e.Property(a => a.EntityType).HasConversion<string>().IsRequired();
+            });
+
+            _ = modelBuilder.Entity<CatalogTransferOperation>(e =>
+            {
+                _ = e.HasKey(o => o.Id);
+                _ = e.Property(o => o.Kind).HasConversion<string>().IsRequired();
+                _ = e.Property(o => o.Status).HasConversion<string>().IsRequired();
+                _ = e.Property(o => o.Phase).HasConversion<string>().IsRequired();
+                _ = e.HasIndex(o => o.Status);
+                _ = e.HasIndex(o => o.CreatedAt);
+            });
+
+            _ = modelBuilder.Entity<CatalogTransferError>(e =>
+            {
+                _ = e.HasKey(err => err.Id);
+                _ = e.HasIndex(err => err.OperationId);
+                _ = e.HasOne<CatalogTransferOperation>().WithMany().HasForeignKey(err => err.OperationId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            _ = modelBuilder.Entity<CatalogTransferJournal>(e =>
+            {
+                _ = e.HasKey(j => j.OperationId);
+                _ = e.HasIndex(j => j.State);
+                _ = e.HasOne<CatalogTransferOperation>().WithOne().HasForeignKey<CatalogTransferJournal>(j => j.OperationId).OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

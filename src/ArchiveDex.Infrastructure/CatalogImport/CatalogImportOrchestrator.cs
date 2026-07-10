@@ -15,6 +15,7 @@ namespace ArchiveDex.Infrastructure.CatalogImport
         private readonly CatalogNormalizer _normalizer;
         private readonly CatalogReconciler _reconciler;
         private readonly IImageCandidateAnalyzer _imageAnalyzer;
+        private readonly ICatalogTransferRepository _transferRepo;
         private readonly ILogger<CatalogImportOrchestrator> _logger;
 
         public CatalogImportOrchestrator(
@@ -23,6 +24,7 @@ namespace ArchiveDex.Infrastructure.CatalogImport
             CatalogNormalizer normalizer,
             CatalogReconciler reconciler,
             IImageCandidateAnalyzer imageAnalyzer,
+            ICatalogTransferRepository transferRepo,
             ILogger<CatalogImportOrchestrator> logger)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
@@ -30,6 +32,7 @@ namespace ArchiveDex.Infrastructure.CatalogImport
             _normalizer = normalizer ?? throw new ArgumentNullException(nameof(normalizer));
             _reconciler = reconciler ?? throw new ArgumentNullException(nameof(reconciler));
             _imageAnalyzer = imageAnalyzer ?? throw new ArgumentNullException(nameof(imageAnalyzer));
+            _transferRepo = transferRepo ?? throw new ArgumentNullException(nameof(transferRepo));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -37,6 +40,8 @@ namespace ArchiveDex.Infrastructure.CatalogImport
         {
             if (await _repository.HasActiveImportAsync(ct))
                 throw new InvalidOperationException("Another catalog import is already active.");
+            if (await _transferRepo.HasActiveOperationAsync(ct))
+                throw new InvalidOperationException("A catalog transfer is already active.");
 
             var run = new CatalogImportRun
             {

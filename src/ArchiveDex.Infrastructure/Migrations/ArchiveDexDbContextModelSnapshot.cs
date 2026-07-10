@@ -686,6 +686,164 @@ namespace ArchiveDex.Infrastructure.Migrations
                     b.ToTable("CatalogImportRuns");
                 });
 
+            modelBuilder.Entity("ArchiveDex.Domain.Entities.CatalogTransferError", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Check")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Impact")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ItemPath")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OperationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RecommendedAction")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OperationId");
+
+                    b.ToTable("CatalogTransferErrors");
+                });
+
+            modelBuilder.Entity("ArchiveDex.Domain.Entities.CatalogTransferJournal", b =>
+                {
+                    b.Property<Guid>("OperationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PromotedImageRoot")
+                        .HasColumnType("text");
+
+                    b.Property<string>("StagingRoot")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("OperationId");
+
+                    b.HasIndex("State");
+
+                    b.ToTable("CatalogTransferJournals");
+                });
+
+            modelBuilder.Entity("ArchiveDex.Domain.Entities.CatalogTransferOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancellationRequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ErrorCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FormatVersion")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PackageFileName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PackageHash")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("PackageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PackagePath")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Phase")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("ProcessedImageBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ProcessedImages")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ProcessedRecords")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StagingRoot")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("TotalImageBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("TotalImages")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("TotalRecords")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool?>("ValidationSucceeded")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("WarningCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("CatalogTransferOperations");
+                });
+
             modelBuilder.Entity("ArchiveDex.Domain.Entities.CollectionEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1490,6 +1648,24 @@ namespace ArchiveDex.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("ImportRun");
+                });
+
+            modelBuilder.Entity("ArchiveDex.Domain.Entities.CatalogTransferError", b =>
+                {
+                    b.HasOne("ArchiveDex.Domain.Entities.CatalogTransferOperation", null)
+                        .WithMany()
+                        .HasForeignKey("OperationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ArchiveDex.Domain.Entities.CatalogTransferJournal", b =>
+                {
+                    b.HasOne("ArchiveDex.Domain.Entities.CatalogTransferOperation", null)
+                        .WithOne()
+                        .HasForeignKey("ArchiveDex.Domain.Entities.CatalogTransferJournal", "OperationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ArchiveDex.Domain.Entities.CollectionEntry", b =>

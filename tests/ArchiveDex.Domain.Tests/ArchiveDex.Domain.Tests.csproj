@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ArchiveDex.Domain\ArchiveDex.Domain.csproj" />
+    <ProjectReference Include="..\..\src\ArchiveDex.Application\ArchiveDex.Application.csproj" />
   </ItemGroup>
 
 </Project>
