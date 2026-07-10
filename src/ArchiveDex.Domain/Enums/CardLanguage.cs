@@ -7,6 +7,17 @@ namespace ArchiveDex.Domain.Enums
         ja,
         ko,
         zhHans,
-        zhHant
+        zhHant,
+        fr,
+        es,
+        it,
+        pt,
+        ptBr,
+        nl,
+        pl,
+        ru,
+        zh,
+        id,
+        th
     }
 }

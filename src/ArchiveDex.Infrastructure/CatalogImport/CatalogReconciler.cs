@@ -283,6 +283,17 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                 "ko" => CardLanguage.ko,
                 "zh-hans" => CardLanguage.zhHans,
                 "zh-hant" => CardLanguage.zhHant,
+                "fr" => CardLanguage.fr,
+                "es" => CardLanguage.es,
+                "it" => CardLanguage.it,
+                "pt" => CardLanguage.pt,
+                "pt-br" => CardLanguage.ptBr,
+                "nl" => CardLanguage.nl,
+                "pl" => CardLanguage.pl,
+                "ru" => CardLanguage.ru,
+                "zh" => CardLanguage.zh,
+                "id" => CardLanguage.id,
+                "th" => CardLanguage.th,
                 _ => CardLanguage.en
             };
         }

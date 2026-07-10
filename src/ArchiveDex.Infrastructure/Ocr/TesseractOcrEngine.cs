@@ -82,6 +82,17 @@ namespace ArchiveDex.Infrastructure.Ocr
             CardLanguage.ko => "kor",
             CardLanguage.zhHans => "chi_sim",
             CardLanguage.zhHant => "chi_tra",
+            CardLanguage.fr => "fra",
+            CardLanguage.es => "spa",
+            CardLanguage.it => "ita",
+            CardLanguage.pt => "por",
+            CardLanguage.ptBr => "por",
+            CardLanguage.nl => "nld",
+            CardLanguage.pl => "pol",
+            CardLanguage.ru => "rus",
+            CardLanguage.zh => "chi_sim",
+            CardLanguage.id => "ind",
+            CardLanguage.th => "tha",
             _ => _options.DefaultLanguages
         };
 
