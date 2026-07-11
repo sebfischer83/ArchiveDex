@@ -6,6 +6,7 @@ namespace ArchiveDex.Domain.Entities
     {
         public Guid Id { get; set; }
         public CatalogImportStatus Status { get; set; }
+        public CatalogImportMode Mode { get; set; }
         public string SelectedSourcesJson { get; set; } = "[]";
         public string SelectedLanguagesJson { get; set; } = "[]";
         public bool IsDryRun { get; set; }
@@ -16,6 +17,9 @@ namespace ArchiveDex.Domain.Entities
         public int UpdatedCount { get; set; }
         public int MergedCount { get; set; }
         public int SkippedCount { get; set; }
+        public int AddedCount { get; set; }
+        public int AddedSupportingItemCount { get; set; }
+        public int AmbiguousCount { get; set; }
         public int ErrorCount { get; set; }
         public int WarningCount { get; set; }
 

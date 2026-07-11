@@ -46,6 +46,7 @@ namespace ArchiveDex.Infrastructure.CatalogImport
             var run = new CatalogImportRun
             {
                 Status = CatalogImportStatus.Pending,
+                Mode = options.Mode,
                 SelectedSourcesJson = System.Text.Json.JsonSerializer.Serialize(options.Sources),
                 SelectedLanguagesJson = System.Text.Json.JsonSerializer.Serialize(options.LanguagesBySource),
                 IsDryRun = options.IsDryRun,
@@ -73,6 +74,8 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                 run.StartedAt = DateTime.UtcNow;
                 await _repository.UpdateRunAsync(run, ct);
 
+                var newlyCreatedSetIds = new HashSet<Guid>();
+
                 foreach (var sourceName in options.Sources)
                 {
                     var adapter = _adapters.FirstOrDefault(a =>
@@ -86,8 +89,13 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                     {
                         if (ct.IsCancellationRequested) goto cancellation;
 
-                        await ProcessSourceLanguageAsync(run, adapter, language, options, ct);
+                        await ProcessSourceLanguageAsync(run, adapter, language, options, newlyCreatedSetIds, ct);
                     }
+                }
+
+                if (options.Mode == CatalogImportMode.AddOnly && !options.IsDryRun)
+                {
+                    await CleanupOrphanedSetsAsync(newlyCreatedSetIds, ct);
                 }
 
                 run.Status = CatalogImportStatus.Completed;
@@ -117,10 +125,11 @@ namespace ArchiveDex.Infrastructure.CatalogImport
 
         private async Task ProcessSourceLanguageAsync(
             CatalogImportRun run, ICatalogSourceAdapter adapter,
-            string language, CatalogImportOptions options, CancellationToken ct)
+            string language, CatalogImportOptions options, HashSet<Guid> newlyCreatedSetIds, CancellationToken ct)
         {
             var foundSetIds = new HashSet<string>();
             var foundCardIds = new HashSet<string>();
+            var isDryRun = options.IsDryRun;
 
             var sets = await adapter.GetSetsAsync(language, ct);
             var phase = CatalogImportPhase.FetchSets;
@@ -148,13 +157,18 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                     await _repository.AddSetSnapshotAsync(snapshot, ct);
                     foundSetIds.Add(importedSet.ExternalId);
 
-                    if (!options.IsDryRun)
+                    var setResult = await _reconciler.UpsertSetAsync(
+                        adapter.SourceName, language, importedSet.ExternalId,
+                        options.Mode, isDryRun, importedSet, ct);
+
+                    if (setResult.CreatedSupportingItem)
                     {
-                        await _reconciler.UpsertSetAsync(
-                            adapter.SourceName, language, importedSet.ExternalId, importedSet, ct);
+                        run.AddedSupportingItemCount++;
+                        newlyCreatedSetIds.Add(setResult.CardSetId);
                     }
 
-                    await ProcessCardsAsync(run, adapter, language, importedSet.ExternalId, options, foundCardIds, ct);
+                    await ProcessCardsAsync(run, adapter, language, importedSet.ExternalId,
+                        setResult.CardSetId, options, foundCardIds, ct);
                 }
                 catch (Exception ex)
                 {
@@ -177,7 +191,7 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                 }
             }
 
-            if (!options.IsDryRun)
+            if (!isDryRun && options.Mode != CatalogImportMode.AddOnly)
             {
                 await _reconciler.MarkMissingSourceReferencesAsync(
                     adapter.SourceName, language, foundSetIds, foundCardIds, ct);
@@ -186,8 +200,8 @@ namespace ArchiveDex.Infrastructure.CatalogImport
 
         private async Task ProcessCardsAsync(
             CatalogImportRun run, ICatalogSourceAdapter adapter,
-            string language, string externalSetId, CatalogImportOptions options,
-            HashSet<string> foundCardIds, CancellationToken ct)
+            string language, string externalSetId, Guid cardSetId,
+            CatalogImportOptions options, HashSet<string> foundCardIds, CancellationToken ct)
         {
             var cards = await adapter.GetCardSummariesAsync(language, externalSetId, ct);
 
@@ -214,9 +228,9 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                     await _repository.AddCardSnapshotAsync(snapshot, ct);
                     foundCardIds.Add(card.ExternalId);
 
+                    ImportedCardDetail? detail = null;
                     if (!options.IsDryRun)
                     {
-                        ImportedCardDetail? detail = null;
                         try
                         {
                             detail = await adapter.GetCardDetailAsync(language, externalSetId, card.Number, ct);
@@ -225,10 +239,28 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                         {
                             _logger.LogWarning(ex, "Card detail failed for {Card}, using summary", card.ExternalId);
                         }
+                    }
 
-                        await _reconciler.UpsertCardPrintAsync(
-                            adapter.SourceName, language, Guid.Empty, detail, card, ct);
-                        run.ImportedCount++;
+                    var cardResult = await _reconciler.UpsertCardPrintAsync(
+                        adapter.SourceName, language, cardSetId, options.Mode,
+                        options.IsDryRun, detail, card, ct);
+
+                    ApplyCardOutcome(run, cardResult, ct);
+
+                    if (cardResult.Outcome == CardReconciliationOutcome.Ambiguous)
+                    {
+                        await _repository.AddErrorAsync(new SourceImportError
+                        {
+                            ImportRunId = run.Id,
+                            Severity = "Warning",
+                            Source = adapter.SourceName,
+                            Language = language,
+                            SetExternalId = externalSetId,
+                            CardExternalId = card.ExternalId,
+                            Code = "AMBIGUOUS_CARD",
+                            Message = cardResult.AmbiguousReason ?? "Card identity could not be uniquely classified",
+                            OccurredAt = DateTime.UtcNow
+                        }, ct);
                     }
                 }
                 catch (Exception ex)
@@ -251,6 +283,32 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                     run.ErrorCount++;
                 }
             }
+        }
+
+        private void ApplyCardOutcome(CatalogImportRun run, CatalogImportCardResult result, CancellationToken ct)
+        {
+            switch (result.Outcome)
+            {
+                case CardReconciliationOutcome.Added:
+                    run.ImportedCount++;
+                    run.AddedCount++;
+                    break;
+                case CardReconciliationOutcome.SkippedExisting:
+                    run.SkippedCount++;
+                    break;
+                case CardReconciliationOutcome.Ambiguous:
+                    run.AmbiguousCount++;
+                    run.WarningCount++;
+                    break;
+                case CardReconciliationOutcome.Failed:
+                    run.ErrorCount++;
+                    break;
+            }
+        }
+
+        private async Task CleanupOrphanedSetsAsync(HashSet<Guid> newlyCreatedSetIds, CancellationToken ct)
+        {
+            await _reconciler.DeleteOrphanedSetsAsync(newlyCreatedSetIds, ct);
         }
 
         public async Task CancelAsync(Guid importRunId, CancellationToken ct = default)
@@ -280,7 +338,7 @@ namespace ArchiveDex.Infrastructure.CatalogImport
             var sources = System.Text.Json.JsonSerializer.Deserialize<List<string>>(run.SelectedSourcesJson) ?? [];
             var languages = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, List<string>>>(run.SelectedLanguagesJson)
                 ?? new Dictionary<string, List<string>>();
-            return new CatalogImportOptions(sources, languages, run.IsDryRun, run.DownloadImages);
+            return new CatalogImportOptions(sources, languages, run.IsDryRun, run.DownloadImages, run.Mode);
         }
     }
 }

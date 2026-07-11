@@ -18,9 +18,9 @@ namespace ArchiveDex.Infrastructure.CatalogImport
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<CardSet?> UpsertSetAsync(
+        public async Task<CatalogImportSetResult> UpsertSetAsync(
             string source, string language, string externalSetId,
-            ImportedSet imported, CancellationToken ct = default)
+            CatalogImportMode mode, bool isDryRun, ImportedSet imported, CancellationToken ct = default)
         {
             var dbContext = (DbContext)_unitOfWork;
             var sets = dbContext.Set<CardSet>();
@@ -31,44 +31,59 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                 .FirstOrDefaultAsync(e => e.Source == source && e.Language == language && e.ExternalId == externalSetId, ct);
 
             CardSet? cardSet;
+            bool createdSupportingItem = false;
+
             if (existingExternalId != null)
             {
                 cardSet = existingExternalId.CardSet;
-                existingExternalId.IsMissingFromSource = false;
-                existingExternalId.LastSeenAt = DateTime.UtcNow;
-                existingExternalId.MissingDetectedAt = null;
-                existingExternalId.UpdatedAt = DateTime.UtcNow;
 
-                var setName = CatalogNormalizer.NormalizeSetName(imported.RawName);
-                if (!string.Equals(cardSet.CanonicalName, setName, StringComparison.OrdinalIgnoreCase))
+                if (mode != CatalogImportMode.AddOnly && !isDryRun)
                 {
-                    cardSet.CanonicalName = setName;
-                }
-                cardSet.Series ??= imported.Series;
-                cardSet.ReleaseDate ??= imported.ReleaseDate;
-                cardSet.PrintedTotal ??= imported.PrintedTotal;
-                cardSet.OfficialTotal ??= imported.OfficialTotal;
-                cardSet.UpdatedAt = DateTime.UtcNow;
-            }
-            else
-            {
-                cardSet = await TryFallbackSetMatchAsync(sets, imported, source, language, externalSetId, ct);
-                if (cardSet == null)
-                {
-                    cardSet = new CardSet
+                    existingExternalId.IsMissingFromSource = false;
+                    existingExternalId.LastSeenAt = DateTime.UtcNow;
+                    existingExternalId.MissingDetectedAt = null;
+                    existingExternalId.UpdatedAt = DateTime.UtcNow;
+
+                    var setName = CatalogNormalizer.NormalizeSetName(imported.RawName);
+                    if (!string.Equals(cardSet.CanonicalName, setName, StringComparison.OrdinalIgnoreCase))
                     {
-                        CanonicalName = CatalogNormalizer.NormalizeSetName(imported.RawName),
-                        Series = imported.Series,
-                        ReleaseDate = imported.ReleaseDate,
-                        PrintedTotal = imported.PrintedTotal,
-                        OfficialTotal = imported.OfficialTotal,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-                    await sets.AddAsync(cardSet, ct);
-                    await _unitOfWork.SaveChangesAsync(ct);
+                        cardSet.CanonicalName = setName;
+                    }
+                    cardSet.Series ??= imported.Series;
+                    cardSet.ReleaseDate ??= imported.ReleaseDate;
+                    cardSet.PrintedTotal ??= imported.PrintedTotal;
+                    cardSet.OfficialTotal ??= imported.OfficialTotal;
+                    cardSet.UpdatedAt = DateTime.UtcNow;
                 }
 
+                return new CatalogImportSetResult(SetReconciliationOutcome.ReusedExisting, cardSet.Id, false);
+            }
+
+            cardSet = await TryFallbackSetMatchAsync(sets, imported, source, language, externalSetId, ct);
+            if (cardSet == null)
+            {
+                if (isDryRun)
+                {
+                    return new CatalogImportSetResult(SetReconciliationOutcome.CreatedNew, Guid.NewGuid(), true);
+                }
+
+                cardSet = new CardSet
+                {
+                    CanonicalName = CatalogNormalizer.NormalizeSetName(imported.RawName),
+                    Series = imported.Series,
+                    ReleaseDate = imported.ReleaseDate,
+                    PrintedTotal = imported.PrintedTotal,
+                    OfficialTotal = imported.OfficialTotal,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                await sets.AddAsync(cardSet, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+                createdSupportingItem = true;
+            }
+
+            if (!isDryRun)
+            {
                 var newExternalId = new CardSetExternalId
                 {
                     CardSetId = cardSet.Id,
@@ -86,11 +101,14 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                 await externalIds.AddAsync(newExternalId, ct);
             }
 
-            return cardSet;
+            return new CatalogImportSetResult(
+                createdSupportingItem ? SetReconciliationOutcome.CreatedNew : SetReconciliationOutcome.ReusedExisting,
+                cardSet.Id, createdSupportingItem);
         }
 
-        public async Task<CardPrint?> UpsertCardPrintAsync(
+        public async Task<CatalogImportCardResult> UpsertCardPrintAsync(
             string source, string language, Guid cardSetId,
+            CatalogImportMode mode, bool isDryRun,
             ImportedCardDetail? detail, ImportedCardSummary? summary, CancellationToken ct = default)
         {
             var dbContext = (DbContext)_unitOfWork;
@@ -105,9 +123,17 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                 .FirstOrDefaultAsync(e => e.Source == source && e.Language == language && e.ExternalId == externalId, ct);
 
             CardPrint? cardPrint;
+
             if (existingExternalId != null)
             {
                 cardPrint = existingExternalId.CardPrint;
+
+                if (isDryRun)
+                    return new CatalogImportCardResult(CardReconciliationOutcome.SkippedExisting, cardPrint.Id);
+
+                if (mode == CatalogImportMode.AddOnly)
+                    return new CatalogImportCardResult(CardReconciliationOutcome.SkippedExisting, cardPrint.Id);
+
                 existingExternalId.IsMissingFromSource = false;
                 existingExternalId.LastSeenAt = DateTime.UtcNow;
                 existingExternalId.MissingDetectedAt = null;
@@ -129,48 +155,85 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                     cardPrint.LegalExpanded ??= imported.LegalExpanded;
                     cardPrint.Retreat ??= imported.Retreat;
                 }
+
+                return new CatalogImportCardResult(CardReconciliationOutcome.Added, cardPrint.Id);
             }
-            else
+
+            var (fallbackCard, matchCount) = await TryFallbackCardMatchAsync(
+                cardPrints, cardSetId, imported.Number, language, ct);
+
+            if (matchCount == 1 && fallbackCard != null)
             {
-                cardPrint = await TryFallbackCardMatchAsync(cardPrints, cardSetId, imported.Number, language, ct);
-                if (cardPrint == null)
+                if (isDryRun)
+                    return new CatalogImportCardResult(CardReconciliationOutcome.SkippedExisting, fallbackCard.Id);
+
+                if (mode == CatalogImportMode.AddOnly)
+                    return new CatalogImportCardResult(CardReconciliationOutcome.SkippedExisting, fallbackCard.Id);
+
+                cardPrint = fallbackCard;
+                if (!isDryRun)
                 {
-                    cardPrint = new CardPrint
+                    var newExternalId = new CardExternalId
                     {
-                        CardSetId = cardSetId,
-                        CardLanguage = ParseCardLanguage(language),
-                        Number = imported.Number,
-                        Name = imported.Name,
-                        Rarity = imported.Rarity,
-                        ImagePath = imported.ImageUrl,
-                        Category = imported.Category,
-                        Illustrator = imported.Illustrator,
-                        Hp = imported.Hp,
-                        Stage = imported.Stage,
-                        EvolveFrom = imported.EvolveFrom,
-                        Description = imported.Description,
-                        RegulationMark = imported.RegulationMark,
-                        LegalStandard = imported.LegalStandard,
-                        LegalExpanded = imported.LegalExpanded,
-                        Retreat = imported.Retreat,
-                        Origin = Domain.Enums.Origin.Imported
+                        CardPrintId = cardPrint.Id,
+                        Source = source,
+                        Language = language,
+                        ExternalId = externalId,
+                        LastSeenAt = DateTime.UtcNow
                     };
-                    await cardPrints.AddAsync(cardPrint, ct);
-                    await _unitOfWork.SaveChangesAsync(ct);
+                    await externalIds.AddAsync(newExternalId, ct);
                 }
 
-                var newExternalId = new CardExternalId
-                {
-                    CardPrintId = cardPrint.Id,
-                    Source = source,
-                    Language = language,
-                    ExternalId = externalId,
-                    LastSeenAt = DateTime.UtcNow
-                };
-                await externalIds.AddAsync(newExternalId, ct);
+                return new CatalogImportCardResult(CardReconciliationOutcome.Added, cardPrint.Id);
             }
 
-            return cardPrint;
+            if (matchCount > 1)
+            {
+                if (mode == CatalogImportMode.AddOnly)
+                    return new CatalogImportCardResult(CardReconciliationOutcome.Ambiguous, null, "Multiple matching cards found");
+
+                _logger.LogWarning("PendingMapping needed: source={Source} lang={Lang} extId={ExtId}",
+                    source, language, externalId);
+                return new CatalogImportCardResult(CardReconciliationOutcome.Ambiguous, null, "Multiple matching cards found");
+            }
+
+            if (isDryRun)
+                return new CatalogImportCardResult(CardReconciliationOutcome.Added);
+
+            cardPrint = new CardPrint
+            {
+                CardSetId = cardSetId,
+                CardLanguage = ParseCardLanguage(language),
+                Number = imported.Number,
+                Name = imported.Name,
+                Rarity = imported.Rarity,
+                ImagePath = imported.ImageUrl,
+                Category = imported.Category,
+                Illustrator = imported.Illustrator,
+                Hp = imported.Hp,
+                Stage = imported.Stage,
+                EvolveFrom = imported.EvolveFrom,
+                Description = imported.Description,
+                RegulationMark = imported.RegulationMark,
+                LegalStandard = imported.LegalStandard,
+                LegalExpanded = imported.LegalExpanded,
+                Retreat = imported.Retreat,
+                Origin = Domain.Enums.Origin.Imported
+            };
+            await cardPrints.AddAsync(cardPrint, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+
+            var extId = new CardExternalId
+            {
+                CardPrintId = cardPrint.Id,
+                Source = source,
+                Language = language,
+                ExternalId = externalId,
+                LastSeenAt = DateTime.UtcNow
+            };
+            await externalIds.AddAsync(extId, ct);
+
+            return new CatalogImportCardResult(CardReconciliationOutcome.Added, cardPrint.Id);
         }
 
         public async Task MarkMissingSourceReferencesAsync(
@@ -208,6 +271,30 @@ namespace ArchiveDex.Infrastructure.CatalogImport
             }
         }
 
+        public async Task DeleteOrphanedSetsAsync(HashSet<Guid> newlyCreatedSetIds, CancellationToken ct)
+        {
+            if (newlyCreatedSetIds.Count == 0) return;
+
+            var dbContext = (DbContext)_unitOfWork;
+            var cardPrints = dbContext.Set<CardPrint>();
+            var sets = dbContext.Set<CardSet>();
+
+            foreach (var setId in newlyCreatedSetIds)
+            {
+                var hasCards = await cardPrints.AnyAsync(c => c.CardSetId == setId, ct);
+                if (!hasCards)
+                {
+                    var set = await sets.FindAsync([setId], ct);
+                    if (set != null)
+                    {
+                        sets.Remove(set);
+                    }
+                }
+            }
+
+            await _unitOfWork.SaveChangesAsync(ct);
+        }
+
         private async Task<CardSet?> TryFallbackSetMatchAsync(
             DbSet<CardSet> sets, ImportedSet imported,
             string source, string language, string externalSetId, CancellationToken ct)
@@ -233,17 +320,23 @@ namespace ArchiveDex.Infrastructure.CatalogImport
             return null;
         }
 
-        private async Task<CardPrint?> TryFallbackCardMatchAsync(
+        private async Task<(CardPrint? Card, int MatchCount)> TryFallbackCardMatchAsync(
             DbSet<CardPrint> cardPrints, Guid cardSetId,
             string number, string language, CancellationToken ct)
         {
             var normalized = CatalogNormalizer.NormalizeCardNumber(number);
             var cardLang = ParseCardLanguage(language);
 
-            return await cardPrints.FirstOrDefaultAsync(c =>
-                c.CardSetId == cardSetId &&
-                c.Number == normalized &&
-                c.CardLanguage == cardLang, ct);
+            var candidates = await cardPrints
+                .Where(c => c.CardSetId == cardSetId && c.Number == normalized && c.CardLanguage == cardLang)
+                .ToListAsync(ct);
+
+            return candidates.Count switch
+            {
+                0 => (null, 0),
+                1 => (candidates[0], 1),
+                _ => (null, candidates.Count),
+            };
         }
 
         private static ImportedCardDetail CreateSummaryOnlyDetail(ImportedCardSummary? summary)
@@ -266,7 +359,7 @@ namespace ArchiveDex.Infrastructure.CatalogImport
                 LegalStandard: null,
                 LegalExpanded: null,
                 Retreat: null,
-                Variants: new VariantFlags(),
+                Variants: new Application.CatalogImport.DTOs.VariantFlags(),
                 Attacks: null,
                 Weaknesses: null,
                 Resistances: null,

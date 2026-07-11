@@ -1,10 +1,13 @@
+using ArchiveDex.Domain.Enums;
+
 namespace ArchiveDex.Application.CatalogImport.Options
 {
     public record CatalogImportOptions(
         List<string> Sources,
         Dictionary<string, List<string>> LanguagesBySource,
         bool IsDryRun = false,
-        bool DownloadImages = true);
+        bool DownloadImages = true,
+        CatalogImportMode Mode = CatalogImportMode.Update);
 
     public record SourceImportOptions(
         string Source,

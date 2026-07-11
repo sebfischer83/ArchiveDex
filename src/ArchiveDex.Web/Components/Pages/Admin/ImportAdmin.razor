@@ -3,9 +3,12 @@
 @using ArchiveDex.Application.Abstractions
 @using ArchiveDex.Application.CatalogImport.DTOs
 @using ArchiveDex.Application.CatalogImport.Options
+@using ArchiveDex.Domain.Enums
+@using Microsoft.Extensions.Localization
 @inject ICatalogImportRepository Repository
 @inject ICatalogImportOrchestrator Orchestrator
 @inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResources> Loc
 @implements IDisposable
 
 <PageTitle>Catalog Import</PageTitle>
@@ -22,6 +25,27 @@
     <div class="ad-card">
         <h2>Start New Import</h2>
         <EditForm Model="@_startRequest" OnValidSubmit="HandleStartImport">
+            <div class="ad-form-group">
+                <label>@Loc["CatalogImport.Mode"]</label>
+                <div>
+                    <label>
+                        <InputRadioGroup @bind-Value="_startRequest.Mode">
+                            <label class="ad-radio-label">
+                                <InputRadio Value="CatalogImportMode.Update" />
+                                @Loc["CatalogImport.ModeUpdate"]
+                            </label>
+                            <label class="ad-radio-label">
+                                <InputRadio Value="CatalogImportMode.AddOnly" />
+                                @Loc["CatalogImport.ModeAddOnly"]
+                            </label>
+                        </InputRadioGroup>
+                    </label>
+                </div>
+                @if (_startRequest.Mode == CatalogImportMode.AddOnly)
+                {
+                    <p class="ad-note">@Loc["CatalogImport.AddOnlyExplanation"]</p>
+                }
+            </div>
             <div class="ad-form-group">
                 <label><InputCheckbox @bind-Value="_startRequest.DryRun" /> Dry Run (no changes to catalog)</label>
             </div>
@@ -43,9 +67,14 @@ else if (_activeRun != null)
         <h2>Import Status</h2>
         <dl class="ad-dl">
             <dt>ID</dt><dd>@_activeRun.Id</dd>
+            <dt>Mode</dt><dd>@_activeRun.Mode</dd>
             <dt>Status</dt><dd>@_activeRun.Status</dd>
-            <dt>Imported</dt><dd>@_activeRun.ImportedCount</dd>
+            <dt>@Loc["CatalogImport.AddedCards"]</dt><dd>@_activeRun.AddedCount</dd>
+            <dt>@Loc["CatalogImport.SkippedCards"]</dt><dd>@_activeRun.SkippedCount</dd>
+            <dt>@Loc["CatalogImport.AmbiguousCards"]</dt><dd>@_activeRun.AmbiguousCount</dd>
+            <dt>@Loc["CatalogImport.AddedSuppItems"]</dt><dd>@_activeRun.AddedSupportingItemCount</dd>
             <dt>Errors</dt><dd>@_activeRun.ErrorCount</dd>
+            <dt>Warnings</dt><dd>@_activeRun.WarningCount</dd>
         </dl>
 
         @if (_activeRun.Status == "Running")
@@ -135,7 +164,8 @@ else if (_isStarting)
         {
             var options = new CatalogImportOptions(
                 _startRequest.Sources, _startRequest.LanguagesBySource,
-                _startRequest.DryRun, _startRequest.DownloadImages);
+                _startRequest.DryRun, _startRequest.DownloadImages,
+                _startRequest.Mode);
             await Orchestrator.StartAsync(options);
 
             var run = await Repository.GetActiveImportAsync();
@@ -169,10 +199,11 @@ else if (_isStarting)
     private static CatalogImportRunDto MapToDto(Domain.Entities.CatalogImportRun run)
     {
         return new CatalogImportRunDto(
-            run.Id, run.Status.ToString(), run.IsDryRun, run.DownloadImages,
+            run.Id, run.Status.ToString(), run.Mode.ToString(), run.IsDryRun, run.DownloadImages,
             run.StartedAt, run.FinishedAt,
             run.ImportedCount, run.UpdatedCount, run.MergedCount,
-            run.SkippedCount, run.ErrorCount, run.WarningCount,
+            run.SkippedCount, run.AddedCount, run.AddedSupportingItemCount, run.AmbiguousCount,
+            run.ErrorCount, run.WarningCount,
             run.Checkpoints.Select(c => new CatalogImportCheckpointDto(
                 c.Source, c.Language, c.SetExternalId, c.Phase.ToString(),
                 c.IsCompleted, c.ProcessedCount, c.UpdatedAt)).ToList());

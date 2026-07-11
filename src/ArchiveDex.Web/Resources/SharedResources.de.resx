@@ -313,4 +313,28 @@
   <data name="CatalogTransfer.ImportStatus" xml:space="preserve">
     <value>Import</value>
   </data>
+  <data name="CatalogImport.Mode" xml:space="preserve">
+    <value>Import-Modus</value>
+  </data>
+  <data name="CatalogImport.ModeUpdate" xml:space="preserve">
+    <value>Aktualisieren (Standard)</value>
+  </data>
+  <data name="CatalogImport.ModeAddOnly" xml:space="preserve">
+    <value>Nur neue Karten</value>
+  </data>
+  <data name="CatalogImport.AddOnlyExplanation" xml:space="preserve">
+    <value>Nur-neue-Karten-Modus erstellt neue Karten und Sets, ändert aber keine bereits vorhandenen Katalogeinträge. Vorhandene Karten werden übersprungen.</value>
+  </data>
+  <data name="CatalogImport.AddedCards" xml:space="preserve">
+    <value>Hinzugefügt</value>
+  </data>
+  <data name="CatalogImport.SkippedCards" xml:space="preserve">
+    <value>Übersprungen</value>
+  </data>
+  <data name="CatalogImport.AmbiguousCards" xml:space="preserve">
+    <value>Uneindeutig</value>
+  </data>
+  <data name="CatalogImport.AddedSuppItems" xml:space="preserve">
+    <value>Unterstützende Einträge</value>
+  </data>
 </root>

@@ -1,8 +1,12 @@
+using System.Text.Json.Serialization;
+using ArchiveDex.Domain.Enums;
+
 namespace ArchiveDex.Application.CatalogImport.DTOs
 {
     public record CatalogImportRunDto(
         Guid Id,
         string Status,
+        string Mode,
         bool IsDryRun,
         bool DownloadImages,
         DateTime? StartedAt,
@@ -11,6 +15,9 @@ namespace ArchiveDex.Application.CatalogImport.DTOs
         int UpdatedCount,
         int MergedCount,
         int SkippedCount,
+        int AddedCount,
+        int AddedSupportingItemCount,
+        int AmbiguousCount,
         int ErrorCount,
         int WarningCount,
         List<CatalogImportCheckpointDto> Checkpoints);
@@ -28,7 +35,8 @@ namespace ArchiveDex.Application.CatalogImport.DTOs
         CatalogImportRunDto Run,
         List<SourceSummaryDto> SourceSummaries,
         ImageQualitySummaryDto ImageSummary,
-        int PendingMappingCount);
+        int PendingMappingCount,
+        int AmbiguousCardCount);
 
     public record SourceSummaryDto(
         string Source,
@@ -80,5 +88,7 @@ namespace ArchiveDex.Application.CatalogImport.DTOs
         public bool DryRun { get; set; }
         public bool DownloadImages { get; set; } = true;
         public bool ReanalyzeExistingImages { get; set; } = true;
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public CatalogImportMode Mode { get; set; } = CatalogImportMode.Update;
     }
 }

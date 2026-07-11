@@ -23,7 +23,8 @@ public class CatalogImportController(
             Sources: request.Sources,
             LanguagesBySource: request.LanguagesBySource,
             IsDryRun: request.DryRun,
-            DownloadImages: request.DownloadImages);
+            DownloadImages: request.DownloadImages,
+            Mode: request.Mode);
 
         var runId = await orchestrator.StartAsync(options, ct);
         _ = backgroundJobs.Enqueue<ICatalogImportExecutionService>(svc => svc.ExecuteAsync(runId));
@@ -77,7 +78,7 @@ public class CatalogImportController(
         if (run == null) return NotFound();
         var report = new CatalogImportReportDto(
             MapRunDto(run),
-            [], new ImageQualitySummaryDto(0, 0, 0, 0, 0), 0);
+            [], new ImageQualitySummaryDto(0, 0, 0, 0, 0), 0, 0);
         return Ok(report);
     }
 
@@ -103,6 +104,7 @@ public class CatalogImportController(
         return new CatalogImportRunDto(
             Id: run.Id,
             Status: run.Status.ToString(),
+            Mode: run.Mode.ToString(),
             IsDryRun: run.IsDryRun,
             DownloadImages: run.DownloadImages,
             StartedAt: run.StartedAt,
@@ -111,6 +113,9 @@ public class CatalogImportController(
             UpdatedCount: run.UpdatedCount,
             MergedCount: run.MergedCount,
             SkippedCount: run.SkippedCount,
+            AddedCount: run.AddedCount,
+            AddedSupportingItemCount: run.AddedSupportingItemCount,
+            AmbiguousCount: run.AmbiguousCount,
             ErrorCount: run.ErrorCount,
             WarningCount: run.WarningCount,
             Checkpoints: run.Checkpoints.Select(c => new CatalogImportCheckpointDto(

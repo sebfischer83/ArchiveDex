@@ -313,4 +313,28 @@
   <data name="CatalogTransfer.ImportStatus" xml:space="preserve">
     <value>Импорт</value>
   </data>
+  <data name="CatalogImport.Mode" xml:space="preserve">
+    <value>Режим импорта</value>
+  </data>
+  <data name="CatalogImport.ModeUpdate" xml:space="preserve">
+    <value>Обновление (по умолчанию)</value>
+  </data>
+  <data name="CatalogImport.ModeAddOnly" xml:space="preserve">
+    <value>Только новые</value>
+  </data>
+  <data name="CatalogImport.AddOnlyExplanation" xml:space="preserve">
+    <value>Режим «только новые» создаёт новые карты и наборы, но не изменяет существующие записи каталога. Существующие карты пропускаются.</value>
+  </data>
+  <data name="CatalogImport.AddedCards" xml:space="preserve">
+    <value>Добавлено</value>
+  </data>
+  <data name="CatalogImport.SkippedCards" xml:space="preserve">
+    <value>Пропущено</value>
+  </data>
+  <data name="CatalogImport.AmbiguousCards" xml:space="preserve">
+    <value>Неоднозначные</value>
+  </data>
+  <data name="CatalogImport.AddedSuppItems" xml:space="preserve">
+    <value>Вспомогательные записи</value>
+  </data>
 </root>
