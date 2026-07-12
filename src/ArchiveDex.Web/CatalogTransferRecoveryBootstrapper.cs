@@ -8,16 +8,19 @@ namespace ArchiveDex.Web;
 /// </summary>
 public class CatalogTransferRecoveryBootstrapper : IHostedService
 {
-    private readonly ICatalogTransferRecovery _recovery;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public CatalogTransferRecoveryBootstrapper(ICatalogTransferRecovery recovery)
+    public CatalogTransferRecoveryBootstrapper(IServiceScopeFactory scopeFactory)
     {
-        _recovery = recovery;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _recovery.RecoverIncompleteOperationsAsync(cancellationToken);
+        using IServiceScope scope = _scopeFactory.CreateScope();
+        ICatalogTransferRecovery recovery =
+            scope.ServiceProvider.GetRequiredService<ICatalogTransferRecovery>();
+        await recovery.RecoverIncompleteOperationsAsync(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

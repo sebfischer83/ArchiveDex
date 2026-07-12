@@ -1,13 +1,10 @@
-FROM node:24-bookworm-slim AS node-runtime
-
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER root
 WORKDIR /app
 EXPOSE 8080
-COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
-COPY --from=node-runtime /usr/local/lib/node_modules /usr/local/lib/node_modules
-RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
-    && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+
+
+FROM node:24-bookworm-slim AS node-runtime
 
 
 FROM node:24-bookworm-slim AS client-builder
@@ -39,6 +36,10 @@ RUN dotnet publish "./ArchiveDex.Web.csproj" -c $BUILD_CONFIGURATION -o /app/pub
 FROM base AS final
 
 WORKDIR /app
+COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-runtime /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 COPY --from=publish /app/publish .
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \

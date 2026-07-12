@@ -69,11 +69,7 @@ namespace ArchiveDex.Web
             _ = builder.Services.AddHostedService<BatchCleanupService>();
             _ = builder.Services.AddScoped<MatchRankingService>();
 
-            _ = builder.Services.AddHostedService(sp =>
-            {
-                var recovery = sp.GetRequiredService<ICatalogTransferRecovery>();
-                return new CatalogTransferRecoveryBootstrapper(recovery);
-            });
+            _ = builder.Services.AddHostedService<CatalogTransferRecoveryBootstrapper>();
 
             _ = builder.Services.AddScoped(sp =>
             {

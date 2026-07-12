@@ -1,8 +1,17 @@
 import { Injectable, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 
 export interface BootError {
   type: 'localization' | 'session' | 'both';
   message: string;
+}
+
+// HttpErrorResponse implements Error but does not extend it, so String(err) yields "[object Object]".
+export function describeError(err: unknown): string {
+  if (err instanceof HttpErrorResponse) {
+    return `${err.status} ${err.statusText} - ${err.url ?? ''}`.trim();
+  }
+  return err instanceof Error ? err.message : String(err);
 }
 
 @Injectable({ providedIn: 'root' })
@@ -27,8 +36,7 @@ export class BootService {
       await Promise.all([translationInit(), sessionLoad()]);
       this.markReady();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.setError({ type: 'both', message });
+      this.setError({ type: 'both', message: describeError(err) });
     }
   }
 }

@@ -10,7 +10,7 @@ import { errorInterceptor } from './app/core/error.interceptor';
 import { antiforgeryInterceptor } from './app/core/antiforgery.interceptor';
 import { TranslateService } from './app/core/translate.service';
 import { SessionServiceImpl } from './app/core/session.service.impl';
-import { BootService } from './app/core/boot.service';
+import { BootService, describeError } from './app/core/boot.service';
 import { tuiLanguageSwitcher } from '@taiga-ui/i18n';
 
 @Injectable({ providedIn: 'root' })
@@ -45,8 +45,7 @@ bootstrapApplication(App, {
           await Promise.all([translations.initialize(), session.load()]);
           boot.markReady();
         } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : String(err);
-          boot.setError({ type: 'both', message });
+          boot.setError({ type: 'both', message: describeError(err) });
         }
       },
       deps: [TranslateService, SessionServiceImpl, BootService],

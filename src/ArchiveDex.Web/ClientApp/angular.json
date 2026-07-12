@@ -57,13 +57,14 @@
               },
               {
                 "glob": "**/*",
-                "input": "src/assets"
+                "input": "src/assets",
+                "output": "assets"
               }
             ],
             "styles": [
               "@taiga-ui/core/styles/taiga-ui-theme.less",
               "src/styles.scss"
-            ],
+            ]
           },
           "configurations": {
             "production": {

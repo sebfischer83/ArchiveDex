@@ -14,7 +14,7 @@ namespace ArchiveDex.Api.Tests.Catalog
         [Fact]
         public async Task GetImportSources_Returns200()
         {
-            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory, "Administrator");
             await EnsureSetupComplete(client);
             HttpResponseMessage response = await client.GetAsync("/api/import/sources");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -23,7 +23,7 @@ namespace ArchiveDex.Api.Tests.Catalog
         [Fact]
         public async Task GetImportSets_Returns200()
         {
-            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory, "Administrator");
             await EnsureSetupComplete(client);
             HttpResponseMessage response = await client.GetAsync("/api/import/sets?cardLanguage=en");
             var responseBody = await response.Content.ReadAsStringAsync();
@@ -38,7 +38,7 @@ namespace ArchiveDex.Api.Tests.Catalog
         [Fact]
         public async Task PostImportJob_ReturnsSuccess()
         {
-            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory, "Administrator");
             await EnsureSetupComplete(client);
             var request = new { source = "TCGdex", setIds = new[] { "swsh1" }, cardLanguages = new[] { "en" } };
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/import/jobs", request);
@@ -48,7 +48,7 @@ namespace ArchiveDex.Api.Tests.Catalog
         [Fact]
         public async Task PostImportJob_ReturnsReadableStatus()
         {
-            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory, "Administrator");
             await EnsureSetupComplete(client);
             var request = new { source = "TCGdex", setIds = new[] { "swsh1" }, cardLanguages = new[] { "en" } };
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/import/jobs", request);
@@ -70,7 +70,7 @@ namespace ArchiveDex.Api.Tests.Catalog
         [Fact]
         public async Task PostImportJob_WithNoSetIds_ImportsAllSetsForLanguage()
         {
-            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory, "Administrator");
             await EnsureSetupComplete(client);
             var request = new { source = "TCGdex", setIds = Array.Empty<string>(), cardLanguages = new[] { "en" } };
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/import/jobs", request);
