@@ -4,12 +4,14 @@ using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Commands.Collection;
 using ArchiveDex.Application.Common;
 using ArchiveDex.Application.Queries.Collection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArchiveDex.Api.Controllers;
 
 [ApiController]
 [Route("api/collection")]
+[Authorize]
 public class CollectionController(
     ICatalogRepository catalogRepository,
     ICollectionRepository collectionRepository) : ControllerBase
@@ -62,10 +64,21 @@ public class CollectionController(
     [HttpPut("{entryId:guid}")]
     public async Task<IActionResult> Update(Guid entryId, [FromBody] CollectionUpdateRequest input, CancellationToken ct)
     {
-        CollectionEntryDto dto = await UpdateCollectionEntryHandler.Handle(
-            new UpdateCollectionEntry(entryId, input.Condition, input.Quantity,
-                input.PurchasePrice, input.StorageLocation, input.Notes), collectionRepository, ct);
-        return Ok(dto);
+        try
+        {
+            CollectionEntryDto dto = await UpdateCollectionEntryHandler.Handle(
+                new UpdateCollectionEntry(entryId, input.Condition, input.Quantity,
+                    input.PurchasePrice, input.StorageLocation, input.Notes), collectionRepository, ct);
+            return Ok(dto);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { type = "validation_error", message = ex.Message });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
+        {
+            return NotFound(new { type = "collection_entry_not_found", entryId });
+        }
     }
 
     [HttpDelete("{entryId:guid}")]

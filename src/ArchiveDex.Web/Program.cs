@@ -6,10 +6,13 @@ using ArchiveDex.Application.Scanning;
 using ArchiveDex.Infrastructure;
 using ArchiveDex.Infrastructure.Ocr;
 using ArchiveDex.Infrastructure.Persistence;
-using ArchiveDex.Web.Components;
 using Hangfire;
 using Hangfire.AspNetCore;
 using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Wolverine;
 
@@ -32,9 +35,13 @@ namespace ArchiveDex.Web
                 {
                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                 });
-
-            _ = builder.Services.AddRazorComponents()
-                .AddInteractiveServerComponents();
+            _ = builder.Services.AddAntiforgery(options =>
+            {
+                options.Cookie.Name = "ArchiveDex.Antiforgery";
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SameSite = SameSiteMode.Strict;
+                options.HeaderName = "X-XSRF-TOKEN";
+            });
 
             _ = builder.Services.AddArchiveDexLocalization();
 
@@ -61,7 +68,6 @@ namespace ArchiveDex.Web
             _ = builder.Services.AddHostedService<BatchOcrProcessor>();
             _ = builder.Services.AddHostedService<BatchCleanupService>();
             _ = builder.Services.AddScoped<MatchRankingService>();
-            _ = builder.Services.AddScoped<Services.ScannerSession>();
 
             _ = builder.Services.AddHostedService(sp =>
             {
@@ -93,11 +99,6 @@ namespace ArchiveDex.Web
             _ = app.UseAuthentication();
             _ = app.UseAuthorization();
 
-            if (!app.Environment.IsDevelopment())
-            {
-                _ = app.UseExceptionHandler("/Error", createScopeForErrors: true);
-            }
-
             if (!isTesting)
             {
                 _ = app.UseSetupGate();
@@ -112,18 +113,77 @@ namespace ArchiveDex.Web
                 });
             }
 
-            if (!isTesting)
-            {
-                _ = app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-            }
             _ = app.UseAntiforgery();
+
+            app.Use(async (context, next) =>
+            {
+                if (RequiresAntiforgery(context.Request))
+                {
+                    var identityCookie = await context.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+                    var isAnonymousMutation = context.Request.Path.Equals("/api/session/sign-in")
+                        || context.Request.Path.Equals("/api/setup/validate")
+                        || context.Request.Path.Equals("/api/setup/complete");
+
+                    if (identityCookie.Succeeded || isAnonymousMutation)
+                    {
+                        try
+                        {
+                            await context.RequestServices.GetRequiredService<IAntiforgery>().ValidateRequestAsync(context);
+                        }
+                        catch (AntiforgeryValidationException)
+                        {
+                            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                            await context.Response.WriteAsJsonAsync(new ProblemDetails
+                            {
+                                Title = "Invalid antiforgery token",
+                                Status = StatusCodes.Status400BadRequest
+                            });
+                            return;
+                        }
+                    }
+                }
+
+                await next(context);
+            });
 
             _ = app.MapStaticAssets();
             app.MapControllers();
-            _ = app.MapRazorComponents<App>()
-                .AddInteractiveServerRenderMode();
+
+            app.UseLegacyRouteRedirects();
+
+            var publishedAngularDist = Path.Combine(app.Environment.WebRootPath, "angular");
+            var sourceAngularDist = Path.Combine(app.Environment.ContentRootPath, "obj", "angular", "browser");
+            var angularDist = Directory.Exists(publishedAngularDist) ? publishedAngularDist : sourceAngularDist;
+
+            if (Directory.Exists(angularDist))
+            {
+                app.UseStaticFiles(new StaticFileOptions
+                {
+                    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(angularDist),
+                });
+
+                app.MapWhen(ctx =>
+                    HttpMethods.IsGet(ctx.Request.Method)
+                    && !ctx.Request.Path.StartsWithSegments("/api")
+                    && !ctx.Request.Path.StartsWithSegments("/hangfire")
+                    && !Path.HasExtension(ctx.Request.Path.Value), builder =>
+                {
+                    builder.Run(async ctx =>
+                    {
+                        ctx.Response.ContentType = "text/html";
+                        await ctx.Response.SendFileAsync(Path.Combine(angularDist, "index.html"));
+                    });
+                });
+            }
 
             app.Run();
         }
+
+        private static bool RequiresAntiforgery(HttpRequest request) =>
+            request.Path.StartsWithSegments("/api")
+            && !HttpMethods.IsGet(request.Method)
+            && !HttpMethods.IsHead(request.Method)
+            && !HttpMethods.IsOptions(request.Method)
+            && !HttpMethods.IsTrace(request.Method);
     }
 }

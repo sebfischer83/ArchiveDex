@@ -8,19 +8,14 @@ namespace ArchiveDex.Web
 
         public async Task InvokeAsync(HttpContext context, ISetupState setupState)
         {
-            var path = context.Request.Path.Value ?? string.Empty;
+            PathString path = context.Request.Path;
 
-            if (path.StartsWith("/api/setup", StringComparison.OrdinalIgnoreCase) ||
-                path.StartsWith("/_", StringComparison.OrdinalIgnoreCase) ||
-                path.StartsWith("/favicon", StringComparison.OrdinalIgnoreCase) ||
-                path.EndsWith(".js", StringComparison.OrdinalIgnoreCase) ||
-                path.EndsWith(".css", StringComparison.OrdinalIgnoreCase) ||
-                path.EndsWith(".map", StringComparison.OrdinalIgnoreCase) ||
-                path.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
-                path.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) ||
-                path.EndsWith(".ico", StringComparison.OrdinalIgnoreCase) ||
-                path.StartsWith("/setup", StringComparison.OrdinalIgnoreCase) ||
-                path.Equals("/design", StringComparison.OrdinalIgnoreCase))
+            if (path.StartsWithSegments("/api") ||
+                path.StartsWithSegments("/ng") ||
+                path.StartsWithSegments("/_") ||
+                path.StartsWithSegments("/favicon") ||
+                path.StartsWithSegments("/design") ||
+                Path.HasExtension(path.Value))
             {
                 await _next(context);
                 return;
@@ -29,11 +24,17 @@ namespace ArchiveDex.Web
             var isSetupComplete = await setupState.IsSetupCompleteAsync(context.RequestAborted);
             if (!isSetupComplete)
             {
+                if (path.StartsWithSegments("/setup"))
+                {
+                    await _next(context);
+                    return;
+                }
+
                 context.Response.Redirect("/setup");
                 return;
             }
 
-            if (path.StartsWith("/setup", StringComparison.OrdinalIgnoreCase))
+            if (path.StartsWithSegments("/setup"))
             {
                 context.Response.Redirect("/");
                 return;

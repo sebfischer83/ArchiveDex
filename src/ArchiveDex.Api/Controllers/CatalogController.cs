@@ -2,12 +2,14 @@ using ArchiveDex.Api.Models;
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Commands.Catalog;
 using ArchiveDex.Application.Queries.Catalog;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArchiveDex.Api.Controllers;
 
 [ApiController]
 [Route("api/catalog")]
+[Authorize]
 public class CatalogController(ICatalogRepository repo) : ControllerBase
 {
     [HttpGet("cards")]

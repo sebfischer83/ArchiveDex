@@ -2,6 +2,7 @@ using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Common;
 using ArchiveDex.Domain.Entities;
 using ArchiveDex.Domain.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace ArchiveDex.Application.Commands.Collection
 {
@@ -21,6 +22,15 @@ namespace ArchiveDex.Application.Commands.Collection
             ICollectionRepository repo,
             CancellationToken ct)
         {
+            if (command.Quantity < 1)
+            {
+                throw new ValidationException("Quantity must be at least 1.");
+            }
+            if (command.PurchasePrice is < 0)
+            {
+                throw new ValidationException("Purchase price cannot be negative.");
+            }
+
             CollectionEntry entry = await repo.GetByIdAsync(command.EntryId, ct)
                 ?? throw new InvalidOperationException("Collection entry not found.");
 

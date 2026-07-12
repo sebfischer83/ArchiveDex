@@ -3,12 +3,14 @@ using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Commands.Import;
 using ArchiveDex.Application.Queries.Import;
 using Hangfire;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArchiveDex.Api.Controllers;
 
 [ApiController]
 [Route("api/import")]
+[Authorize(Policy = "Administrator")]
 public class ImportController(
     IImportJobStore jobs,
     IBackgroundJobClient backgroundJobs,

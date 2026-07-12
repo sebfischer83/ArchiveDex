@@ -2,12 +2,14 @@ using ArchiveDex.Api.Models;
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Commands.SetMapping;
 using ArchiveDex.Application.Queries.SetMapping;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArchiveDex.Api.Controllers;
 
 [ApiController]
 [Route("api/sets/pending")]
+[Authorize(Policy = "Administrator")]
 public class SetMappingController(ISetRepository repo, ISetMappingService service) : ControllerBase
 {
     [HttpGet]

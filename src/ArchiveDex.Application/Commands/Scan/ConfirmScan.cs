@@ -2,6 +2,7 @@ using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Common;
 using ArchiveDex.Domain.Entities;
 using ArchiveDex.Domain.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace ArchiveDex.Application.Commands.Scan;
 
@@ -23,6 +24,15 @@ public static class ConfirmScanHandler
         ICollectionRepository collectionRepository,
         CancellationToken ct)
     {
+        if (command.Quantity < 1)
+        {
+            throw new ValidationException("Quantity must be at least 1.");
+        }
+        if (command.PurchasePrice is < 0)
+        {
+            throw new ValidationException("Purchase price cannot be negative.");
+        }
+
         ScanJob? scan = await scanRepository.GetByIdAsync(command.ScanId, ct)
             ?? throw new InvalidOperationException("Scan not found");
 

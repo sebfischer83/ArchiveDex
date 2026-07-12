@@ -22,7 +22,9 @@ namespace ArchiveDex.Web
                             Type = "https://tools.ietf.org/html/rfc7807",
                             Title = "An unexpected error occurred.",
                             Status = StatusCodes.Status500InternalServerError,
-                            Detail = app.Environment.IsDevelopment() ? feature?.Error.Message : null
+                            Detail = app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing")
+                                ? feature?.Error.Message
+                                : null
                         };
 
                         await context.Response.WriteAsJsonAsync(problem);

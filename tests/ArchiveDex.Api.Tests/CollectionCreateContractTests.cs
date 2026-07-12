@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
+using ArchiveDex.Api.Tests.CatalogTransfer;
 using ArchiveDex.Application.Common;
 using ArchiveDex.Application.Commands.Collection;
 using ArchiveDex.Domain.Entities;
@@ -13,11 +14,11 @@ namespace ArchiveDex.Api.Tests
     public class CollectionCreateContractTests(TestWebApplicationFactory factory) : IClassFixture<TestWebApplicationFactory>
     {
         private readonly TestWebApplicationFactory _factory = factory;
-        private readonly HttpClient _client = factory.CreateClient();
 
         [Fact]
         public async Task PostCollection_ValidRequest_Returns201Created()
         {
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
             Guid cardPrintId = await SeedCardAsync();
             var request = new
             {
@@ -26,7 +27,7 @@ namespace ArchiveDex.Api.Tests
                 quantity = 1
             };
 
-            HttpResponseMessage response = await _client.PostAsJsonAsync("/api/collection", request);
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/collection", request);
 
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             CollectionEntryDto? entry = await response.Content.ReadFromJsonAsync<CollectionEntryDto>();
@@ -38,6 +39,7 @@ namespace ArchiveDex.Api.Tests
         [Fact]
         public async Task PostCollection_InvalidQuantity_Returns400()
         {
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
             var request = new
             {
                 cardPrintId = Guid.NewGuid(),
@@ -45,7 +47,7 @@ namespace ArchiveDex.Api.Tests
                 quantity = 0
             };
 
-            HttpResponseMessage response = await _client.PostAsJsonAsync("/api/collection", request);
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/collection", request);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -53,6 +55,7 @@ namespace ArchiveDex.Api.Tests
         [Fact]
         public async Task PostCollection_NonExistentCard_Returns404()
         {
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
             var request = new
             {
                 cardPrintId = Guid.NewGuid(),
@@ -60,7 +63,7 @@ namespace ArchiveDex.Api.Tests
                 quantity = 1
             };
 
-            HttpResponseMessage response = await _client.PostAsJsonAsync("/api/collection", request);
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/collection", request);
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
@@ -68,6 +71,7 @@ namespace ArchiveDex.Api.Tests
         [Fact]
         public async Task PostCollection_DuplicateDetection_Returns409()
         {
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
             Guid cardPrintId = await SeedCardAsync();
             var request = new
             {
@@ -76,10 +80,10 @@ namespace ArchiveDex.Api.Tests
                 quantity = 1
             };
 
-            HttpResponseMessage firstResponse = await _client.PostAsJsonAsync("/api/collection", request);
+            HttpResponseMessage firstResponse = await client.PostAsJsonAsync("/api/collection", request);
             Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
 
-            HttpResponseMessage secondResponse = await _client.PostAsJsonAsync("/api/collection", request);
+            HttpResponseMessage secondResponse = await client.PostAsJsonAsync("/api/collection", request);
 
             Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
             DuplicateDetectedResponse? duplicate = await secondResponse.Content.ReadFromJsonAsync<DuplicateDetectedResponse>();
@@ -91,6 +95,7 @@ namespace ArchiveDex.Api.Tests
         [Fact]
         public async Task PostCollection_ForceCreate_CreatesSeparateEntry()
         {
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
             Guid cardPrintId = await SeedCardAsync();
             var firstRequest = new
             {
@@ -106,11 +111,11 @@ namespace ArchiveDex.Api.Tests
                 forceCreate = true
             };
 
-            HttpResponseMessage firstResponse = await _client.PostAsJsonAsync("/api/collection", firstRequest);
+            HttpResponseMessage firstResponse = await client.PostAsJsonAsync("/api/collection", firstRequest);
             Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
             CollectionEntryDto? firstEntry = await firstResponse.Content.ReadFromJsonAsync<CollectionEntryDto>();
 
-            HttpResponseMessage response = await _client.PostAsJsonAsync("/api/collection", request);
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/collection", request);
 
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             CollectionEntryDto? forcedEntry = await response.Content.ReadFromJsonAsync<CollectionEntryDto>();
@@ -122,6 +127,7 @@ namespace ArchiveDex.Api.Tests
         [Fact]
         public async Task PostCollection_MergeDuplicate_IncrementsExistingEntry()
         {
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
             Guid cardPrintId = await SeedCardAsync();
             var firstRequest = new
             {
@@ -137,11 +143,11 @@ namespace ArchiveDex.Api.Tests
                 mergeDuplicate = true
             };
 
-            HttpResponseMessage firstResponse = await _client.PostAsJsonAsync("/api/collection", firstRequest);
+            HttpResponseMessage firstResponse = await client.PostAsJsonAsync("/api/collection", firstRequest);
             Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
             CollectionEntryDto? firstEntry = await firstResponse.Content.ReadFromJsonAsync<CollectionEntryDto>();
 
-            HttpResponseMessage mergeResponse = await _client.PostAsJsonAsync("/api/collection", mergeRequest);
+            HttpResponseMessage mergeResponse = await client.PostAsJsonAsync("/api/collection", mergeRequest);
 
             Assert.Equal(HttpStatusCode.Created, mergeResponse.StatusCode);
             CollectionEntryDto? mergedEntry = await mergeResponse.Content.ReadFromJsonAsync<CollectionEntryDto>();
@@ -154,6 +160,7 @@ namespace ArchiveDex.Api.Tests
         [Fact]
         public async Task PostCollection_DoesNotModifyCatalogCard()
         {
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
             Guid cardPrintId = await SeedCardAsync();
             var createRequest = new
             {
@@ -162,10 +169,10 @@ namespace ArchiveDex.Api.Tests
                 quantity = 1
             };
 
-            HttpResponseMessage createResponse = await _client.PostAsJsonAsync("/api/collection", createRequest);
+            HttpResponseMessage createResponse = await client.PostAsJsonAsync("/api/collection", createRequest);
             Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
 
-            HttpResponseMessage cardResponse = await _client.GetAsync($"/api/catalog/cards/{cardPrintId}");
+            HttpResponseMessage cardResponse = await client.GetAsync($"/api/catalog/cards/{cardPrintId}");
 
             Assert.Equal(HttpStatusCode.OK, cardResponse.StatusCode);
         }
@@ -173,6 +180,7 @@ namespace ArchiveDex.Api.Tests
         [Fact]
         public async Task PostCollection_ResponseTimeUnderOneSecond()
         {
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
             Guid cardPrintId = await SeedCardAsync();
             var request = new
             {
@@ -182,13 +190,70 @@ namespace ArchiveDex.Api.Tests
             };
 
             var sw = Stopwatch.StartNew();
-            HttpResponseMessage response = await _client.PostAsJsonAsync("/api/collection", request);
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/collection", request);
             sw.Stop();
 
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
             Assert.True(sw.ElapsedMilliseconds < 1000,
                 $"Response time {sw.ElapsedMilliseconds}ms exceeded 1000ms budget");
+        }
+
+        [Fact]
+        public async Task PutCollection_UpdatesEditableFields()
+        {
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            Guid cardPrintId = await SeedCardAsync();
+            HttpResponseMessage created = await client.PostAsJsonAsync("/api/collection", new
+            {
+                cardPrintId,
+                condition = "NM",
+                quantity = 1
+            });
+            CollectionEntryDto? entry = await created.Content.ReadFromJsonAsync<CollectionEntryDto>();
+
+            HttpResponseMessage response = await client.PutAsJsonAsync($"/api/collection/{entry!.Id}", new
+            {
+                condition = "LP",
+                quantity = 3,
+                purchasePrice = 4.25m,
+                storageLocation = "Binder 2",
+                notes = "Updated"
+            });
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            CollectionEntryDto? updated = await response.Content.ReadFromJsonAsync<CollectionEntryDto>();
+            Assert.Equal(3, updated?.Quantity);
+            Assert.Equal("LP", updated?.Condition);
+        }
+
+        [Theory]
+        [InlineData(0, 1.0)]
+        [InlineData(1, -1.0)]
+        public async Task PutCollection_InvalidValues_Returns400(int quantity, decimal purchasePrice)
+        {
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            HttpResponseMessage response = await client.PutAsJsonAsync($"/api/collection/{Guid.NewGuid()}", new
+            {
+                condition = "NM",
+                quantity,
+                purchasePrice
+            });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task PutCollection_UnknownEntry_Returns404()
+        {
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            HttpResponseMessage response = await client.PutAsJsonAsync($"/api/collection/{Guid.NewGuid()}", new
+            {
+                condition = "NM",
+                quantity = 1
+            });
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
         private async Task<Guid> SeedCardAsync()

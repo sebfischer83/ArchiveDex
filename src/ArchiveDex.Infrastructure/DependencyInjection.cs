@@ -25,6 +25,8 @@ namespace ArchiveDex.Infrastructure
             _ = services.AddScoped<IConfigStore, ConfigStore>();
             _ = services.AddScoped<ISetupState, SetupState>();
             _ = services.AddScoped<IAdminProvisioner, AdminProvisioner>();
+            _ = services.AddScoped<ISetupEnvironmentValidator, SetupEnvironmentValidator>();
+            _ = services.AddScoped<ISetupProvisioningService, SetupProvisioningService>();
             _ = services.AddScoped<ICatalogRepository, CatalogRepository>();
             _ = services.AddScoped<ICollectionRepository, CollectionRepository>();
             _ = services.AddScoped<IScanRepository, ScanRepository>();
@@ -36,7 +38,11 @@ namespace ArchiveDex.Infrastructure
             _ = services.AddScoped<IImportJobService, ImportJobService>();
             _ = services.AddScoped<IBatchScanRepository, BatchScanRepository>();
             _ = services.AddScoped<BatchOcrService>();
-            _ = services.AddScoped<IImageStore>(_ => new FileImageStore("/app/images"));
+            _ = services.AddScoped<IImageStore>(sp => new FileImageStore(
+                sp.GetRequiredService<ArchiveDexDbContext>().ApplicationConfigurations
+                    .AsNoTracking()
+                    .Select(config => config.ImageStoragePath)
+                    .FirstOrDefault() ?? "/app/images"));
             _ = services.AddOptions<TesseractOcrOptions>();
             _ = services.AddSingleton<IOcrEngine, TesseractOcrEngine>();
             _ = services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ArchiveDexDbContext>());
@@ -72,7 +78,11 @@ namespace ArchiveDex.Infrastructure
             _ = services.AddScoped<ICatalogTransferRepository, CatalogTransfer.CatalogTransferRepository>();
             _ = services.AddScoped<ICatalogSnapshotStore, CatalogTransfer.CatalogSnapshotStore>();
             _ = services.AddScoped<ICatalogTransferArchive, CatalogTransfer.CatalogTransferArchive>();
-            _ = services.AddScoped<ICatalogImageStore>(_ => new Storage.CatalogTransferImageStore("/app/images"));
+            _ = services.AddScoped<ICatalogImageStore>(sp => new Storage.CatalogTransferImageStore(
+                sp.GetRequiredService<ArchiveDexDbContext>().ApplicationConfigurations
+                    .AsNoTracking()
+                    .Select(config => config.ImageStoragePath)
+                    .FirstOrDefault() ?? "/app/images"));
             _ = services.AddScoped<CatalogTransfer.CatalogTransferPackageValidator>();
             _ = services.AddScoped<ICatalogTransferOrchestrator, CatalogTransfer.CatalogTransferOrchestrator>();
             _ = services.AddScoped<CatalogTransfer.CatalogExportService>();

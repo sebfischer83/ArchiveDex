@@ -1,11 +1,13 @@
 using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.Queries.Image;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArchiveDex.Api.Controllers;
 
 [ApiController]
 [Route("api/images")]
+[Authorize]
 public class ImageController(IImageStore imageStore) : ControllerBase
 {
     [HttpGet("{**fileName}")]

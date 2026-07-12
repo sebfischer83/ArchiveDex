@@ -26,6 +26,7 @@ namespace ArchiveDex.Infrastructure.Setup
             })
             .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<Persistence.ArchiveDexDbContext>()
+            .AddSignInManager()
             .AddDefaultTokenProviders();
 
             return services;

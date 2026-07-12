@@ -10,33 +10,37 @@ namespace ArchiveDex.Application.Commands.Setup
         public string AdminPassword { get; set; } = string.Empty;
         public string DefaultUiCulture { get; set; } = "en";
         public string CollectionCurrency { get; set; } = "EUR";
+        public string ImageStoragePath { get; set; } = "/app/images";
     }
 
     public static class CompleteSetupHandler
     {
         public static async Task Handle(
             CompleteSetup command,
-            IConfigStore configStore,
-            IAdminProvisioner adminProvisioner,
+            ISetupEnvironmentValidator environmentValidator,
+            ISetupProvisioningService provisioningService,
             CancellationToken ct)
         {
-            ApplicationConfiguration config = await configStore.GetAsync(ct);
-
-            if (config.IsSetupComplete)
+            var validationCommand = new ValidateSetup
             {
-                throw new InvalidOperationException("Setup is already complete.");
+                AdminUserName = command.AdminUserName,
+                AdminPassword = command.AdminPassword,
+                DefaultUiCulture = command.DefaultUiCulture,
+                CollectionCurrency = command.CollectionCurrency,
+                ImageStoragePath = command.ImageStoragePath
+            };
+            SetupValidateResponse validation = await ValidateSetupHandler.Handle(validationCommand, environmentValidator, ct);
+            if (!validation.DatabaseReachable || !validation.StorageWritable || validation.Messages.Count > 0)
+            {
+                throw new SetupValidationException(validation.Messages);
             }
 
-            config.DefaultUiCulture = Enum.Parse<UiCulture>(command.DefaultUiCulture, ignoreCase: true);
-            config.CollectionCurrency = command.CollectionCurrency.ToUpperInvariant();
-            config.ImageStoragePath = "/app/images";
-            config.IsSetupComplete = true;
-
-            await configStore.SaveAsync(config, ct);
-
-            await adminProvisioner.ProvisionAsync(
-                command.AdminUserName, command.AdminPassword,
-                config.DefaultUiCulture, ct);
+            await provisioningService.ProvisionAsync(new SetupProvisioningRequest(
+                command.AdminUserName,
+                command.AdminPassword,
+                Enum.Parse<UiCulture>(command.DefaultUiCulture, ignoreCase: true),
+                command.CollectionCurrency.ToUpperInvariant(),
+                Path.GetFullPath(command.ImageStoragePath)), ct);
         }
     }
 }

@@ -1,13 +1,23 @@
-# Unter https://aka.ms/customizecontainer erfahren Sie, wie Sie Ihren Debugcontainer anpassen und wie Visual Studio dieses Dockerfile verwendet, um Ihre Images für ein schnelleres Debuggen zu erstellen.
+FROM node:24-bookworm-slim AS node-runtime
 
-# Diese Stufe wird verwendet, wenn sie von VS im Schnellmodus ausgeführt wird (Standardeinstellung für Debugkonfiguration).
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER root
 WORKDIR /app
 EXPOSE 8080
+COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-runtime /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 
-# Diese Stufe wird zum Erstellen des Dienstprojekts verwendet.
+FROM node:24-bookworm-slim AS client-builder
+WORKDIR /client
+COPY src/ArchiveDex.Web/ClientApp/package.json src/ArchiveDex.Web/ClientApp/package-lock.json ./
+RUN npm ci --legacy-peer-deps
+COPY src/ArchiveDex.Web/ClientApp/ ./
+RUN npx ng build --configuration production
+
+
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
@@ -18,15 +28,14 @@ COPY ["src/ArchiveDex.Domain/ArchiveDex.Domain.csproj", "src/ArchiveDex.Domain/"
 COPY ["src/ArchiveDex.Api/ArchiveDex.Api.csproj", "src/ArchiveDex.Api/"]
 RUN dotnet restore "./src/ArchiveDex.Web/ArchiveDex.Web.csproj"
 COPY . .
+COPY --from=client-builder /client/dist/archive-dex-client src/ArchiveDex.Web/obj/angular
 WORKDIR "/src/src/ArchiveDex.Web"
-RUN dotnet build "./ArchiveDex.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "./ArchiveDex.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build /p:BuildAngularClient=false
 
-# Diese Stufe wird verwendet, um das Dienstprojekt zu veröffentlichen, das in die letzte Phase kopiert werden soll.
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./ArchiveDex.Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./ArchiveDex.Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false /p:BuildAngularClient=false
 
-# Diese Stufe wird in der Produktion oder bei Ausführung von VS im regulären Modus verwendet (Standard, wenn die Debugkonfiguration nicht verwendet wird).
 FROM base AS final
 
 WORKDIR /app

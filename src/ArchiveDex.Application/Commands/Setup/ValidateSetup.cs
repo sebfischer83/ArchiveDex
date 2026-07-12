@@ -8,6 +8,7 @@ namespace ArchiveDex.Application.Commands.Setup
         public string AdminPassword { get; set; } = string.Empty;
         public string DefaultUiCulture { get; set; } = "en";
         public string CollectionCurrency { get; set; } = "EUR";
+        public string ImageStoragePath { get; set; } = "/app/images";
     }
 
     public sealed class SetupValidateResponse
@@ -21,12 +22,10 @@ namespace ArchiveDex.Application.Commands.Setup
     {
         public static async Task<SetupValidateResponse> Handle(
             ValidateSetup command,
-            IUnitOfWork unitOfWork,
+            ISetupEnvironmentValidator environmentValidator,
             CancellationToken ct)
         {
             var messages = new List<string>();
-            var dbReachable = false;
-            var storageWritable = false;
 
             if (string.IsNullOrWhiteSpace(command.AdminUserName))
             {
@@ -48,20 +47,14 @@ namespace ArchiveDex.Application.Commands.Setup
                 messages.Add("Currency must be a valid ISO 4217 code.");
             }
 
-            try
-            {
-                _ = await unitOfWork.SaveChangesAsync(ct);
-                dbReachable = true;
-            }
-            catch
-            {
-                messages.Add("Database is not reachable.");
-            }
+            SetupEnvironmentValidation environment = await environmentValidator
+                .ValidateAsync(command.ImageStoragePath, ct);
+            messages.AddRange(environment.Messages);
 
             return new SetupValidateResponse
             {
-                DatabaseReachable = dbReachable,
-                StorageWritable = storageWritable,
+                DatabaseReachable = environment.DatabaseReachable,
+                StorageWritable = environment.StorageWritable,
                 Messages = messages
             };
         }

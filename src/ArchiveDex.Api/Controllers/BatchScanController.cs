@@ -6,6 +6,7 @@ using ArchiveDex.Application.Queries.BatchScan;
 using ArchiveDex.Application.Scanning;
 using ArchiveDex.Domain.Entities;
 using ArchiveDex.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using BatchScanCmd = ArchiveDex.Application.Commands.BatchScan;
@@ -14,6 +15,7 @@ namespace ArchiveDex.Api.Controllers;
 
 [ApiController]
 [Route("api/batch-scans")]
+[Authorize(Policy = "Administrator")]
 public class BatchScanController(
     IBatchScanRepository batchRepo,
     IImageStore imageStore,

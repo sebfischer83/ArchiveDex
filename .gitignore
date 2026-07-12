@@ -44,3 +44,12 @@ coverage/
 
 ## Runtime data
 src/ArchiveDex.Web/images/
+
+## Angular / Node
+node_modules/
+src/ArchiveDex.Web/ClientApp/dist/
+src/ArchiveDex.Web/ClientApp/.angular/
+*.js.map
+**/playwright-report/
+**/test-results/
+npm-debug.log*

@@ -26,11 +26,28 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
     <DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);ClientApp/dist/**/*</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="ArchiveDex.Api.Tests" />
     <InternalsVisibleTo Include="ArchiveDex.Web.Tests" />
   </ItemGroup>
+
+  <Target Name="BuildAngularClient" BeforeTargets="Build" Condition="Exists('ClientApp/package-lock.json') AND '$(DesignTimeBuild)' != 'true' AND '$(BuildAngularClient)' != 'false'">
+    <Exec Command="npm ci --legacy-peer-deps" WorkingDirectory="ClientApp" />
+    <Exec Command="npm run build -- --output-path=&quot;$(MSBuildProjectDirectory)/obj/angular&quot;" WorkingDirectory="ClientApp" />
+  </Target>
+
+  <Target Name="PublishAngularClient" AfterTargets="ComputeFilesToPublish" DependsOnTargets="BuildAngularClient" Condition="Exists('obj/angular/browser/index.html')">
+    <ItemGroup>
+      <AngularDistFiles Include="obj/angular/browser/**/*" />
+      <ResolvedFileToPublish Include="@(AngularDistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>wwwroot/angular/%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
 
 </Project>

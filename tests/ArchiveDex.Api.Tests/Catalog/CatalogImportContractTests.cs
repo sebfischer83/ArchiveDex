@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using ArchiveDex.Api.Tests.CatalogTransfer;
 using ArchiveDex.Domain.Entities;
 using ArchiveDex.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,21 +10,22 @@ namespace ArchiveDex.Api.Tests.Catalog
     public class CatalogImportContractTests(TestWebApplicationFactory factory) : IClassFixture<TestWebApplicationFactory>
     {
         private readonly TestWebApplicationFactory _factory = factory;
-        private readonly HttpClient _client = factory.CreateClient();
 
         [Fact]
         public async Task GetImportSources_Returns200()
         {
-            await EnsureSetupComplete();
-            HttpResponseMessage response = await _client.GetAsync("/api/import/sources");
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            await EnsureSetupComplete(client);
+            HttpResponseMessage response = await client.GetAsync("/api/import/sources");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
         [Fact]
         public async Task GetImportSets_Returns200()
         {
-            await EnsureSetupComplete();
-            HttpResponseMessage response = await _client.GetAsync("/api/import/sets?cardLanguage=en");
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            await EnsureSetupComplete(client);
+            HttpResponseMessage response = await client.GetAsync("/api/import/sets?cardLanguage=en");
             var responseBody = await response.Content.ReadAsStringAsync();
             Assert.True(
                 response.StatusCode == HttpStatusCode.OK,
@@ -36,25 +38,27 @@ namespace ArchiveDex.Api.Tests.Catalog
         [Fact]
         public async Task PostImportJob_ReturnsSuccess()
         {
-            await EnsureSetupComplete();
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            await EnsureSetupComplete(client);
             var request = new { source = "TCGdex", setIds = new[] { "swsh1" }, cardLanguages = new[] { "en" } };
-            HttpResponseMessage response = await _client.PostAsJsonAsync("/api/import/jobs", request);
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/import/jobs", request);
             Assert.True(response.IsSuccessStatusCode);
         }
 
         [Fact]
         public async Task PostImportJob_ReturnsReadableStatus()
         {
-            await EnsureSetupComplete();
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            await EnsureSetupComplete(client);
             var request = new { source = "TCGdex", setIds = new[] { "swsh1" }, cardLanguages = new[] { "en" } };
-            HttpResponseMessage response = await _client.PostAsJsonAsync("/api/import/jobs", request);
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/import/jobs", request);
             Assert.True(response.IsSuccessStatusCode);
 
             ImportStartedContract? started = await response.Content.ReadFromJsonAsync<ImportStartedContract>();
             Assert.NotNull(started);
             Assert.NotEqual(Guid.Empty, started.Id);
 
-            HttpResponseMessage statusResponse = await _client.GetAsync($"/api/import/jobs/{started.Id}");
+            HttpResponseMessage statusResponse = await client.GetAsync($"/api/import/jobs/{started.Id}");
             Assert.Equal(HttpStatusCode.OK, statusResponse.StatusCode);
 
             ImportJobStatusContract? status = await statusResponse.Content.ReadFromJsonAsync<ImportJobStatusContract>();
@@ -66,24 +70,26 @@ namespace ArchiveDex.Api.Tests.Catalog
         [Fact]
         public async Task PostImportJob_WithNoSetIds_ImportsAllSetsForLanguage()
         {
-            await EnsureSetupComplete();
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            await EnsureSetupComplete(client);
             var request = new { source = "TCGdex", setIds = Array.Empty<string>(), cardLanguages = new[] { "en" } };
-            HttpResponseMessage response = await _client.PostAsJsonAsync("/api/import/jobs", request);
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/import/jobs", request);
             Assert.True(response.IsSuccessStatusCode);
 
             ImportStartedContract? started = await response.Content.ReadFromJsonAsync<ImportStartedContract>();
             Assert.NotNull(started);
             Assert.NotEqual(Guid.Empty, started.Id);
 
-            HttpResponseMessage statusResponse = await _client.GetAsync($"/api/import/jobs/{started.Id}");
+            HttpResponseMessage statusResponse = await client.GetAsync($"/api/import/jobs/{started.Id}");
             Assert.Equal(HttpStatusCode.OK, statusResponse.StatusCode);
         }
 
         [Fact]
         public async Task GetCatalogCards_Returns200()
         {
-            await EnsureSetupComplete();
-            HttpResponseMessage response = await _client.GetAsync("/api/catalog/cards");
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            await EnsureSetupComplete(client);
+            HttpResponseMessage response = await client.GetAsync("/api/catalog/cards");
             var responseBody = await response.Content.ReadAsStringAsync();
             Assert.True(
                 response.StatusCode == HttpStatusCode.OK,
@@ -96,8 +102,9 @@ namespace ArchiveDex.Api.Tests.Catalog
         [Fact]
         public async Task GetCatalogSets_Returns200()
         {
-            await EnsureSetupComplete();
-            HttpResponseMessage response = await _client.GetAsync("/api/catalog/sets");
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            await EnsureSetupComplete(client);
+            HttpResponseMessage response = await client.GetAsync("/api/catalog/sets");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             var sets = await response.Content.ReadFromJsonAsync<object[]>();
@@ -107,10 +114,11 @@ namespace ArchiveDex.Api.Tests.Catalog
         [Fact]
         public async Task GetCatalogSets_ReturnsExtendedFields()
         {
-            await EnsureSetupComplete();
+            using var client = CatalogTransferTestAuthentication.CreateClient(factory);
+            await EnsureSetupComplete(client);
             await SeedCatalogSetAsync();
 
-            HttpResponseMessage response = await _client.GetAsync("/api/catalog/sets");
+            HttpResponseMessage response = await client.GetAsync("/api/catalog/sets");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             List<CatalogSetContract>? sets = await response.Content.ReadFromJsonAsync<List<CatalogSetContract>>();
@@ -122,7 +130,6 @@ namespace ArchiveDex.Api.Tests.Catalog
                 Assert.NotEqual(Guid.Empty, set.SetId);
                 Assert.False(string.IsNullOrWhiteSpace(set.Name));
                 Assert.True(set.OwnedCount >= 0, $"OwnedCount should be >= 0 but was {set.OwnedCount} for set {set.Name}");
-                // ImageUrl may be null (no image) or non-null (starts with /api/images/)
                 if (set.ImageUrl is not null)
                 {
                     Assert.StartsWith("/api/images/", set.ImageUrl);
@@ -161,9 +168,9 @@ namespace ArchiveDex.Api.Tests.Catalog
             _ = await db.SaveChangesAsync();
         }
 
-        private async Task EnsureSetupComplete()
+        private async Task EnsureSetupComplete(HttpClient client)
         {
-            SetupStateContract? state = await _client.GetFromJsonAsync<SetupStateContract>("/api/setup/state");
+            SetupStateContract? state = await client.GetFromJsonAsync<SetupStateContract>("/api/setup/state");
             if (state?.IsSetupComplete == true)
             {
                 return;
@@ -178,7 +185,8 @@ namespace ArchiveDex.Api.Tests.Catalog
                 imageStoragePath = Path.Combine(Path.GetTempPath(), "archivedex-test-images")
             };
 
-            HttpResponseMessage response = await _client.PostAsJsonAsync("/api/setup/complete", request);
+            await client.AddAntiforgeryTokenAsync();
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/setup/complete", request);
             Assert.True(response.IsSuccessStatusCode);
         }
 

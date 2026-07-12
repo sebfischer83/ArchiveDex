@@ -2,12 +2,14 @@ using ArchiveDex.Application.Abstractions;
 using ArchiveDex.Application.CatalogImport.DTOs;
 using ArchiveDex.Application.CatalogImport.Options;
 using Hangfire;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArchiveDex.Api.Controllers;
 
 [ApiController]
 [Route("api/catalog-imports")]
+[Authorize(Policy = "Administrator")]
 public class CatalogImportController(
     ICatalogImportRepository repository,
     ICatalogImportOrchestrator orchestrator,
@@ -17,7 +19,7 @@ public class CatalogImportController(
     public async Task<IActionResult> StartImport([FromBody] StartCatalogImportRequest request, CancellationToken ct)
     {
         if (await repository.HasActiveImportAsync(ct))
-            return Conflict(new { error = "Another catalog import is already active." });
+            return Conflict(new { error = "Another catalog import is already active.", code = "IMPORT_ACTIVE" });
 
         var options = new CatalogImportOptions(
             Sources: request.Sources,
@@ -62,7 +64,7 @@ public class CatalogImportController(
     public async Task<IActionResult> ResumeImport(Guid importRunId, CancellationToken ct)
     {
         if (await repository.HasActiveImportAsync(ct))
-            return Conflict(new { error = "Another catalog import is already active." });
+            return Conflict(new { error = "Another catalog import is already active.", code = "IMPORT_ACTIVE" });
 
         var run = await repository.GetByIdAsync(importRunId, ct);
         if (run == null) return NotFound();
@@ -76,15 +78,42 @@ public class CatalogImportController(
     {
         var run = await repository.GetByIdAsync(importRunId, ct);
         if (run == null) return NotFound();
+
+        var errors = await repository.GetErrorsByRunIdAsync(importRunId, null, ct);
+        var candidates = await repository.GetImageCandidatesByRunIdAsync(importRunId, ct);
+
+        var imageSummary = new ImageQualitySummaryDto(
+            SelectedImages: candidates.Count(c => c.IsSelected),
+            FailedDownloads: candidates.Count(c => c.QualityScore == null && !c.IsSelected),
+            CardsWithoutImages: 0,
+            SetsWithoutImages: 0,
+            CandidatesAnalyzed: candidates.Count);
+
+        var sourceSummaries = errors
+            .GroupBy(e => (e.Source ?? "unknown", e.Language ?? "-"))
+            .Select(g => new SourceSummaryDto(
+                Source: g.Key.Item1,
+                Language: g.Key.Item2,
+                SetsProcessed: 0,
+                CardsProcessed: 0,
+                Errors: g.Count(e => e.Severity == "Error"),
+                Warnings: g.Count(e => e.Severity == "Warning")))
+            .ToList();
+
         var report = new CatalogImportReportDto(
-            MapRunDto(run),
-            [], new ImageQualitySummaryDto(0, 0, 0, 0, 0), 0, 0);
+            Run: MapRunDto(run),
+            SourceSummaries: sourceSummaries,
+            ImageSummary: imageSummary,
+            PendingMappingCount: run.AmbiguousCount,
+            AmbiguousCardCount: run.AmbiguousCount);
         return Ok(report);
     }
 
     [HttpGet("{importRunId:guid}/errors")]
     public async Task<IActionResult> GetErrors(Guid importRunId, [FromQuery] string? severity, CancellationToken ct)
     {
+        var run = await repository.GetByIdAsync(importRunId, ct);
+        if (run == null) return NotFound();
         var errors = await repository.GetErrorsByRunIdAsync(importRunId, severity, ct);
         return Ok(errors.Select(MapErrorDto));
     }
@@ -92,10 +121,17 @@ public class CatalogImportController(
     [HttpGet("{importRunId:guid}/image-quality")]
     public async Task<IActionResult> GetImageQuality(Guid importRunId, CancellationToken ct)
     {
+        var run = await repository.GetByIdAsync(importRunId, ct);
+        if (run == null) return NotFound();
         var candidates = await repository.GetImageCandidatesByRunIdAsync(importRunId, ct);
         var dto = new ImageQualityReportDto(
-            new ImageQualitySummaryDto(0, 0, 0, 0, candidates.Count),
-            candidates.Select(MapCandidateDto).ToList());
+            Summary: new ImageQualitySummaryDto(
+                SelectedImages: candidates.Count(c => c.IsSelected),
+                FailedDownloads: candidates.Count(c => c.QualityScore == null && !c.IsSelected),
+                CardsWithoutImages: 0,
+                SetsWithoutImages: 0,
+                CandidatesAnalyzed: candidates.Count),
+            Candidates: candidates.Select(MapCandidateDto).ToList());
         return Ok(dto);
     }
 

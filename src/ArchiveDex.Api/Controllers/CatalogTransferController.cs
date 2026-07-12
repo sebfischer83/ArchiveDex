@@ -20,15 +20,18 @@ public class CatalogTransferController : ControllerBase
     private readonly ICatalogTransferOrchestrator _orchestrator;
     private readonly ICatalogTransferRepository _repository;
     private readonly IBackgroundJobClient _backgroundJobs;
+    private readonly ICatalogTransferArchive _archive;
 
     public CatalogTransferController(
         ICatalogTransferOrchestrator orchestrator,
         ICatalogTransferRepository repository,
-        IBackgroundJobClient backgroundJobs)
+        IBackgroundJobClient backgroundJobs,
+        ICatalogTransferArchive archive)
     {
         _orchestrator = orchestrator;
         _repository = repository;
         _backgroundJobs = backgroundJobs;
+        _archive = archive;
     }
 
     [HttpPost("exports")]
@@ -52,6 +55,7 @@ public class CatalogTransferController : ControllerBase
     }
 
     [HttpPost("imports/validate")]
+    [RequestSizeLimit(32_212_254_720)]
     public async Task<IActionResult> ValidateImport(IFormFile package, CancellationToken ct)
     {
         if (package == null || package.Length == 0)
@@ -140,10 +144,23 @@ public class CatalogTransferController : ControllerBase
         if (operation == null) return NotFound();
 
         var errors = await _repository.GetErrorsByOperationIdAsync(operationId, ct);
+
+        var categoryCounts = new Dictionary<string, long>();
+        if (!string.IsNullOrWhiteSpace(operation.PackagePath) && System.IO.File.Exists(operation.PackagePath))
+        {
+            try
+            {
+                await using var stream = System.IO.File.OpenRead(operation.PackagePath);
+                var manifest = await _archive.ReadManifestAsync(stream, ct);
+                categoryCounts = manifest.CategoryCounts ?? new Dictionary<string, long>();
+            }
+            catch { }
+        }
+
         var report = new CatalogTransferReportDto
         {
             Operation = MapOperationDto(operation),
-            CategoryCounts = new Dictionary<string, long>(),
+            CategoryCounts = categoryCounts,
             Errors = errors.Select(MapErrorDto).ToList(),
         };
         return Ok(report);
