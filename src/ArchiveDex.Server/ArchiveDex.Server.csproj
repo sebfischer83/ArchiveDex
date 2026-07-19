@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>ArchiveDex.Server</RootNamespace>
+    <AssemblyName>ArchiveDex.Server</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="SixLabors.ImageSharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ArchiveDex.Server.UnitTests" />
+    <InternalsVisibleTo Include="ArchiveDex.Server.IntegrationTests" />
+    <InternalsVisibleTo Include="ArchiveDex.Server.ContractTests" />
+  </ItemGroup>
+  <Target Name="BuildAngularClient" BeforeTargets="Build" Condition="Exists('ClientApp/package-lock.json') AND '$(DesignTimeBuild)' != 'true' AND '$(BuildAngularClient)' != 'false'">
+    <Exec Command="npm ci --legacy-peer-deps" WorkingDirectory="ClientApp" />
+    <Exec Command="npm run build -- --output-path=&quot;$(MSBuildProjectDirectory)/obj/angular&quot;" WorkingDirectory="ClientApp" />
+  </Target>
+  <Target Name="PublishAngularClient" AfterTargets="ComputeFilesToPublish" DependsOnTargets="BuildAngularClient" Condition="Exists('obj/angular/browser/index.html')">
+    <ItemGroup>
+      <AngularDistFiles Include="obj/angular/browser/**/*" />
+      <ResolvedFileToPublish Include="@(AngularDistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>wwwroot/%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+</Project>

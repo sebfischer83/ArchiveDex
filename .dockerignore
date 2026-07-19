@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/.git/
+**/.vscode/
+**/.idea/
+**/*.log
+**/.env*
+**/coverage/
+**/Dockerfile*
+.dockerignore

@@ -1,0 +1,36 @@
+services:
+  web:
+    build: .
+    ports: ["8080:8080"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__PostgreSQL: "Host=db;Database=archivedex;Username=archivedex;Password=${DB_PASSWORD:-archivedex}"
+    volumes:
+      - dataprotection:/app/dataprotection
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+  db:
+    image: postgres:18.4-bookworm
+    environment:
+      POSTGRES_USER: archivedex
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-archivedex}
+      POSTGRES_DB: archivedex
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U archivedex -d archivedex"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  pgdata:
+  dataprotection:

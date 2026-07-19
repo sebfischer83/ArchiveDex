@@ -1,2 +1,7 @@
 <Solution>
+  <Project Path="src/ArchiveDex.Server/ArchiveDex.Server.csproj" />
+  <Project Path="tests/ArchiveDex.Server.UnitTests/ArchiveDex.Server.UnitTests.csproj" />
+  <Project Path="tests/ArchiveDex.Server.IntegrationTests/ArchiveDex.Server.IntegrationTests.csproj" />
+  <Project Path="tests/ArchiveDex.Server.ContractTests/ArchiveDex.Server.ContractTests.csproj" />
+  <Project Path="tests/ArchiveDex.E2E/ArchiveDex.E2E.csproj" />
 </Solution>

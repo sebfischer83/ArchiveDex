@@ -1,0 +1,617 @@
+openapi: 3.1.0
+info:
+  title: ArchiveDex API
+  version: 1.0.0
+  description: Same-origin API for card capture, review, collection browsing, and specimen management.
+  license:
+    name: Private use only
+    identifier: LicenseRef-Private
+servers:
+  - url: /api/v1
+security:
+  - cookieAuth: []
+paths:
+  /session:
+    get:
+      summary: Read current session
+      operationId: getSession
+      security: []
+      responses:
+        '200':
+          description: Current session state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '429': { $ref: '#/components/responses/Problem' }
+  /session/sign-in:
+    post:
+      summary: Sign in the collection owner
+      operationId: signIn
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userName, password]
+              properties:
+                userName: { type: string, minLength: 1, maxLength: 256 }
+                password: { type: string, minLength: 1, maxLength: 1024 }
+      responses:
+        '204': { description: Signed in }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+  /session/sign-out:
+    post:
+      summary: Sign out the collection owner
+      operationId: signOut
+      responses:
+        '204': { description: Signed out }
+        '400': { $ref: '#/components/responses/Problem' }
+  /antiforgery:
+    get:
+      summary: Issue an antiforgery cookie
+      operationId: issueAntiforgeryToken
+      security: []
+      responses:
+        '204': { description: Antiforgery cookie issued }
+        '429': { $ref: '#/components/responses/Problem' }
+  /captures:
+    post:
+      summary: Upload a card image and schedule analysis
+      operationId: createCapture
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '202':
+          description: Upload accepted and analysis scheduled
+          headers:
+            Location:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Capture'
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '413': { $ref: '#/components/responses/Problem' }
+        '415': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+  /captures/{captureId}:
+    parameters:
+      - $ref: '#/components/parameters/CaptureId'
+    get:
+      summary: Read capture analysis and review state
+      operationId: getCapture
+      responses:
+        '200':
+          description: Capture status and available proposal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Capture'
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      summary: Delete an unfinished capture draft
+      operationId: deleteCapture
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '204': { description: Draft and draft image deleted }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /captures/{captureId}/retry:
+    post:
+      summary: Retry a failed card analysis
+      operationId: retryCapture
+      parameters:
+        - $ref: '#/components/parameters/CaptureId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '202':
+          description: Retry scheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Capture'
+        '409': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+  /captures/{captureId}/review:
+    put:
+      summary: Confirm or correct capture fields
+      operationId: reviewCapture
+      parameters:
+        - $ref: '#/components/parameters/CaptureId'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCaptureRequest'
+      responses:
+        '200':
+          description: Reviewed values retained in draft
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Capture'
+        '400': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /captures/{captureId}/finalize:
+    post:
+      summary: Finalize a reviewed physical specimen
+      operationId: finalizeCapture
+      parameters:
+        - $ref: '#/components/parameters/CaptureId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                allowDuplicate: { type: boolean, default: false }
+      responses:
+        '201':
+          description: Specimen finalized
+          headers:
+            Location:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardSpecimen'
+        '400': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /sets:
+    get:
+      summary: List owned set and language combinations
+      operationId: listOwnedSets
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/PageSize'
+        - name: search
+          in: query
+          schema: { type: string, maxLength: 100 }
+        - name: language
+          in: query
+          schema: { type: string, minLength: 2, maxLength: 10 }
+      responses:
+        '200':
+          description: Owned set-language editions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetPage'
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+  /sets/{setEditionId}/cards:
+    get:
+      summary: List grouped cards in an owned set edition
+      operationId: listCardsInSet
+      parameters:
+        - name: setEditionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/PageSize'
+        - name: search
+          in: query
+          schema: { type: string, maxLength: 100 }
+      responses:
+        '200':
+          description: Grouped owned cards in one set-language edition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardPage'
+        '404': { $ref: '#/components/responses/Problem' }
+  /cards/{cardRecordId}:
+    parameters:
+      - name: cardRecordId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      summary: Read a grouped card and its specimens
+      operationId: getCardRecord
+      responses:
+        '200':
+          description: Grouped card and its physical specimens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardDetail'
+        '404': { $ref: '#/components/responses/Problem' }
+    put:
+      summary: Correct shared grouped-card fields
+      operationId: updateCardRecord
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCardRequest'
+      responses:
+        '200':
+          description: Updated or merged card record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardDetail'
+        '400': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /specimens/{specimenId}:
+    parameters:
+      - name: specimenId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      summary: Correct a physical specimen condition
+      operationId: updateSpecimen
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSpecimenRequest'
+      responses:
+        '200':
+          description: Updated specimen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardSpecimen'
+        '400': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+    delete:
+      summary: Permanently delete a physical specimen
+      operationId: deleteSpecimen
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '204': { description: Specimen and image permanently deleted }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /specimens/{specimenId}/valuation:
+    post:
+      summary: Schedule a manual valuation refresh
+      operationId: refreshValuation
+      parameters:
+        - name: specimenId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '202':
+          description: Valuation refresh scheduled
+        '409': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+  /specimens/{specimenId}/image:
+    get:
+      summary: Read a private specimen image
+      operationId: getSpecimenImage
+      parameters:
+        - name: specimenId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: size
+          in: query
+          schema:
+            type: string
+            enum: [thumbnail, full]
+            default: thumbnail
+      responses:
+        '200':
+          description: Private card image
+          headers:
+            Cache-Control:
+              schema: { type: string, const: private }
+            X-Content-Type-Options:
+              schema: { type: string, const: nosniff }
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/webp:
+              schema: { type: string, format: binary }
+        '404': { $ref: '#/components/responses/Problem' }
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: __Host-ArchiveDex.Auth
+  parameters:
+    CaptureId:
+      name: captureId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 128 }
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      schema: { type: string }
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+    PageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 25 }
+  responses:
+    Problem:
+      description: Actionable RFC Problem Details response
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+  schemas:
+    ProblemDetails:
+      type: object
+      required: [type, title, status, code, traceId]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }
+        traceId: { type: string }
+        retryable: { type: boolean }
+        nextAction: { type: string }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+    Session:
+      type: object
+      required: [isAuthenticated]
+      properties:
+        isAuthenticated: { type: boolean }
+        displayName: { type: [string, 'null'] }
+    Capture:
+      type: object
+      required: [id, status, createdAt, updatedAt, etag]
+      properties:
+        id: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [uploaded, analyzing, needsReview, needsNewImage, failed, finalized]
+        proposal:
+          oneOf:
+            - $ref: '#/components/schemas/AnalysisProposal'
+            - type: 'null'
+        duplicate:
+          oneOf:
+            - $ref: '#/components/schemas/DuplicateWarning'
+            - type: 'null'
+        error:
+          oneOf:
+            - $ref: '#/components/schemas/ProblemDetails'
+            - type: 'null'
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        etag: { type: string }
+    AnalysisProposal:
+      type: object
+      required: [printedName, printedNumber, language, condition, candidates]
+      properties:
+        printedName: { $ref: '#/components/schemas/ProposedText' }
+        officialGermanName: { $ref: '#/components/schemas/ProposedText' }
+        printedNumber: { $ref: '#/components/schemas/ProposedText' }
+        setIdentifier: { $ref: '#/components/schemas/ProposedText' }
+        setName: { $ref: '#/components/schemas/ProposedText' }
+        language: { $ref: '#/components/schemas/ProposedText' }
+        variantKey: { $ref: '#/components/schemas/ProposedText' }
+        condition:
+          $ref: '#/components/schemas/ConditionProposal'
+        valuation:
+          oneOf:
+            - $ref: '#/components/schemas/Valuation'
+            - type: 'null'
+        candidates:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/CatalogCandidate'
+    ProposedText:
+      type: object
+      required: [value, confidence]
+      properties:
+        value: { type: [string, 'null'] }
+        confidence: { $ref: '#/components/schemas/Confidence' }
+        reason: { type: [string, 'null'] }
+    Confidence:
+      type: string
+      enum: [high, medium, low]
+    Condition:
+      type: string
+      enum: [NM, LP, MP, HP, DMG]
+    ConditionProposal:
+      type: object
+      required: [grade, confidence, observedDefects, limitations]
+      properties:
+        grade:
+          oneOf:
+            - $ref: '#/components/schemas/Condition'
+            - type: 'null'
+        confidence: { $ref: '#/components/schemas/Confidence' }
+        observedDefects:
+          type: array
+          items: { type: string }
+        limitations:
+          type: array
+          items: { type: string }
+    CatalogCandidate:
+      type: object
+      required: [catalogReferenceId, printedName, printedNumber, setIdentifier, setName, language, variantKey, confidence]
+      properties:
+        catalogReferenceId: { type: string, format: uuid }
+        printedName: { type: string }
+        officialGermanName: { type: [string, 'null'] }
+        printedNumber: { type: string }
+        setIdentifier: { type: string }
+        setName: { type: string }
+        language: { type: string }
+        variantKey: { type: string }
+        confidence: { $ref: '#/components/schemas/Confidence' }
+    ReviewCaptureRequest:
+      type: object
+      required: [originalName, printedNumber, setIdentifier, setName, language, variantKey, condition]
+      properties:
+        catalogReferenceId: { type: [string, 'null'], format: uuid }
+        originalName: { type: string, minLength: 1, maxLength: 200 }
+        germanName: { type: [string, 'null'], maxLength: 200 }
+        germanNameUnavailableReason: { type: [string, 'null'], maxLength: 200 }
+        printedNumber: { type: string, minLength: 1, maxLength: 50 }
+        setIdentifier: { type: string, minLength: 1, maxLength: 100 }
+        setName: { type: string, minLength: 1, maxLength: 200 }
+        language: { type: string, minLength: 2, maxLength: 10 }
+        variantKey: { type: string, minLength: 1, maxLength: 50 }
+        condition: { $ref: '#/components/schemas/Condition' }
+    DuplicateWarning:
+      type: object
+      required: [matchingSpecimenId, exactMatch]
+      properties:
+        matchingSpecimenId: { type: string, format: uuid }
+        exactMatch: { type: boolean }
+    Valuation:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [available, unavailable, stale, refreshing]
+        amountMinor: { type: [integer, 'null'], minimum: 0 }
+        currency:
+          oneOf:
+            - type: string
+              const: EUR
+            - type: 'null'
+        estimatedAt: { type: [string, 'null'], format: date-time }
+        marketDataAsOf: { type: [string, 'null'], format: date-time }
+        provider: { type: [string, 'null'] }
+        method: { type: [string, 'null'] }
+        confidence:
+          oneOf:
+            - $ref: '#/components/schemas/Confidence'
+            - type: 'null'
+        conditionApplied: { type: [boolean, 'null'] }
+        disclaimer: { type: string }
+    SetSummary:
+      type: object
+      required: [id, setIdentifier, setName, language, distinctCardCount, specimenCount]
+      properties:
+        id: { type: string, format: uuid }
+        setIdentifier: { type: string }
+        setName: { type: string }
+        language: { type: string }
+        distinctCardCount: { type: integer, minimum: 0 }
+        specimenCount: { type: integer, minimum: 0 }
+    SetPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/SetSummary' }
+        nextCursor: { type: [string, 'null'] }
+    CardSummary:
+      type: object
+      required: [id, originalName, printedNumber, variantKey, specimenCount, thumbnailUrl]
+      properties:
+        id: { type: string, format: uuid }
+        originalName: { type: string }
+        germanName: { type: [string, 'null'] }
+        printedNumber: { type: string }
+        variantKey: { type: string }
+        specimenCount: { type: integer, minimum: 1 }
+        thumbnailUrl: { type: string, format: uri-reference }
+    CardPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CardSummary' }
+        nextCursor: { type: [string, 'null'] }
+    CardDetail:
+      type: object
+      required: [id, originalName, printedNumber, setIdentifier, setName, language, variantKey, specimens, etag]
+      properties:
+        id: { type: string, format: uuid }
+        originalName: { type: string }
+        germanName: { type: [string, 'null'] }
+        germanNameUnavailableReason: { type: [string, 'null'] }
+        printedNumber: { type: string }
+        setIdentifier: { type: string }
+        setName: { type: string }
+        language: { type: string }
+        variantKey: { type: string }
+        specimens:
+          type: array
+          items: { $ref: '#/components/schemas/CardSpecimen' }
+        etag: { type: string }
+    CardSpecimen:
+      type: object
+      required: [id, condition, imageUrl, thumbnailUrl, valuation, createdAt, etag]
+      properties:
+        id: { type: string, format: uuid }
+        condition: { $ref: '#/components/schemas/Condition' }
+        imageUrl: { type: string, format: uri-reference }
+        thumbnailUrl: { type: string, format: uri-reference }
+        valuation: { $ref: '#/components/schemas/Valuation' }
+        createdAt: { type: string, format: date-time }
+        etag: { type: string }
+    UpdateCardRequest:
+      type: object
+      required: [originalName, printedNumber, setIdentifier, setName, language, variantKey]
+      properties:
+        catalogReferenceId: { type: [string, 'null'], format: uuid }
+        originalName: { type: string, minLength: 1, maxLength: 200 }
+        germanName: { type: [string, 'null'], maxLength: 200 }
+        germanNameUnavailableReason: { type: [string, 'null'], maxLength: 200 }
+        printedNumber: { type: string, minLength: 1, maxLength: 50 }
+        setIdentifier: { type: string, minLength: 1, maxLength: 100 }
+        setName: { type: string, minLength: 1, maxLength: 200 }
+        language: { type: string, minLength: 2, maxLength: 10 }
+        variantKey: { type: string, minLength: 1, maxLength: 50 }
+    UpdateSpecimenRequest:
+      type: object
+      required: [condition]
+      properties:
+        condition: { $ref: '#/components/schemas/Condition' }
