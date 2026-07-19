@@ -15,6 +15,7 @@ public class ImageNormalizationService
 
     public async Task<ImageResult> NormalizeAsync(Stream sourceStream, string contentType, CancellationToken ct = default)
     {
+        contentType = contentType.Split(';', 2)[0].Trim().ToLowerInvariant();
         if (!AllowedContentTypes.Contains(contentType))
             throw new ImageValidationException("UNSUPPORTED_FORMAT", "Image format not supported.");
 
@@ -31,6 +32,9 @@ public class ImageNormalizationService
         }
 
         mem.Position = 0;
+        if (!SignatureMatches(mem.GetBuffer().AsSpan(0, totalRead), contentType))
+            throw new ImageValidationException("UNSUPPORTED_FORMAT", "Image content does not match its declared format.");
+
         using var image = await Image.LoadAsync(mem, ct);
 
         if (image.Width * (long)image.Height > MaxPixels || image.Width > MaxDimension || image.Height > MaxDimension)
@@ -74,6 +78,16 @@ public class ImageNormalizationService
             uploadHash,
             normalizedHash);
     }
+
+    private static bool SignatureMatches(ReadOnlySpan<byte> bytes, string contentType) => contentType switch
+    {
+        "image/jpeg" => bytes.Length >= 3 && bytes[0] == 0xff && bytes[1] == 0xd8 && bytes[2] == 0xff,
+        "image/png" => bytes.Length >= 8 && bytes[..8].SequenceEqual(new byte[] { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a }),
+        "image/webp" => bytes.Length >= 12
+            && bytes[..4].SequenceEqual("RIFF"u8)
+            && bytes.Slice(8, 4).SequenceEqual("WEBP"u8),
+        _ => false,
+    };
 }
 
 public record ImageResult(

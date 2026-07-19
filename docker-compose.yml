@@ -6,31 +6,43 @@ services:
       db:
         condition: service_healthy
     environment:
-      ConnectionStrings__PostgreSQL: "Host=db;Database=archivedex;Username=archivedex;Password=${DB_PASSWORD:-archivedex}"
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
+      ConnectionStrings__PostgreSQL: "Host=db;Database=archivedex;Username=archivedex;Password=${DB_PASSWORD:?Set DB_PASSWORD}"
+      Security__RequireHttpsCookies: "${REQUIRE_HTTPS_COOKIES:-false}"
+      AI__Provider: "${AI_PROVIDER:-unavailable}"
+      AI__OpenAI__ApiKey: "${OPENAI_API_KEY:-}"
+      AI__Anthropic__ApiKey: "${ANTHROPIC_API_KEY:-}"
+      Owner__UserName: "${OWNER_USERNAME:-}"
+      Owner__Password: "${OWNER_PASSWORD:-}"
     volumes:
-      - dataprotection:/app/dataprotection
+      - dataprotectionkeys:/app/dataprotection
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 30s
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
 
   db:
     image: postgres:18.4-bookworm
     environment:
       POSTGRES_USER: archivedex
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-archivedex}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
       POSTGRES_DB: archivedex
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata18:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U archivedex -d archivedex"]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 10s
+    cap_drop: ["ALL"]
+    cap_add: ["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETGID", "SETUID"]
+    security_opt: ["no-new-privileges:true"]
 
 volumes:
-  pgdata:
-  dataprotection:
+  pgdata18:
+  dataprotectionkeys:

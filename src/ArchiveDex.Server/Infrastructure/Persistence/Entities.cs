@@ -1,14 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
 namespace ArchiveDex.Server.Infrastructure.Persistence;
-
-public static class EntityTypeBuilderExtensions
-{
-    public static Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<decimal?> HasValuationAmount(
-        this Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<decimal?> builder) =>
-        builder.HasColumnType("numeric(12,2)");
-}
 
 public class ImageAsset
 {
@@ -54,6 +44,7 @@ public class CatalogCardReference
     public string VariantKey { get; set; } = "standard";
     public string LanguageCode { get; init; } = string.Empty;
     public string CatalogVersion { get; init; } = string.Empty;
+    public CatalogSetReference? CatalogSetReference { get; set; }
 }
 
 public class SetEdition
@@ -68,6 +59,8 @@ public class SetEdition
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public uint Version { get; set; }
+    public ApplicationUser? Owner { get; set; }
+    public CatalogSetReference? CatalogSetReference { get; set; }
     public ICollection<CardRecord> CardRecords { get; } = new List<CardRecord>();
 }
 
@@ -98,7 +91,7 @@ public class CardSpecimen
     public Guid CardRecordId { get; init; }
     public Guid ImageAssetId { get; init; }
     public string Condition { get; set; } = "NM";
-    public decimal? ValuationAmount { get; set; }
+    public long? ValuationAmountMinor { get; set; }
     public string? ValuationCurrency { get; set; }
     public DateTime? ValuedAt { get; set; }
     public DateTime? MarketDataAsOf { get; set; }
@@ -118,6 +111,7 @@ public class CaptureDraft
     public Guid Id { get; init; }
     public Guid OwnerId { get; init; }
     public Guid ImageAssetId { get; init; }
+    public string IdempotencyKey { get; init; } = string.Empty;
     public string Status { get; set; } = "uploaded";
     public string? AnalysisProposal { get; set; }
     public string? ConfirmedFields { get; set; }
@@ -125,10 +119,23 @@ public class CaptureDraft
     public string? ErrorCode { get; set; }
     public string? ErrorDetail { get; set; }
     public string? ProviderCorrelationId { get; set; }
+    public bool ErrorRetryable { get; set; }
     public int RetryCount { get; set; }
+    public DateTime? ProcessingStartedAt { get; set; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddDays(7);
     public uint Version { get; set; }
     public ImageAsset? ImageAsset { get; set; }
+}
+
+public class FinalizationRecord
+{
+    public Guid Id { get; init; }
+    public Guid OwnerId { get; init; }
+    public Guid CaptureId { get; init; }
+    public string IdempotencyKey { get; init; } = string.Empty;
+    public Guid SpecimenId { get; init; }
+    public Guid CardRecordId { get; init; }
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }

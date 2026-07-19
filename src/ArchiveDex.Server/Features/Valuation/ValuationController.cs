@@ -15,6 +15,7 @@ public class ValuationController(ArchiveDexDbContext db, IMarketValuationProvide
         var ownerId = GetOwnerId();
         var specimen = await db.CardSpecimens
             .Include(x => x.CardRecord)
+            .ThenInclude(x => x!.SetEdition)
             .FirstOrDefaultAsync(x => x.Id == specimenId && x.OwnerId == ownerId, ct);
 
         if (specimen is null) return NotFound();
@@ -26,7 +27,7 @@ public class ValuationController(ArchiveDexDbContext db, IMarketValuationProvide
 
         if (result?.Status == "AVAILABLE" && result.AmountMinor.HasValue)
         {
-            specimen.ValuationAmount = result.AmountMinor.Value / 100m;
+            specimen.ValuationAmountMinor = result.AmountMinor.Value;
             specimen.ValuationCurrency = result.Currency;
             specimen.ValuedAt = result.EstimatedAt;
             specimen.MarketDataAsOf = result.MarketDataAsOf;

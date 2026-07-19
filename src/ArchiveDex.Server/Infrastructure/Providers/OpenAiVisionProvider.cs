@@ -1,11 +1,10 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Microsoft.Extensions.Configuration;
 
 namespace ArchiveDex.Server.Infrastructure.Providers;
 
 public class OpenAiVisionProvider : IVisualCardAnalyzer
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly HttpClient _http;
     private readonly string _model;
     private readonly string _apiKey;
@@ -33,6 +32,7 @@ public class OpenAiVisionProvider : IVisualCardAnalyzer
                 }}
             },
             response_format = new { type = "json_schema", json_schema = Schema },
+            store = false,
             max_tokens = 1000,
             temperature = 0.0,
         };
@@ -42,11 +42,22 @@ public class OpenAiVisionProvider : IVisualCardAnalyzer
         req.Content = JsonContent.Create(request);
 
         using var response = await _http.SendAsync(req, ct);
+        response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-        var content = body.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()!;
-        var result = JsonSerializer.Deserialize<OpenAiCardResult>(content)!;
+        if (!body.TryGetProperty("choices", out var choices)
+            || choices.GetArrayLength() == 0
+            || !choices[0].GetProperty("message").TryGetProperty("content", out var contentElement)
+            || contentElement.GetString() is not { Length: > 0 } content)
+            throw new InvalidOperationException("OpenAI returned no analysis content.");
+        return ParseAnalysis(content);
+    }
 
-        return new AnalysisResult("COMPLETED", new ImageObservations(
+    internal static AnalysisResult ParseAnalysis(string content)
+    {
+        var result = JsonSerializer.Deserialize<OpenAiCardResult>(content, JsonOptions)
+            ?? throw new InvalidOperationException("AI provider returned invalid analysis JSON.");
+
+        return new AnalysisResult("completed", new ImageObservations(
             result.PrintedName, ToConfidence(result.PrintedNameConfidence),
             result.PrintedNumber, ToConfidence(result.NumberConfidence),
             result.Language, ToConfidence(result.LanguageConfidence),
@@ -63,12 +74,12 @@ public class OpenAiVisionProvider : IVisualCardAnalyzer
         "HIGH" => 0.95f, "MEDIUM" => 0.7f, "LOW" => 0.4f, _ => null
     };
 
-    private const string SystemPrompt = """
+    internal const string SystemPrompt = """
         You analyze Pokemon card images. Return structured JSON.
         Extract exactly what you see — do not invent facts.
         """;
 
-    private static readonly object Schema = new
+    internal static readonly object Schema = new
     {
         name = "pokemon_card_analysis",
         strict = true,
@@ -95,7 +106,13 @@ public class OpenAiVisionProvider : IVisualCardAnalyzer
                 conditionLimitations = new { type = "string" },
                 qualityIssues = new { type = "string" },
             },
-            required = new[] { "isPokemonCard", "cardCount" },
+            required = new[]
+            {
+                "isPokemonCard", "cardCount", "printedName", "printedNameConfidence", "printedNumber",
+                "numberConfidence", "language", "languageConfidence", "setCode", "setConfidence",
+                "finish", "finishConfidence", "condition", "conditionConfidence", "conditionDefects",
+                "conditionLimitations", "qualityIssues"
+            },
             additionalProperties = false,
         },
     };

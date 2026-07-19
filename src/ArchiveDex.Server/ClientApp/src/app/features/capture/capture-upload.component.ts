@@ -1,10 +1,9 @@
 import { Component } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../core/translate.service';
 import { LoadingStateComponent, ErrorStateComponent } from '../../shared/states.component';
-import { firstValueFrom } from 'rxjs';
 import { Router } from '@angular/router';
+import { CaptureService } from './capture.service';
 
 @Component({
   selector: 'app-capture-upload',
@@ -24,7 +23,7 @@ import { Router } from '@angular/router';
 })
 export class CaptureUploadComponent {
   selectedFile: File | null = null; uploading = false; error = '';
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private captures: CaptureService, private router: Router) {}
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) { this.selectedFile = input.files[0]; this.upload(); }
@@ -33,8 +32,7 @@ export class CaptureUploadComponent {
     if (!this.selectedFile) return;
     this.uploading = true; this.error = '';
     try {
-      const form = new FormData(); form.append('image', this.selectedFile);
-      const result = await firstValueFrom(this.http.post<{ id: string }>('/api/v1/captures', form));
+      const result = await this.captures.create(this.selectedFile);
       await this.router.navigate(['/capture', result.id]);
     } catch { this.error = 'Upload failed.'; }
     finally { this.uploading = false; }

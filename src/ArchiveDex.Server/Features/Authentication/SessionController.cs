@@ -29,7 +29,9 @@ public class SessionController : ControllerBase
         [FromBody] SignInRequest request,
         [FromServices] SignInManager<ApplicationUser> signInManager)
     {
-        var result = await signInManager.PasswordSignInAsync(request.UserName, request.Password, isPersistent: true, lockoutOnFailure: false);
+        var result = await signInManager.PasswordSignInAsync(request.UserName, request.Password, isPersistent: true, lockoutOnFailure: true);
+        if (result.IsLockedOut)
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { code = "ACCOUNT_LOCKED", message = "Too many failed attempts." });
         if (!result.Succeeded)
             return Unauthorized(new { code = "INVALID_CREDENTIALS", message = "Invalid username or password." });
 
@@ -48,6 +50,18 @@ public class SessionController : ControllerBase
     public IActionResult IssueAntiforgeryToken([FromServices] IAntiforgery antiforgery)
     {
         var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+        if (tokens.RequestToken is null)
+            return StatusCode(StatusCodes.Status500InternalServerError);
+
+        var secure = HttpContext.RequestServices.GetRequiredService<IConfiguration>()
+            .GetValue("Security:RequireHttpsCookies", true);
+        Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken, new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = secure,
+            SameSite = SameSiteMode.Strict,
+            Path = "/",
+        });
         return NoContent();
     }
 }

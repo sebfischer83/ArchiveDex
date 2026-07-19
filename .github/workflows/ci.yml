@@ -2,17 +2,40 @@ name: CI
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18.4
-        env: { POSTGRES_USER: archivedex, POSTGRES_PASSWORD: archivedex, POSTGRES_DB: archivedex }
-        ports: ["5432:5432"]
+    env:
+      DB_PASSWORD: ci-only-database-password
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: "10.0.x" }
-      - run: dotnet build
-      - run: dotnet test --no-build
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: src/ArchiveDex.Server/ClientApp/package-lock.json
+      - name: Restore server
+        run: dotnet restore ArchiveDex.slnx
+      - name: Build server
+        run: dotnet build ArchiveDex.slnx --configuration Release --no-restore -p:BuildAngularClient=false
+      - name: Test server
+        run: dotnet test ArchiveDex.slnx --configuration Release --no-build -p:BuildAngularClient=false
+      - name: Audit NuGet packages
+        run: dotnet list ArchiveDex.slnx package --vulnerable --include-transitive
+      - name: Restore client
+        working-directory: src/ArchiveDex.Server/ClientApp
+        run: npm ci --legacy-peer-deps
+      - name: Test client
+        working-directory: src/ArchiveDex.Server/ClientApp
+        run: npm test -- --run
+      - name: Build client
+        working-directory: src/ArchiveDex.Server/ClientApp
+        run: npm run build -- --configuration production
+      - name: Build deployment image
+        run: docker compose build web

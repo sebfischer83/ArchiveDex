@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { TranslatePipe } from '../../core/translate.service';
 import { LoadingStateComponent, EmptyStateComponent, ErrorStateComponent } from '../../shared/states.component';
+import { Router } from '@angular/router';
 
 interface SetSummary { id: string; setName: string; language: string; distinctCardCount: number; specimenCount: number; }
 
@@ -31,7 +32,7 @@ interface SetSummary { id: string; setName: string; language: string; distinctCa
 export class SetOverviewComponent implements OnInit {
   sets: SetSummary[] = [];
   loading = true; error = '';
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private router: Router) {}
   ngOnInit() { this.load(); }
   async load() {
     this.loading = true; this.error = '';
@@ -39,5 +40,5 @@ export class SetOverviewComponent implements OnInit {
     catch { this.error = 'Collection could not be loaded.'; }
     finally { this.loading = false; }
   }
-  openSet(id: string) { /* navigate */ }
+  openSet(id: string) { void this.router.navigate(['/sets', id, 'cards']); }
 }

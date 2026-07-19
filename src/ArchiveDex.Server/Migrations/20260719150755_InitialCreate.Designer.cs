@@ -3,6 +3,7 @@ using System;
 using ArchiveDex.Server.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ArchiveDex.Server.Migrations
 {
     [DbContext(typeof(ArchiveDexDbContext))]
-    partial class ArchiveDexDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260719150755_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -159,9 +162,6 @@ namespace ArchiveDex.Server.Migrations
 
                     b.HasIndex("OwnerId", "IdempotencyKey")
                         .IsUnique();
-
-                    b.HasIndex("Status", "UpdatedAt")
-                        .HasFilter("\"ProviderCorrelationId\" IS NOT NULL");
 
                     b.HasIndex("OwnerId", "Status", "ExpiresAt");
 

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ArchiveDex.Server.Migrations
 {
     [DbContext(typeof(ArchiveDexDbContext))]
-    [Migration("20260719092134_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260719181603_AddCaptureBatchPollingIndex")]
+    partial class AddCaptureBatchPollingIndex
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -117,17 +117,24 @@ namespace ArchiveDex.Server.Migrations
                     b.Property<string>("ErrorDetail")
                         .HasColumnType("text");
 
+                    b.Property<bool>("ErrorRetryable")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<Guid>("ImageAssetId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("ImageAssetId1")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ProcessingStartedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ProviderCorrelationId")
                         .HasColumnType("text");
@@ -150,13 +157,23 @@ namespace ArchiveDex.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ImageAssetId");
+                    b.HasIndex("ImageAssetId")
+                        .IsUnique();
 
-                    b.HasIndex("ImageAssetId1");
+                    b.HasIndex("OwnerId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "UpdatedAt")
+                        .HasFilter("\"ProviderCorrelationId\" IS NOT NULL");
 
                     b.HasIndex("OwnerId", "Status", "ExpiresAt");
 
-                    b.ToTable("CaptureDrafts");
+                    b.ToTable("CaptureDrafts", t =>
+                        {
+                            t.HasCheckConstraint("CK_CaptureDraft_RetryCount", "\"RetryCount\" >= 0 AND \"RetryCount\" <= 3");
+
+                            t.HasCheckConstraint("CK_CaptureDraft_Status", "\"Status\" IN ('uploaded', 'analyzing', 'needsReview', 'needsNewImage', 'failed')");
+                        });
                 });
 
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CardRecord", b =>
@@ -214,14 +231,19 @@ namespace ArchiveDex.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SetEditionId");
+                    b.HasIndex("CatalogCardReferenceId");
 
-                    b.HasIndex("OwnerId", "SetEditionId", "NumberSortKey");
+                    b.HasIndex("SetEditionId");
 
                     b.HasIndex("OwnerId", "SetEditionId", "NumberNormalized", "VariantKey")
                         .IsUnique();
 
-                    b.ToTable("CardRecords");
+                    b.HasIndex("OwnerId", "SetEditionId", "NumberSortKey", "Id");
+
+                    b.ToTable("CardRecords", t =>
+                        {
+                            t.HasCheckConstraint("CK_CardRecord_GermanName", "(\"GermanName\" IS NOT NULL) <> (\"GermanNameUnavailableReason\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CardSpecimen", b =>
@@ -246,9 +268,6 @@ namespace ArchiveDex.Server.Migrations
                     b.Property<Guid>("ImageAssetId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("ImageAssetId1")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime?>("MarketDataAsOf")
                         .HasColumnType("timestamp with time zone");
 
@@ -258,8 +277,8 @@ namespace ArchiveDex.Server.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<decimal?>("ValuationAmount")
-                        .HasColumnType("numeric");
+                    b.Property<long?>("ValuationAmountMinor")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("ValuationConfidence")
                         .HasColumnType("text");
@@ -289,11 +308,14 @@ namespace ArchiveDex.Server.Migrations
                     b.HasIndex("ImageAssetId")
                         .IsUnique();
 
-                    b.HasIndex("ImageAssetId1");
+                    b.HasIndex("OwnerId", "CardRecordId", "Id");
 
-                    b.HasIndex("OwnerId", "CardRecordId");
+                    b.ToTable("CardSpecimens", t =>
+                        {
+                            t.HasCheckConstraint("CK_CardSpecimen_Condition", "\"Condition\" IN ('NM', 'LP', 'MP', 'HP', 'DMG')");
 
-                    b.ToTable("CardSpecimens");
+                            t.HasCheckConstraint("CK_CardSpecimen_Valuation", "\"ValuationAmountMinor\" IS NULL OR (\"ValuationAmountMinor\" >= 0 AND \"ValuationCurrency\" = 'EUR' AND \"ValuedAt\" IS NOT NULL AND \"MarketDataAsOf\" IS NOT NULL AND \"ValuationProvider\" IS NOT NULL AND \"ValuationMethod\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CatalogCardReference", b =>
@@ -342,6 +364,8 @@ namespace ArchiveDex.Server.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CatalogSetReferenceId");
+
                     b.HasIndex("Namespace", "ExternalId", "CatalogVersion", "LanguageCode", "VariantKey")
                         .IsUnique();
 
@@ -386,6 +410,46 @@ namespace ArchiveDex.Server.Migrations
                         .IsUnique();
 
                     b.ToTable("CatalogSetReferences");
+                });
+
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.FinalizationRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CaptureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CardRecordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SpecimenId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CardRecordId");
+
+                    b.HasIndex("SpecimenId");
+
+                    b.HasIndex("OwnerId", "CaptureId")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("FinalizationRecords");
                 });
 
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.ImageAsset", b =>
@@ -444,13 +508,26 @@ namespace ArchiveDex.Server.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DuplicateMatchImageId");
+
                     b.HasIndex("OwnerId", "NormalizedSha256")
-                        .HasFilter("state = 'attached'");
+                        .HasFilter("\"State\" = 'attached'");
 
                     b.HasIndex("OwnerId", "UploadSha256")
-                        .HasFilter("state = 'attached'");
+                        .HasFilter("\"State\" = 'attached'");
 
-                    b.ToTable("ImageAssets");
+                    b.ToTable("ImageAssets", t =>
+                        {
+                            t.HasCheckConstraint("CK_ImageAsset_Dimensions", "\"Width\" > 0 AND \"Height\" > 0 AND \"Width\"::bigint * \"Height\" <= 30000000");
+
+                            t.HasCheckConstraint("CK_ImageAsset_Expiry", "(\"State\" = 'draft' AND \"ExpiresAt\" IS NOT NULL) OR (\"State\" = 'attached' AND \"ExpiresAt\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_ImageAsset_NormalizedSha256", "octet_length(\"NormalizedSha256\") = 32");
+
+                            t.HasCheckConstraint("CK_ImageAsset_State", "\"State\" IN ('draft', 'attached')");
+
+                            t.HasCheckConstraint("CK_ImageAsset_UploadSha256", "octet_length(\"UploadSha256\") = 32");
+                        });
                 });
 
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.SetEdition", b =>
@@ -494,6 +571,8 @@ namespace ArchiveDex.Server.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CatalogSetReferenceId");
 
                     b.HasIndex("OwnerId", "SetIdentifierNormalized", "LanguageCode")
                         .IsUnique();
@@ -633,21 +712,34 @@ namespace ArchiveDex.Server.Migrations
 
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CaptureDraft", b =>
                 {
-                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ImageAsset", null)
-                        .WithMany()
-                        .HasForeignKey("ImageAssetId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ImageAsset", "ImageAsset")
+                        .WithOne()
+                        .HasForeignKey("ArchiveDex.Server.Infrastructure.Persistence.CaptureDraft", "ImageAssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ImageAsset", "ImageAsset")
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ApplicationUser", null)
                         .WithMany()
-                        .HasForeignKey("ImageAssetId1");
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("ImageAsset");
                 });
 
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CardRecord", b =>
                 {
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.CatalogCardReference", null)
+                        .WithMany()
+                        .HasForeignKey("CatalogCardReferenceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.SetEdition", "SetEdition")
                         .WithMany("CardRecords")
                         .HasForeignKey("SetEditionId")
@@ -665,19 +757,85 @@ namespace ArchiveDex.Server.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ImageAsset", null)
-                        .WithMany()
-                        .HasForeignKey("ImageAssetId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ImageAsset", "ImageAsset")
+                        .WithOne()
+                        .HasForeignKey("ArchiveDex.Server.Infrastructure.Persistence.CardSpecimen", "ImageAssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ImageAsset", "ImageAsset")
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ApplicationUser", null)
                         .WithMany()
-                        .HasForeignKey("ImageAssetId1");
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("CardRecord");
 
                     b.Navigation("ImageAsset");
+                });
+
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CatalogCardReference", b =>
+                {
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.CatalogSetReference", "CatalogSetReference")
+                        .WithMany()
+                        .HasForeignKey("CatalogSetReferenceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CatalogSetReference");
+                });
+
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.FinalizationRecord", b =>
+                {
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.CardRecord", null)
+                        .WithMany()
+                        .HasForeignKey("CardRecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.CardSpecimen", null)
+                        .WithMany()
+                        .HasForeignKey("SpecimenId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.ImageAsset", b =>
+                {
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ImageAsset", null)
+                        .WithMany()
+                        .HasForeignKey("DuplicateMatchImageId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.SetEdition", b =>
+                {
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.CatalogSetReference", "CatalogSetReference")
+                        .WithMany()
+                        .HasForeignKey("CatalogSetReferenceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CatalogSetReference");
+
+                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

@@ -14,6 +14,11 @@ export class SessionService {
 
   constructor(private http: HttpClient) {}
 
+  async initialize(): Promise<void> {
+    await this.issueAntiforgeryToken();
+    await this.load();
+  }
+
   async load(): Promise<void> {
     try {
       const s = await firstValueFrom(this.http.get<SessionState>('/api/v1/session'));
@@ -22,12 +27,19 @@ export class SessionService {
   }
 
   async signIn(userName: string, password: string): Promise<void> {
+    await this.issueAntiforgeryToken();
     await firstValueFrom(this.http.post('/api/v1/session/sign-in', { userName, password }));
+    await this.issueAntiforgeryToken();
     await this.load();
   }
 
   async signOut(): Promise<void> {
     await firstValueFrom(this.http.post('/api/v1/session/sign-out', {}));
+    await this.issueAntiforgeryToken();
     this._state.set({ isAuthenticated: false, displayName: null });
+  }
+
+  private async issueAntiforgeryToken(): Promise<void> {
+    await firstValueFrom(this.http.get('/api/v1/antiforgery', { responseType: 'text' }));
   }
 }

@@ -18,7 +18,7 @@ public class CollectionController(ArchiveDexDbContext db) : ControllerBase
                 s => s.Id, c => c.SetEditionId,
                 (s, cards) => new
                 {
-                    s.Id, s.SetIdentifier, s.Name, s.LanguageCode,
+                    s.Id, s.SetIdentifier, setName = s.Name, language = s.LanguageCode,
                     distinctCardCount = cards.Count(),
                     specimenCount = cards.Sum(c => c.Specimens.Count),
                 })
@@ -50,6 +50,7 @@ public class CollectionController(ArchiveDexDbContext db) : ControllerBase
     {
         var ownerId = GetOwnerId();
         var card = await db.CardRecords
+            .Include(x => x.SetEdition)
             .Include(x => x.Specimens)
             .FirstOrDefaultAsync(x => x.Id == cardRecordId && x.OwnerId == ownerId, ct);
 
@@ -59,18 +60,20 @@ public class CollectionController(ArchiveDexDbContext db) : ControllerBase
         {
             card.Id, card.OriginalName, card.GermanName, card.GermanNameUnavailableReason,
             card.PrintedNumber, card.VariantKey,
-            card.SetEdition?.SetIdentifier, card.SetEdition?.Name, card.SetEdition?.LanguageCode,
+            setIdentifier = card.SetEdition?.SetIdentifier,
+            setName = card.SetEdition?.Name,
+            language = card.SetEdition?.LanguageCode,
             specimens = card.Specimens.Select(s => new
             {
                 s.Id, s.Condition,
                 imageUrl = $"/api/v1/specimens/{s.Id}/image?size=full",
                 thumbnailUrl = $"/api/v1/specimens/{s.Id}/image?size=thumbnail",
-                valuation = s.ValuationAmount is not null ? new
+                valuation = s.ValuationAmountMinor is not null ? new
                 {
-                    status = "available", amountMinor = (long?)(s.ValuationAmount * 100),
-                    s.ValuationCurrency, s.ValuedAt, s.MarketDataAsOf,
-                    s.ValuationProvider, s.ValuationMethod, s.ValuationConfidence,
-                    s.ConditionAppliedToValuation,
+                    status = "available", amountMinor = s.ValuationAmountMinor,
+                    currency = s.ValuationCurrency, estimatedAt = s.ValuedAt, s.MarketDataAsOf,
+                    provider = s.ValuationProvider, method = s.ValuationMethod, confidence = s.ValuationConfidence,
+                    conditionApplied = s.ConditionAppliedToValuation,
                     disclaimer = "Unverbindliche Schätzung.",
                 } : new { status = "unavailable" } as object,
                 createdAt = s.CreatedAt,
@@ -118,7 +121,12 @@ public class CollectionController(ArchiveDexDbContext db) : ControllerBase
 
         if (specimen?.ImageAsset is null) return NotFound();
 
+        if (size is not ("thumbnail" or "full"))
+            return BadRequest(new ProblemDetails { Title = "INVALID_IMAGE_SIZE", Status = 400, Detail = "Size must be thumbnail or full." });
+
         var imageBytes = size == "full" ? specimen.ImageAsset.Content : specimen.ImageAsset.Thumbnail;
+        Response.Headers.CacheControl = "private";
+        Response.Headers.XContentTypeOptions = "nosniff";
         return File(imageBytes, specimen.ImageAsset.ContentType);
     }
 

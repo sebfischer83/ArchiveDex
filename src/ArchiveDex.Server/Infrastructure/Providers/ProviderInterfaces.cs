@@ -5,6 +5,13 @@ public interface IVisualCardAnalyzer
     Task<AnalysisResult> AnalyzeAsync(byte[] imageBytes, CancellationToken ct = default);
 }
 
+public interface IBatchVisualCardAnalyzer
+{
+    bool IsConfigured { get; }
+    Task<string> SubmitAsync(byte[] imageBytes, CancellationToken ct = default);
+    Task<BatchAnalysisResult> GetResultAsync(string batchId, CancellationToken ct = default);
+}
+
 public interface ICardCatalog
 {
     Task<CatalogResolutionResult> ResolveAsync(ImageObservations observations, CancellationToken ct = default);
@@ -29,6 +36,11 @@ public record ImageObservations(
 public record AnalysisResult(
     string Status,
     ImageObservations? Observations,
+    string? ErrorCode, string? ErrorDetail);
+
+public record BatchAnalysisResult(
+    string Status,
+    AnalysisResult? Analysis,
     string? ErrorCode, string? ErrorDetail);
 
 public record CatalogCandidate(

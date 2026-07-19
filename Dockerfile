@@ -17,9 +17,14 @@ COPY tests/ArchiveDex.E2E/ArchiveDex.E2E.csproj tests/ArchiveDex.E2E/
 RUN dotnet restore
 COPY . .
 COPY --from=client-builder /client/dist/archive-dex-client src/ArchiveDex.Server/obj/angular
-RUN dotnet publish src/ArchiveDex.Server/ArchiveDex.Server.csproj -c Release -o /out
+RUN dotnet publish src/ArchiveDex.Server/ArchiveDex.Server.csproj -c Release -o /out -p:BuildAngularClient=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.10-noble
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /app/dataprotection \
+    && chown "$APP_UID:$APP_UID" /app/dataprotection
 WORKDIR /app
 COPY --from=builder /out .
 USER $APP_UID
