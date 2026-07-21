@@ -18,3 +18,8 @@ dotnet_diagnostic.CA2007.severity = none
 
 [*.{csproj,xml,json,yml,yaml}]
 indent_size = 2
+
+# EF Core migrations are tool-generated; do not analyze them as build errors.
+[**/Migrations/*.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none

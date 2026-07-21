@@ -14,7 +14,7 @@ COPY tests/ArchiveDex.Server.UnitTests/ArchiveDex.Server.UnitTests.csproj tests/
 COPY tests/ArchiveDex.Server.IntegrationTests/ArchiveDex.Server.IntegrationTests.csproj tests/ArchiveDex.Server.IntegrationTests/
 COPY tests/ArchiveDex.Server.ContractTests/ArchiveDex.Server.ContractTests.csproj tests/ArchiveDex.Server.ContractTests/
 COPY tests/ArchiveDex.E2E/ArchiveDex.E2E.csproj tests/ArchiveDex.E2E/
-RUN dotnet restore
+RUN dotnet restore src/ArchiveDex.Server/ArchiveDex.Server.csproj
 COPY . .
 COPY --from=client-builder /client/dist/archive-dex-client src/ArchiveDex.Server/obj/angular
 RUN dotnet publish src/ArchiveDex.Server/ArchiveDex.Server.csproj -c Release -o /out -p:BuildAngularClient=false

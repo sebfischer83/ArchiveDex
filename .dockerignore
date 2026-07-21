@@ -9,3 +9,5 @@
 **/coverage/
 **/Dockerfile*
 .dockerignore
+*.dcproj
+docker-compose*.yml

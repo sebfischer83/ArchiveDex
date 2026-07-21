@@ -17,3 +17,5 @@ Thumbs.db
 coverage/
 ClientApp/.angular/
 ClientApp/src/app/generated/
+# Angular build output mirrored into wwwroot by the SyncAngularToWwwroot target
+src/ArchiveDex.Server/wwwroot/

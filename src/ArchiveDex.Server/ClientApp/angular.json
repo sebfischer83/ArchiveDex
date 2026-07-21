@@ -25,6 +25,17 @@
             "production": { "optimization": true, "outputHashing": "all" }
           }
         },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
+          "configurations": {
+            "production": { "buildTarget": "archive-dex-client:build:production" },
+            "development": { "buildTarget": "archive-dex-client:build" }
+          },
+          "defaultConfiguration": "development"
+        },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": { "tsConfig": "tsconfig.spec.json", "polyfills": ["zone.js", "zone.js/testing"] }

@@ -1,0 +1,2022 @@
+{
+  "_maintenance": "Generated from current TCGdex, Limitless, and Serebii catalogs. Review diffs before committing; identifiers must remain unique per source/language and manual database mappings always win.",
+  "generatedAt": "2026-07-14",
+  "sets": [
+    {
+      "canonicalName": "Base Set",
+      "releaseDate": "1999-01-09",
+      "tcgdex": {
+        "id": "base1"
+      },
+      "limitless": {
+        "code": "BS"
+      },
+      "serebii": {
+        "en": "base"
+      }
+    },
+    {
+      "canonicalName": "Jungle",
+      "releaseDate": "1999-06-16",
+      "tcgdex": {
+        "id": "base2"
+      },
+      "limitless": {
+        "code": "JU"
+      },
+      "serebii": {
+        "en": "jungle"
+      }
+    },
+    {
+      "canonicalName": "Fossil",
+      "releaseDate": "1999-10-10",
+      "tcgdex": {
+        "id": "base3"
+      },
+      "limitless": {
+        "code": "FO"
+      },
+      "serebii": {
+        "en": "fossil"
+      }
+    },
+    {
+      "canonicalName": "Base Set 2",
+      "releaseDate": "2000-02-24",
+      "tcgdex": {
+        "id": "base4"
+      },
+      "limitless": {
+        "code": "BS2"
+      }
+    },
+    {
+      "canonicalName": "Team Rocket",
+      "releaseDate": "2000-04-24",
+      "tcgdex": {
+        "id": "base5"
+      },
+      "limitless": {
+        "code": "TR"
+      },
+      "serebii": {
+        "en": "teamrocket"
+      }
+    },
+    {
+      "canonicalName": "Gym Heroes",
+      "releaseDate": "2000-08-14",
+      "tcgdex": {
+        "id": "gym1"
+      },
+      "limitless": {
+        "code": "G1"
+      },
+      "serebii": {
+        "en": "gymheroes"
+      }
+    },
+    {
+      "canonicalName": "Gym Challenge",
+      "releaseDate": "2000-10-16",
+      "tcgdex": {
+        "id": "gym2"
+      },
+      "limitless": {
+        "code": "G2"
+      },
+      "serebii": {
+        "en": "gymchallenge"
+      }
+    },
+    {
+      "canonicalName": "Neo Genesis",
+      "releaseDate": "2000-12-16",
+      "tcgdex": {
+        "id": "neo1"
+      },
+      "limitless": {
+        "code": "N1"
+      },
+      "serebii": {
+        "en": "neogenesis"
+      }
+    },
+    {
+      "canonicalName": "Neo Discovery",
+      "releaseDate": "2001-06-01",
+      "tcgdex": {
+        "id": "neo2"
+      },
+      "limitless": {
+        "code": "N2"
+      },
+      "serebii": {
+        "en": "neodiscovery"
+      }
+    },
+    {
+      "canonicalName": "Southern Islands",
+      "releaseDate": "2001-07-31",
+      "tcgdex": {
+        "id": "si1"
+      },
+      "limitless": {
+        "code": "SI"
+      }
+    },
+    {
+      "canonicalName": "Neo Revelation",
+      "releaseDate": "2001-09-21",
+      "tcgdex": {
+        "id": "neo3"
+      },
+      "limitless": {
+        "code": "N3"
+      },
+      "serebii": {
+        "en": "neorevelation"
+      }
+    },
+    {
+      "canonicalName": "Neo Destiny",
+      "releaseDate": "2002-02-28",
+      "tcgdex": {
+        "id": "neo4"
+      },
+      "limitless": {
+        "code": "N4"
+      },
+      "serebii": {
+        "en": "neodestiny"
+      }
+    },
+    {
+      "canonicalName": "Legendary Collection",
+      "releaseDate": "2002-05-24",
+      "tcgdex": {
+        "id": "lc"
+      },
+      "limitless": {
+        "code": "LC"
+      }
+    },
+    {
+      "canonicalName": "Expedition Base Set",
+      "releaseDate": "2002-09-15",
+      "tcgdex": {
+        "id": "ecard1"
+      },
+      "limitless": {
+        "code": "E1"
+      },
+      "serebii": {
+        "en": "expedition"
+      }
+    },
+    {
+      "canonicalName": "Best of game",
+      "releaseDate": "2002-12-01",
+      "tcgdex": {
+        "id": "bog"
+      },
+      "limitless": {
+        "code": "BG"
+      }
+    },
+    {
+      "canonicalName": "Aquapolis",
+      "releaseDate": "2003-01-15",
+      "tcgdex": {
+        "id": "ecard2"
+      },
+      "limitless": {
+        "code": "E2"
+      },
+      "serebii": {
+        "en": "aquapolis"
+      }
+    },
+    {
+      "canonicalName": "Skyridge",
+      "releaseDate": "2003-05-12",
+      "tcgdex": {
+        "id": "ecard3"
+      },
+      "limitless": {
+        "code": "E3"
+      },
+      "serebii": {
+        "en": "skyridge"
+      }
+    },
+    {
+      "canonicalName": "Sandstorm",
+      "releaseDate": "2003-09-18",
+      "tcgdex": {
+        "id": "ex2"
+      },
+      "limitless": {
+        "code": "SS"
+      },
+      "serebii": {
+        "en": "exsandstorm"
+      }
+    },
+    {
+      "canonicalName": "Dragon",
+      "releaseDate": "2003-11-24",
+      "tcgdex": {
+        "id": "ex3"
+      },
+      "limitless": {
+        "code": "DR"
+      },
+      "serebii": {
+        "en": "exdragon"
+      }
+    },
+    {
+      "canonicalName": "Team Magma vs Team Aqua",
+      "releaseDate": "2004-03-01",
+      "tcgdex": {
+        "id": "ex4"
+      },
+      "limitless": {
+        "code": "MA"
+      },
+      "serebii": {
+        "en": "exteammagmavsteamaqua"
+      }
+    },
+    {
+      "canonicalName": "Hidden Legends",
+      "releaseDate": "2004-06-01",
+      "tcgdex": {
+        "id": "ex5"
+      },
+      "limitless": {
+        "code": "HL"
+      },
+      "serebii": {
+        "en": "exhiddenlegends"
+      }
+    },
+    {
+      "canonicalName": "POP Series 1",
+      "releaseDate": "2004-09-01",
+      "tcgdex": {
+        "id": "pop1"
+      },
+      "limitless": {
+        "code": "P1"
+      }
+    },
+    {
+      "canonicalName": "Team Rocket Returns",
+      "releaseDate": "2004-11-01",
+      "tcgdex": {
+        "id": "ex7"
+      },
+      "limitless": {
+        "code": "TRR"
+      },
+      "serebii": {
+        "en": "exteamrocketreturns"
+      }
+    },
+    {
+      "canonicalName": "Deoxys",
+      "releaseDate": "2005-02-01",
+      "tcgdex": {
+        "id": "ex8"
+      },
+      "limitless": {
+        "code": "DX"
+      },
+      "serebii": {
+        "en": "exdeoxys"
+      }
+    },
+    {
+      "canonicalName": "Emerald",
+      "releaseDate": "2005-05-09",
+      "tcgdex": {
+        "id": "ex9"
+      },
+      "limitless": {
+        "code": "EM"
+      },
+      "serebii": {
+        "en": "exemerald"
+      }
+    },
+    {
+      "canonicalName": "POP Series 2",
+      "releaseDate": "2005-08-01",
+      "tcgdex": {
+        "id": "pop2"
+      },
+      "limitless": {
+        "code": "P2"
+      }
+    },
+    {
+      "canonicalName": "Unseen Forces",
+      "releaseDate": "2005-08-22",
+      "tcgdex": {
+        "id": "ex10"
+      },
+      "limitless": {
+        "code": "UF"
+      }
+    },
+    {
+      "canonicalName": "Delta Species",
+      "releaseDate": "2005-10-31",
+      "tcgdex": {
+        "id": "ex11"
+      },
+      "limitless": {
+        "code": "DS"
+      },
+      "serebii": {
+        "en": "exdeltaspecies"
+      }
+    },
+    {
+      "canonicalName": "Legend Maker",
+      "releaseDate": "2006-02-13",
+      "tcgdex": {
+        "id": "ex12"
+      },
+      "limitless": {
+        "code": "LM"
+      },
+      "serebii": {
+        "en": "exlegendmaker"
+      }
+    },
+    {
+      "canonicalName": "POP Series 3",
+      "releaseDate": "2006-04-01",
+      "tcgdex": {
+        "id": "pop3"
+      },
+      "limitless": {
+        "code": "P3"
+      }
+    },
+    {
+      "canonicalName": "Holon Phantoms",
+      "releaseDate": "2006-05-03",
+      "tcgdex": {
+        "id": "ex13"
+      },
+      "limitless": {
+        "code": "HP"
+      },
+      "serebii": {
+        "en": "exholonphantoms"
+      }
+    },
+    {
+      "canonicalName": "POP Series 4",
+      "releaseDate": "2006-08-01",
+      "tcgdex": {
+        "id": "pop4"
+      },
+      "limitless": {
+        "code": "P4"
+      }
+    },
+    {
+      "canonicalName": "Crystal Guardians",
+      "releaseDate": "2006-08-30",
+      "tcgdex": {
+        "id": "ex14"
+      },
+      "limitless": {
+        "code": "CG"
+      },
+      "serebii": {
+        "en": "excrystalguardians"
+      }
+    },
+    {
+      "canonicalName": "Dragon Frontiers",
+      "releaseDate": "2006-11-08",
+      "tcgdex": {
+        "id": "ex15"
+      },
+      "limitless": {
+        "code": "DF"
+      },
+      "serebii": {
+        "en": "exdragonfrontiers"
+      }
+    },
+    {
+      "canonicalName": "Power Keepers",
+      "releaseDate": "2007-02-17",
+      "tcgdex": {
+        "id": "ex16"
+      },
+      "limitless": {
+        "code": "PK"
+      }
+    },
+    {
+      "canonicalName": "POP Series 5",
+      "releaseDate": "2007-03-01",
+      "tcgdex": {
+        "id": "pop5"
+      },
+      "limitless": {
+        "code": "P5"
+      }
+    },
+    {
+      "canonicalName": "Mysterious Treasures",
+      "releaseDate": "2007-08-01",
+      "tcgdex": {
+        "id": "dp2"
+      },
+      "limitless": {
+        "code": "MT"
+      },
+      "serebii": {
+        "en": "mysterioustreasures"
+      }
+    },
+    {
+      "canonicalName": "POP Series 6",
+      "releaseDate": "2007-09-01",
+      "tcgdex": {
+        "id": "pop6"
+      },
+      "limitless": {
+        "code": "P6"
+      }
+    },
+    {
+      "canonicalName": "Secret Wonders",
+      "releaseDate": "2007-11-01",
+      "tcgdex": {
+        "id": "dp3"
+      },
+      "limitless": {
+        "code": "SW"
+      },
+      "serebii": {
+        "en": "secretwonders"
+      }
+    },
+    {
+      "canonicalName": "Great Encounters",
+      "releaseDate": "2008-02-01",
+      "tcgdex": {
+        "id": "dp4"
+      },
+      "limitless": {
+        "code": "GE"
+      },
+      "serebii": {
+        "en": "greatencounters"
+      }
+    },
+    {
+      "canonicalName": "POP Series 7",
+      "releaseDate": "2008-03-01",
+      "tcgdex": {
+        "id": "pop7"
+      },
+      "limitless": {
+        "code": "P7"
+      }
+    },
+    {
+      "canonicalName": "Majestic Dawn",
+      "releaseDate": "2008-05-01",
+      "tcgdex": {
+        "id": "dp5"
+      },
+      "limitless": {
+        "code": "MD"
+      },
+      "serebii": {
+        "en": "majesticdawn"
+      }
+    },
+    {
+      "canonicalName": "Legends Awakened",
+      "releaseDate": "2008-08-01",
+      "tcgdex": {
+        "id": "dp6"
+      },
+      "limitless": {
+        "code": "LA"
+      },
+      "serebii": {
+        "en": "legendsawakened"
+      }
+    },
+    {
+      "canonicalName": "POP Series 8",
+      "releaseDate": "2008-09-01",
+      "tcgdex": {
+        "id": "pop8"
+      },
+      "limitless": {
+        "code": "P8"
+      }
+    },
+    {
+      "canonicalName": "Stormfront",
+      "releaseDate": "2008-11-01",
+      "tcgdex": {
+        "id": "dp7"
+      },
+      "limitless": {
+        "code": "SF"
+      },
+      "serebii": {
+        "en": "stormfront"
+      }
+    },
+    {
+      "canonicalName": "Platinum",
+      "releaseDate": "2009-02-11",
+      "tcgdex": {
+        "id": "pl1"
+      },
+      "limitless": {
+        "code": "PL"
+      },
+      "serebii": {
+        "en": "platinum"
+      }
+    },
+    {
+      "canonicalName": "POP Series 9",
+      "releaseDate": "2009-03-01",
+      "tcgdex": {
+        "id": "pop9"
+      },
+      "limitless": {
+        "code": "P9"
+      }
+    },
+    {
+      "canonicalName": "Rising Rivals",
+      "releaseDate": "2009-05-16",
+      "tcgdex": {
+        "id": "pl2"
+      },
+      "limitless": {
+        "code": "RR"
+      },
+      "serebii": {
+        "en": "risingrivals"
+      }
+    },
+    {
+      "canonicalName": "Supreme Victors",
+      "releaseDate": "2009-08-19",
+      "tcgdex": {
+        "id": "pl3"
+      },
+      "limitless": {
+        "code": "SV"
+      },
+      "serebii": {
+        "en": "supremevictors"
+      }
+    },
+    {
+      "canonicalName": "Arceus",
+      "releaseDate": "2009-11-04",
+      "tcgdex": {
+        "id": "pl4"
+      },
+      "limitless": {
+        "code": "AR"
+      },
+      "serebii": {
+        "en": "arceus"
+      }
+    },
+    {
+      "canonicalName": "Pok\u00E9mon Rumble",
+      "releaseDate": "2009-12-02",
+      "tcgdex": {
+        "id": "ru1"
+      },
+      "limitless": {
+        "code": "RM"
+      }
+    },
+    {
+      "canonicalName": "HeartGold SoulSilver",
+      "releaseDate": "2010-02-10",
+      "tcgdex": {
+        "id": "hgss1"
+      },
+      "serebii": {
+        "en": "heartgoldsoulsilver"
+      }
+    },
+    {
+      "canonicalName": "Unleashed",
+      "releaseDate": "2010-05-12",
+      "tcgdex": {
+        "id": "hgss2"
+      },
+      "limitless": {
+        "code": "UL"
+      },
+      "serebii": {
+        "en": "unleashed"
+      }
+    },
+    {
+      "canonicalName": "Undaunted",
+      "releaseDate": "2010-08-18",
+      "tcgdex": {
+        "id": "hgss3"
+      },
+      "limitless": {
+        "code": "UD"
+      },
+      "serebii": {
+        "en": "undaunted"
+      }
+    },
+    {
+      "canonicalName": "Triumphant",
+      "releaseDate": "2010-11-03",
+      "tcgdex": {
+        "id": "hgss4"
+      },
+      "limitless": {
+        "code": "TM"
+      },
+      "serebii": {
+        "en": "triumphant"
+      }
+    },
+    {
+      "canonicalName": "Call of Legends",
+      "releaseDate": "2011-02-09",
+      "tcgdex": {
+        "id": "col1"
+      },
+      "limitless": {
+        "code": "CL"
+      },
+      "serebii": {
+        "en": "calloflegends"
+      }
+    },
+    {
+      "canonicalName": "Black \u0026 White",
+      "releaseDate": "2011-04-25",
+      "tcgdex": {
+        "id": "bw1"
+      },
+      "serebii": {
+        "en": "blackwhite"
+      }
+    },
+    {
+      "canonicalName": "Emerging Powers",
+      "releaseDate": "2011-08-31",
+      "tcgdex": {
+        "id": "bw2"
+      },
+      "limitless": {
+        "code": "EPO"
+      },
+      "serebii": {
+        "en": "emergingpowers"
+      }
+    },
+    {
+      "canonicalName": "Noble Victories",
+      "releaseDate": "2011-11-16",
+      "tcgdex": {
+        "id": "bw3"
+      },
+      "limitless": {
+        "code": "NVI"
+      },
+      "serebii": {
+        "en": "noblevictories"
+      }
+    },
+    {
+      "canonicalName": "Next Destinies",
+      "releaseDate": "2012-02-08",
+      "tcgdex": {
+        "id": "bw4"
+      },
+      "limitless": {
+        "code": "NXD"
+      },
+      "serebii": {
+        "en": "nextdestinies"
+      }
+    },
+    {
+      "canonicalName": "Dark Explorers",
+      "releaseDate": "2012-05-09",
+      "tcgdex": {
+        "id": "bw5"
+      },
+      "limitless": {
+        "code": "DEX"
+      },
+      "serebii": {
+        "en": "darkexplorers"
+      }
+    },
+    {
+      "canonicalName": "Dragons Exalted",
+      "releaseDate": "2012-08-15",
+      "tcgdex": {
+        "id": "bw6"
+      },
+      "limitless": {
+        "code": "DRX"
+      },
+      "serebii": {
+        "en": "dragonsexalted"
+      }
+    },
+    {
+      "canonicalName": "Dragon Vault",
+      "releaseDate": "2012-10-05",
+      "tcgdex": {
+        "id": "dv1"
+      },
+      "limitless": {
+        "code": "DRV"
+      },
+      "serebii": {
+        "en": "dragonvault"
+      }
+    },
+    {
+      "canonicalName": "Boundaries Crossed",
+      "releaseDate": "2012-11-07",
+      "tcgdex": {
+        "id": "bw7"
+      },
+      "limitless": {
+        "code": "BCR"
+      },
+      "serebii": {
+        "en": "boundariescrossed"
+      }
+    },
+    {
+      "canonicalName": "Plasma Storm",
+      "releaseDate": "2013-02-06",
+      "tcgdex": {
+        "id": "bw8"
+      },
+      "limitless": {
+        "code": "PLS"
+      },
+      "serebii": {
+        "en": "plasmastorm"
+      }
+    },
+    {
+      "canonicalName": "Plasma Freeze",
+      "releaseDate": "2013-05-08",
+      "tcgdex": {
+        "id": "bw9"
+      },
+      "limitless": {
+        "code": "PLF"
+      },
+      "serebii": {
+        "en": "plasmafreeze"
+      }
+    },
+    {
+      "canonicalName": "Plasma Blast",
+      "releaseDate": "2013-08-14",
+      "tcgdex": {
+        "id": "bw10"
+      },
+      "limitless": {
+        "code": "PLB"
+      },
+      "serebii": {
+        "en": "plasmablast"
+      }
+    },
+    {
+      "canonicalName": "Legendary Treasures",
+      "releaseDate": "2013-11-06",
+      "tcgdex": {
+        "id": "bw11"
+      },
+      "limitless": {
+        "code": "LTR"
+      },
+      "serebii": {
+        "en": "legendarytreasures"
+      }
+    },
+    {
+      "canonicalName": "Kalos Starter Set",
+      "releaseDate": "2013-11-08",
+      "tcgdex": {
+        "id": "xy0"
+      },
+      "limitless": {
+        "code": "KSS"
+      }
+    },
+    {
+      "canonicalName": "XY",
+      "releaseDate": "2014-02-05",
+      "tcgdex": {
+        "id": "xy1"
+      },
+      "limitless": {
+        "code": "XY"
+      },
+      "serebii": {
+        "en": "xy"
+      }
+    },
+    {
+      "canonicalName": "Flashfire",
+      "releaseDate": "2014-05-07",
+      "tcgdex": {
+        "id": "xy2"
+      },
+      "limitless": {
+        "code": "FLF"
+      },
+      "serebii": {
+        "en": "flashfire"
+      }
+    },
+    {
+      "canonicalName": "Furious Fists",
+      "releaseDate": "2014-08-13",
+      "tcgdex": {
+        "id": "xy3"
+      },
+      "limitless": {
+        "code": "FFI"
+      },
+      "serebii": {
+        "en": "furiousfists"
+      }
+    },
+    {
+      "canonicalName": "Phantom Forces",
+      "releaseDate": "2014-11-05",
+      "tcgdex": {
+        "id": "xy4"
+      },
+      "limitless": {
+        "code": "PHF"
+      },
+      "serebii": {
+        "en": "phantomforces"
+      }
+    },
+    {
+      "canonicalName": "Primal Clash",
+      "releaseDate": "2015-02-04",
+      "tcgdex": {
+        "id": "xy5"
+      },
+      "limitless": {
+        "code": "PRC"
+      },
+      "serebii": {
+        "en": "primalclash"
+      }
+    },
+    {
+      "canonicalName": "Double Crisis",
+      "releaseDate": "2015-03-25",
+      "tcgdex": {
+        "id": "dc1"
+      },
+      "limitless": {
+        "code": "DCR"
+      },
+      "serebii": {
+        "en": "doublecrisis"
+      }
+    },
+    {
+      "canonicalName": "XY trainer Kit (Latias)",
+      "releaseDate": "2015-04-29",
+      "tcgdex": {
+        "id": "tk-xy-latia"
+      }
+    },
+    {
+      "canonicalName": "Roaring Skies",
+      "releaseDate": "2015-05-06",
+      "tcgdex": {
+        "id": "xy6"
+      },
+      "limitless": {
+        "code": "ROS"
+      },
+      "serebii": {
+        "en": "roaringskies"
+      }
+    },
+    {
+      "canonicalName": "Ancient Origins",
+      "releaseDate": "2015-08-12",
+      "tcgdex": {
+        "id": "xy7"
+      },
+      "limitless": {
+        "code": "AOR"
+      },
+      "serebii": {
+        "en": "ancientorigins"
+      }
+    },
+    {
+      "canonicalName": "BREAKthrough",
+      "releaseDate": "2015-11-04",
+      "tcgdex": {
+        "id": "xy8"
+      },
+      "limitless": {
+        "code": "BKT"
+      },
+      "serebii": {
+        "en": "breakthrough"
+      }
+    },
+    {
+      "canonicalName": "McDonald\u0027s Collection 2015",
+      "releaseDate": "2015-11-27",
+      "tcgdex": {
+        "id": "2015xy"
+      }
+    },
+    {
+      "canonicalName": "BREAKpoint",
+      "releaseDate": "2016-02-03",
+      "tcgdex": {
+        "id": "xy9"
+      },
+      "limitless": {
+        "code": "BKP"
+      },
+      "serebii": {
+        "en": "breakpoint"
+      }
+    },
+    {
+      "canonicalName": "Generations",
+      "releaseDate": "2016-02-22",
+      "tcgdex": {
+        "id": "g1"
+      },
+      "limitless": {
+        "code": "GEN"
+      },
+      "serebii": {
+        "en": "generations"
+      }
+    },
+    {
+      "canonicalName": "XY trainer Kit (Pikachu Libre)",
+      "releaseDate": "2016-04-27",
+      "tcgdex": {
+        "id": "tk-xy-p"
+      }
+    },
+    {
+      "canonicalName": "XY trainer Kit (Suicune)",
+      "releaseDate": "2016-04-27",
+      "tcgdex": {
+        "id": "tk-xy-su"
+      }
+    },
+    {
+      "canonicalName": "Fates Collide",
+      "releaseDate": "2016-05-02",
+      "tcgdex": {
+        "id": "xy10"
+      },
+      "limitless": {
+        "code": "FCO"
+      },
+      "serebii": {
+        "en": "fatescollide"
+      }
+    },
+    {
+      "canonicalName": "Steam Siege",
+      "releaseDate": "2016-08-03",
+      "tcgdex": {
+        "id": "xy11"
+      },
+      "limitless": {
+        "code": "STS"
+      },
+      "serebii": {
+        "en": "steamsiege"
+      }
+    },
+    {
+      "canonicalName": "McDonald\u0027s Collection 2016",
+      "releaseDate": "2016-08-20",
+      "tcgdex": {
+        "id": "2016xy"
+      }
+    },
+    {
+      "canonicalName": "Evolutions",
+      "releaseDate": "2016-11-02",
+      "tcgdex": {
+        "id": "xy12"
+      },
+      "limitless": {
+        "code": "EVO"
+      },
+      "serebii": {
+        "en": "evolutions"
+      }
+    },
+    {
+      "canonicalName": "SM Black Star Promos",
+      "releaseDate": "2017-02-03",
+      "tcgdex": {
+        "id": "smp"
+      }
+    },
+    {
+      "canonicalName": "Sun \u0026 Moon",
+      "releaseDate": "2017-02-03",
+      "tcgdex": {
+        "id": "sm1"
+      },
+      "serebii": {
+        "en": "sunmoon"
+      }
+    },
+    {
+      "canonicalName": "SM trainer Kit (Alolan Raichu)",
+      "releaseDate": "2017-04-21",
+      "tcgdex": {
+        "id": "tk-sm-r"
+      }
+    },
+    {
+      "canonicalName": "SM trainer Kit (Lycanroc)",
+      "releaseDate": "2017-04-21",
+      "tcgdex": {
+        "id": "tk-sm-l"
+      }
+    },
+    {
+      "canonicalName": "Guardians Rising",
+      "releaseDate": "2017-05-05",
+      "tcgdex": {
+        "id": "sm2"
+      },
+      "limitless": {
+        "code": "GRI"
+      },
+      "serebii": {
+        "en": "guardiansrising"
+      }
+    },
+    {
+      "canonicalName": "McDonald\u0027s Collection 2017",
+      "releaseDate": "2017-08-03",
+      "tcgdex": {
+        "id": "2017sm"
+      }
+    },
+    {
+      "canonicalName": "Burning Shadows",
+      "releaseDate": "2017-08-04",
+      "tcgdex": {
+        "id": "sm3"
+      },
+      "limitless": {
+        "code": "BUS"
+      },
+      "serebii": {
+        "en": "burningshadows"
+      }
+    },
+    {
+      "canonicalName": "Shining Legends",
+      "releaseDate": "2017-10-06",
+      "tcgdex": {
+        "id": "sm3.5"
+      },
+      "limitless": {
+        "code": "SLG"
+      },
+      "serebii": {
+        "en": "shininglegends"
+      }
+    },
+    {
+      "canonicalName": "Crimson Invasion",
+      "releaseDate": "2017-11-03",
+      "tcgdex": {
+        "id": "sm4"
+      },
+      "limitless": {
+        "code": "CIN"
+      },
+      "serebii": {
+        "en": "crimsoninvasion"
+      }
+    },
+    {
+      "canonicalName": "Ultra Prism",
+      "releaseDate": "2018-02-02",
+      "tcgdex": {
+        "id": "sm5"
+      },
+      "limitless": {
+        "code": "UPR"
+      },
+      "serebii": {
+        "en": "ultraprism"
+      }
+    },
+    {
+      "canonicalName": "Forbidden Light",
+      "releaseDate": "2018-05-04",
+      "tcgdex": {
+        "id": "sm6"
+      },
+      "limitless": {
+        "code": "FLI"
+      },
+      "serebii": {
+        "en": "forbiddenlight"
+      }
+    },
+    {
+      "canonicalName": "Celestial Storm",
+      "releaseDate": "2018-08-03",
+      "tcgdex": {
+        "id": "sm7"
+      },
+      "limitless": {
+        "code": "CES"
+      },
+      "serebii": {
+        "en": "celestialstorm"
+      }
+    },
+    {
+      "canonicalName": "Dragon Majesty",
+      "releaseDate": "2018-09-07",
+      "tcgdex": {
+        "id": "sm7.5"
+      },
+      "limitless": {
+        "code": "DRM"
+      },
+      "serebii": {
+        "en": "dragonmajesty"
+      }
+    },
+    {
+      "canonicalName": "McDonald\u0027s Collection 2018",
+      "releaseDate": "2018-10-19",
+      "tcgdex": {
+        "id": "2018sm"
+      }
+    },
+    {
+      "canonicalName": "Lost Thunder",
+      "releaseDate": "2018-11-02",
+      "tcgdex": {
+        "id": "sm8"
+      },
+      "limitless": {
+        "code": "LOT"
+      },
+      "serebii": {
+        "en": "lostthunder"
+      }
+    },
+    {
+      "canonicalName": "Team Up",
+      "releaseDate": "2019-01-31",
+      "tcgdex": {
+        "id": "sm9"
+      },
+      "limitless": {
+        "code": "TEU"
+      },
+      "serebii": {
+        "en": "teamup"
+      }
+    },
+    {
+      "canonicalName": "Detective Pikachu",
+      "releaseDate": "2019-03-29",
+      "tcgdex": {
+        "id": "det1"
+      },
+      "limitless": {
+        "code": "DET"
+      },
+      "serebii": {
+        "en": "pokemondetectivepikachu"
+      }
+    },
+    {
+      "canonicalName": "Unbroken Bonds",
+      "releaseDate": "2019-05-03",
+      "tcgdex": {
+        "id": "sm10"
+      },
+      "limitless": {
+        "code": "UNB"
+      },
+      "serebii": {
+        "en": "unbrokenbonds"
+      }
+    },
+    {
+      "canonicalName": "Unified Minds",
+      "releaseDate": "2019-08-02",
+      "tcgdex": {
+        "id": "sm11"
+      },
+      "limitless": {
+        "code": "UNM"
+      },
+      "serebii": {
+        "en": "unifiedminds"
+      }
+    },
+    {
+      "canonicalName": "Hidden Fates",
+      "releaseDate": "2019-08-23",
+      "tcgdex": {
+        "id": "sm115"
+      },
+      "limitless": {
+        "code": "HIF"
+      },
+      "serebii": {
+        "en": "hiddenfates"
+      }
+    },
+    {
+      "canonicalName": "Hidden Fates Shiny Vault",
+      "releaseDate": "2019-08-23",
+      "tcgdex": {
+        "id": "sma"
+      }
+    },
+    {
+      "canonicalName": "McDonald\u0027s Collection 2019",
+      "releaseDate": "2019-10-15",
+      "tcgdex": {
+        "id": "2019sm"
+      }
+    },
+    {
+      "canonicalName": "Cosmic Eclipse",
+      "releaseDate": "2019-11-01",
+      "tcgdex": {
+        "id": "sm12"
+      },
+      "limitless": {
+        "code": "CEC"
+      },
+      "serebii": {
+        "en": "cosmiceclipse"
+      }
+    },
+    {
+      "canonicalName": "SWSH Black Star Promos",
+      "releaseDate": "2019-11-15",
+      "tcgdex": {
+        "id": "swshp"
+      }
+    },
+    {
+      "canonicalName": "Sword \u0026 Shield",
+      "releaseDate": "2020-02-07",
+      "tcgdex": {
+        "id": "swsh1"
+      },
+      "serebii": {
+        "en": "swordshield"
+      }
+    },
+    {
+      "canonicalName": "Rebel Clash",
+      "releaseDate": "2020-05-01",
+      "tcgdex": {
+        "id": "swsh2"
+      },
+      "limitless": {
+        "code": "RCL"
+      },
+      "serebii": {
+        "en": "rebelclash"
+      }
+    },
+    {
+      "canonicalName": "Darkness Ablaze",
+      "releaseDate": "2020-08-14",
+      "tcgdex": {
+        "id": "swsh3"
+      },
+      "limitless": {
+        "code": "DAA"
+      },
+      "serebii": {
+        "en": "darknessablaze"
+      }
+    },
+    {
+      "canonicalName": "Pok\u00E9mon Futsal 2020",
+      "releaseDate": "2020-09-11",
+      "tcgdex": {
+        "id": "fut2020"
+      }
+    },
+    {
+      "canonicalName": "Champion\u0027s Path",
+      "releaseDate": "2020-09-25",
+      "tcgdex": {
+        "id": "swsh3.5"
+      },
+      "serebii": {
+        "en": "champion\u0027spath"
+      }
+    },
+    {
+      "canonicalName": "Vivid Voltage",
+      "releaseDate": "2020-11-13",
+      "tcgdex": {
+        "id": "swsh4"
+      },
+      "limitless": {
+        "code": "VIV"
+      },
+      "serebii": {
+        "en": "vividvoltage"
+      }
+    },
+    {
+      "canonicalName": "McDonald\u0027s Collection 2021",
+      "releaseDate": "2021-02-09",
+      "tcgdex": {
+        "id": "2021swsh"
+      }
+    },
+    {
+      "canonicalName": "Shining Fates",
+      "releaseDate": "2021-02-19",
+      "tcgdex": {
+        "id": "swsh4.5"
+      },
+      "limitless": {
+        "code": "SHF"
+      },
+      "serebii": {
+        "en": "shiningfates"
+      }
+    },
+    {
+      "canonicalName": "Shining Fates Shiny Vault",
+      "releaseDate": "2021-02-19",
+      "tcgdex": {
+        "id": "swsh4.5sv"
+      }
+    },
+    {
+      "canonicalName": "Battle Styles",
+      "releaseDate": "2021-03-19",
+      "tcgdex": {
+        "id": "swsh5"
+      },
+      "limitless": {
+        "code": "BST"
+      },
+      "serebii": {
+        "en": "battlestyles"
+      }
+    },
+    {
+      "canonicalName": "Chilling Reign",
+      "releaseDate": "2021-06-18",
+      "tcgdex": {
+        "id": "swsh6"
+      },
+      "limitless": {
+        "code": "CRE"
+      },
+      "serebii": {
+        "en": "chillingreign"
+      }
+    },
+    {
+      "canonicalName": "Evolving Skies",
+      "releaseDate": "2021-08-27",
+      "tcgdex": {
+        "id": "swsh7"
+      },
+      "limitless": {
+        "code": "EVS"
+      },
+      "serebii": {
+        "en": "evolvingskies"
+      }
+    },
+    {
+      "canonicalName": "Celebrations",
+      "releaseDate": "2021-10-08",
+      "tcgdex": {
+        "id": "cel25"
+      },
+      "limitless": {
+        "code": "CEL"
+      },
+      "serebii": {
+        "en": "celebrations"
+      }
+    },
+    {
+      "canonicalName": "Fusion Strike",
+      "releaseDate": "2021-11-12",
+      "tcgdex": {
+        "id": "swsh8"
+      },
+      "limitless": {
+        "code": "FST"
+      },
+      "serebii": {
+        "en": "fusionstrike"
+      }
+    },
+    {
+      "canonicalName": "Brilliant Stars",
+      "releaseDate": "2022-02-25",
+      "tcgdex": {
+        "id": "swsh9"
+      },
+      "limitless": {
+        "code": "BRS"
+      },
+      "serebii": {
+        "en": "brilliantstars"
+      }
+    },
+    {
+      "canonicalName": "Brilliant Stars Trainer Gallery",
+      "releaseDate": "2022-02-25",
+      "tcgdex": {
+        "id": "swsh9.5tg"
+      }
+    },
+    {
+      "canonicalName": "Astral Radiance",
+      "releaseDate": "2022-05-27",
+      "tcgdex": {
+        "id": "swsh10"
+      },
+      "limitless": {
+        "code": "ASR"
+      },
+      "serebii": {
+        "en": "astralradiance"
+      }
+    },
+    {
+      "canonicalName": "Pok\u00E9mon GO",
+      "releaseDate": "2022-07-01",
+      "tcgdex": {
+        "id": "swsh10.5"
+      },
+      "limitless": {
+        "code": "PGO"
+      },
+      "serebii": {
+        "en": "pokemongo"
+      }
+    },
+    {
+      "canonicalName": "McDonald\u0027s Collection 2022",
+      "releaseDate": "2022-08-03",
+      "tcgdex": {
+        "id": "2022swsh"
+      }
+    },
+    {
+      "canonicalName": "Lost Origin",
+      "releaseDate": "2022-09-09",
+      "tcgdex": {
+        "id": "swsh11"
+      },
+      "limitless": {
+        "code": "LOR"
+      },
+      "serebii": {
+        "en": "lostorigin"
+      }
+    },
+    {
+      "canonicalName": "Lost Origin Trainer Gallery",
+      "releaseDate": "2022-09-09",
+      "tcgdex": {
+        "id": "swsh11.5tg"
+      }
+    },
+    {
+      "canonicalName": "Silver Tempest",
+      "releaseDate": "2022-11-11",
+      "tcgdex": {
+        "id": "swsh12"
+      },
+      "limitless": {
+        "code": "SIT"
+      },
+      "serebii": {
+        "en": "silvertempest"
+      }
+    },
+    {
+      "canonicalName": "Silver Tempest Trainer Gallery",
+      "releaseDate": "2022-11-11",
+      "tcgdex": {
+        "id": "swsh12.5tg"
+      }
+    },
+    {
+      "canonicalName": "Crown Zenith",
+      "releaseDate": "2023-01-20",
+      "tcgdex": {
+        "id": "swsh12.5"
+      },
+      "limitless": {
+        "code": "CRZ"
+      },
+      "serebii": {
+        "en": "crownzenith"
+      }
+    },
+    {
+      "canonicalName": "Crown Zenith Galarian Gallery",
+      "releaseDate": "2023-01-20",
+      "tcgdex": {
+        "id": "swsh12.5gg"
+      }
+    },
+    {
+      "canonicalName": "Scarlet \u0026 Violet",
+      "releaseDate": "2023-03-31",
+      "tcgdex": {
+        "id": "sv01"
+      },
+      "serebii": {
+        "en": "scarletviolet"
+      }
+    },
+    {
+      "canonicalName": "Scarlet \u0026 Violet Energy",
+      "releaseDate": "2023-03-31",
+      "tcgdex": {
+        "id": "sve"
+      }
+    },
+    {
+      "canonicalName": "SVP Black Star Promos",
+      "releaseDate": "2023-03-31",
+      "tcgdex": {
+        "id": "svp"
+      }
+    },
+    {
+      "canonicalName": "Paldea Evolved",
+      "releaseDate": "2023-06-09",
+      "tcgdex": {
+        "id": "sv02"
+      },
+      "limitless": {
+        "code": "PAL"
+      },
+      "serebii": {
+        "en": "paldeaevolved"
+      }
+    },
+    {
+      "canonicalName": "McDonald\u0027s Collection 2023",
+      "releaseDate": "2023-08-01",
+      "tcgdex": {
+        "id": "2023sv"
+      }
+    },
+    {
+      "canonicalName": "Obsidian Flames",
+      "releaseDate": "2023-08-11",
+      "tcgdex": {
+        "id": "sv03"
+      },
+      "limitless": {
+        "code": "OBF"
+      },
+      "serebii": {
+        "en": "obsidianflames"
+      }
+    },
+    {
+      "canonicalName": "151",
+      "releaseDate": "2023-09-22",
+      "tcgdex": {
+        "id": "sv03.5"
+      },
+      "limitless": {
+        "code": "MEW"
+      },
+      "serebii": {
+        "en": "151"
+      }
+    },
+    {
+      "canonicalName": "My First Battle",
+      "releaseDate": "2023-09-29",
+      "tcgdex": {
+        "id": "mfb"
+      }
+    },
+    {
+      "canonicalName": "Paradox Rift",
+      "releaseDate": "2023-11-03",
+      "tcgdex": {
+        "id": "sv04"
+      },
+      "limitless": {
+        "code": "PAR"
+      },
+      "serebii": {
+        "en": "paradoxrift"
+      }
+    },
+    {
+      "canonicalName": "Paldean Fates",
+      "releaseDate": "2024-01-26",
+      "tcgdex": {
+        "id": "sv04.5"
+      },
+      "limitless": {
+        "code": "PAF"
+      },
+      "serebii": {
+        "en": "paldeanfates"
+      }
+    },
+    {
+      "canonicalName": "Temporal Forces",
+      "releaseDate": "2024-03-22",
+      "tcgdex": {
+        "id": "sv05"
+      },
+      "limitless": {
+        "code": "TEF"
+      },
+      "serebii": {
+        "en": "temporalforces"
+      }
+    },
+    {
+      "canonicalName": "Twilight Masquerade",
+      "releaseDate": "2024-05-24",
+      "tcgdex": {
+        "id": "sv06"
+      },
+      "limitless": {
+        "code": "TWM"
+      },
+      "serebii": {
+        "en": "twilightmasquerade"
+      }
+    },
+    {
+      "canonicalName": "Shrouded Fable",
+      "releaseDate": "2024-08-02",
+      "tcgdex": {
+        "id": "sv06.5"
+      },
+      "limitless": {
+        "code": "SFA"
+      },
+      "serebii": {
+        "en": "shroudedfable"
+      }
+    },
+    {
+      "canonicalName": "Stellar Crown",
+      "releaseDate": "2024-09-13",
+      "tcgdex": {
+        "id": "sv07"
+      },
+      "limitless": {
+        "code": "SCR"
+      },
+      "serebii": {
+        "en": "stellarcrown"
+      }
+    },
+    {
+      "canonicalName": "Genetic Apex",
+      "releaseDate": "2024-10-30",
+      "tcgdex": {
+        "id": "A1"
+      }
+    },
+    {
+      "canonicalName": "Promos-A",
+      "releaseDate": "2024-10-30",
+      "tcgdex": {
+        "id": "P-A"
+      }
+    },
+    {
+      "canonicalName": "Surging Sparks",
+      "releaseDate": "2024-11-08",
+      "tcgdex": {
+        "id": "sv08"
+      },
+      "limitless": {
+        "code": "SSP"
+      },
+      "serebii": {
+        "en": "surgingsparks"
+      }
+    },
+    {
+      "canonicalName": "McDonald\u0027s Collection 2024",
+      "releaseDate": "2024-12-04",
+      "tcgdex": {
+        "id": "2024sv"
+      }
+    },
+    {
+      "canonicalName": "Mythical Island",
+      "releaseDate": "2024-12-17",
+      "tcgdex": {
+        "id": "A1a"
+      }
+    },
+    {
+      "canonicalName": "Prismatic Evolutions",
+      "releaseDate": "2025-01-17",
+      "tcgdex": {
+        "id": "sv08.5"
+      },
+      "limitless": {
+        "code": "PRE"
+      },
+      "serebii": {
+        "en": "prismaticevolutions"
+      }
+    },
+    {
+      "canonicalName": "Space-Time Smackdown",
+      "releaseDate": "2025-01-30",
+      "tcgdex": {
+        "id": "A2"
+      }
+    },
+    {
+      "canonicalName": "Triumphant Light",
+      "releaseDate": "2025-02-28",
+      "tcgdex": {
+        "id": "A2a"
+      }
+    },
+    {
+      "canonicalName": "Shining Revelry",
+      "releaseDate": "2025-03-27",
+      "tcgdex": {
+        "id": "A2b"
+      }
+    },
+    {
+      "canonicalName": "Journey Together",
+      "releaseDate": "2025-03-28",
+      "tcgdex": {
+        "id": "sv09"
+      },
+      "limitless": {
+        "code": "JTG"
+      },
+      "serebii": {
+        "en": "journeytogether"
+      }
+    },
+    {
+      "canonicalName": "Celestial Guardians",
+      "releaseDate": "2025-04-30",
+      "tcgdex": {
+        "id": "A3"
+      }
+    },
+    {
+      "canonicalName": "Extradimensional Crisis",
+      "releaseDate": "2025-05-29",
+      "tcgdex": {
+        "id": "A3a"
+      }
+    },
+    {
+      "canonicalName": "Destined Rivals",
+      "releaseDate": "2025-05-30",
+      "tcgdex": {
+        "id": "sv10"
+      },
+      "limitless": {
+        "code": "DRI"
+      },
+      "serebii": {
+        "en": "destinedrivals"
+      }
+    },
+    {
+      "canonicalName": "Eevee Grove",
+      "releaseDate": "2025-06-26",
+      "tcgdex": {
+        "id": "A3b"
+      }
+    },
+    {
+      "canonicalName": "Black Bolt",
+      "releaseDate": "2025-07-17",
+      "tcgdex": {
+        "id": "sv10.5b"
+      },
+      "limitless": {
+        "code": "BLK"
+      },
+      "serebii": {
+        "en": "blackbolt"
+      }
+    },
+    {
+      "canonicalName": "White Flare",
+      "releaseDate": "2025-07-17",
+      "tcgdex": {
+        "id": "sv10.5w"
+      },
+      "limitless": {
+        "code": "WHT"
+      },
+      "serebii": {
+        "en": "whiteflare"
+      }
+    },
+    {
+      "canonicalName": "Wisdom of Sea and Sky",
+      "releaseDate": "2025-07-30",
+      "tcgdex": {
+        "id": "A4"
+      }
+    },
+    {
+      "canonicalName": "Secluded Springs",
+      "releaseDate": "2025-08-28",
+      "tcgdex": {
+        "id": "A4a"
+      }
+    },
+    {
+      "canonicalName": "Mega Evolution Energy",
+      "releaseDate": "2025-09-25",
+      "tcgdex": {
+        "id": "mee"
+      },
+      "limitless": {
+        "code": "MEE"
+      }
+    },
+    {
+      "canonicalName": "Mega Evolution",
+      "releaseDate": "2025-09-26",
+      "tcgdex": {
+        "id": "me01"
+      },
+      "limitless": {
+        "code": "MEG"
+      },
+      "serebii": {
+        "en": "megaevolution"
+      }
+    },
+    {
+      "canonicalName": "MEP Black Star Promos",
+      "releaseDate": "2025-09-26",
+      "tcgdex": {
+        "id": "mep"
+      }
+    },
+    {
+      "canonicalName": "Mega Rising",
+      "releaseDate": "2025-10-30",
+      "tcgdex": {
+        "id": "B1"
+      }
+    },
+    {
+      "canonicalName": "Phantasmal Flames",
+      "releaseDate": "2025-11-14",
+      "tcgdex": {
+        "id": "me02"
+      },
+      "limitless": {
+        "code": "PFL"
+      },
+      "serebii": {
+        "en": "phantasmalflames"
+      }
+    },
+    {
+      "canonicalName": "Crimson Blaze",
+      "releaseDate": "2025-12-17",
+      "tcgdex": {
+        "id": "B1a"
+      }
+    },
+    {
+      "canonicalName": "Fantastical Parade",
+      "releaseDate": "2026-01-29",
+      "tcgdex": {
+        "id": "B2"
+      }
+    },
+    {
+      "canonicalName": "Ascended Heroes",
+      "releaseDate": "2026-01-30",
+      "tcgdex": {
+        "id": "me02.5"
+      },
+      "limitless": {
+        "code": "ASC"
+      },
+      "serebii": {
+        "en": "ascendedheroes"
+      }
+    },
+    {
+      "canonicalName": "Paldean Wonders",
+      "releaseDate": "2026-02-26",
+      "tcgdex": {
+        "id": "B2a"
+      }
+    },
+    {
+      "canonicalName": "Perfect Order",
+      "releaseDate": "2026-03-27",
+      "tcgdex": {
+        "id": "me03"
+      },
+      "limitless": {
+        "code": "POR"
+      },
+      "serebii": {
+        "en": "perfectorder"
+      }
+    },
+    {
+      "canonicalName": "Chaos Rising",
+      "releaseDate": "2026-05-22",
+      "tcgdex": {
+        "id": "me04"
+      },
+      "limitless": {
+        "code": "CRI"
+      },
+      "serebii": {
+        "en": "chaosrising"
+      }
+    }
+  ]
+}

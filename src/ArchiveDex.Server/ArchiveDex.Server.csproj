@@ -2,12 +2,16 @@
   <PropertyGroup>
     <RootNamespace>ArchiveDex.Server</RootNamespace>
     <AssemblyName>ArchiveDex.Server</AssemblyName>
+    <UserSecretsId>1d628a48-2b02-4e2c-be5f-7439b62f93cb</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>..\..</DockerfileContext>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.OpenApi" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
@@ -19,10 +23,33 @@
     <InternalsVisibleTo Include="ArchiveDex.Server.IntegrationTests" />
     <InternalsVisibleTo Include="ArchiveDex.Server.ContractTests" />
   </ItemGroup>
-  <Target Name="BuildAngularClient" BeforeTargets="Build" Condition="Exists('ClientApp/package-lock.json') AND '$(DesignTimeBuild)' != 'true' AND '$(BuildAngularClient)' != 'false'">
-    <Exec Command="npm ci --legacy-peer-deps" WorkingDirectory="ClientApp" />
+  <ItemGroup>
+    <AngularInputs Include="ClientApp/src/**/*;ClientApp/package.json;ClientApp/package-lock.json;ClientApp/angular.json;ClientApp/tsconfig*.json" />
+  </ItemGroup>
+
+  <!-- Build the Angular client into obj/angular. Skipped inside Docker (BuildAngularClient=false;
+       the image builds the client in its own stage) and incremental via Inputs/Outputs so an
+       unchanged frontend does not rebuild on every F5. npm ci runs only when packages are missing. -->
+  <Target Name="BuildAngularClient" BeforeTargets="Build"
+          Condition="Exists('ClientApp/package-lock.json') AND '$(DesignTimeBuild)' != 'true' AND '$(BuildAngularClient)' != 'false'"
+          Inputs="@(AngularInputs)"
+          Outputs="obj/angular/browser/index.html">
+    <Exec Command="npm ci --legacy-peer-deps" WorkingDirectory="ClientApp" Condition="!Exists('ClientApp/node_modules')" />
     <Exec Command="npm run build -- --output-path=&quot;$(MSBuildProjectDirectory)/obj/angular&quot;" WorkingDirectory="ClientApp" />
   </Target>
+
+  <!-- Mirror the built client into wwwroot so it is served at runtime on a plain build
+       (VS Fast-mode debug and local dotnet run), not only on publish. -->
+  <Target Name="SyncAngularToWwwroot" AfterTargets="BuildAngularClient" BeforeTargets="Build" Condition="Exists('obj/angular/browser/index.html')">
+    <ItemGroup>
+      <_AngularBuilt Include="obj/angular/browser/**/*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_AngularBuilt)"
+          DestinationFiles="@(_AngularBuilt->'$(MSBuildProjectDirectory)/wwwroot/%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Include the built client in the publish output (Docker / production). -->
   <Target Name="PublishAngularClient" AfterTargets="ComputeFilesToPublish" DependsOnTargets="BuildAngularClient" Condition="Exists('obj/angular/browser/index.html')">
     <ItemGroup>
       <AngularDistFiles Include="obj/angular/browser/**/*" />

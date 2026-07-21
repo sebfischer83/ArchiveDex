@@ -4,4 +4,7 @@
   <Project Path="tests/ArchiveDex.Server.IntegrationTests/ArchiveDex.Server.IntegrationTests.csproj" />
   <Project Path="tests/ArchiveDex.Server.ContractTests/ArchiveDex.Server.ContractTests.csproj" />
   <Project Path="tests/ArchiveDex.E2E/ArchiveDex.E2E.csproj" />
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
 </Solution>

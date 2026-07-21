@@ -15,7 +15,9 @@ export class TranslateService {
   }
 
   async load(lang: string): Promise<void> {
-    const catalog = await firstValueFrom(this.http.get<Record<string, string>>(`/assets/i18n/${lang}.json`));
+    // Relative path so it resolves against the <base href="/ui/"> (served at /ui/assets/...),
+    // not the site root where the API — but not the SPA assets — lives.
+    const catalog = await firstValueFrom(this.http.get<Record<string, string>>(`assets/i18n/${lang}.json`));
     this.lang.set(lang);
     this.data.set(catalog);
   }

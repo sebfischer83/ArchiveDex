@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ArchiveDex.Server.Migrations
 {
     [DbContext(typeof(ArchiveDexDbContext))]
-    [Migration("20260719181603_AddCaptureBatchPollingIndex")]
-    partial class AddCaptureBatchPollingIndex
+    [Migration("20260720062227_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

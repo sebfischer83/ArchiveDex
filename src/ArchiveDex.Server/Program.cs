@@ -74,6 +74,34 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.Name = secureCookies ? "__Host-ArchiveDex.Auth" : "ArchiveDex.Auth";
     options.Cookie.Path = "/";
     options.ExpireTimeSpan = TimeSpan.FromDays(30);
+
+    // This is a SPA + API app with no server-rendered login page. Identity's default
+    // LoginPath ("/Account/Login") is itself covered by the fallback authorization
+    // policy, so redirecting there produces an infinite login redirect loop. Point the
+    // challenge at the anonymous SPA root instead, and answer API calls with 401/403
+    // instead of an HTML redirect so the client can handle auth itself.
+    options.LoginPath = "/";
+    options.AccessDeniedPath = "/";
+    options.Events.OnRedirectToLogin = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        }
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
 });
 
 builder.Services.AddAntiforgery(options =>
@@ -97,6 +125,14 @@ builder.Services.AddAuthorizationBuilder()
 
 var app = builder.Build();
 
+// Always apply pending migrations on startup so the schema is current before any
+// hosted service (e.g. CaptureProcessingService) begins querying the database.
+await using (var migrationScope = app.Services.CreateAsyncScope())
+{
+    var db = migrationScope.ServiceProvider.GetRequiredService<ArchiveDexDbContext>();
+    await db.Database.MigrateAsync();
+}
+
 if (args.Contains("migrate", StringComparer.OrdinalIgnoreCase))
 {
     await OwnerProvisioningCommand.MigrateAndProvisionAsync(app.Services, app.Configuration);
@@ -105,6 +141,26 @@ if (args.Contains("migrate", StringComparer.OrdinalIgnoreCase))
 
 app.MapOpenApi();
 app.UseSerilogRequestLogging();
+
+// The Angular client is built with <base href="/ui/">. Serve it and its fingerprinted
+// assets under /ui, before authentication so static files are returned directly instead
+// of triggering the cookie auth challenge (which would answer .js requests with index.html).
+var webRootPath = app.Environment.WebRootPath;
+var hasSpa = !string.IsNullOrEmpty(webRootPath) && File.Exists(Path.Combine(webRootPath, "index.html"));
+if (hasSpa)
+{
+    var spaStaticOptions = new StaticFileOptions { RequestPath = "/ui" };
+    if (app.Environment.IsDevelopment())
+    {
+        // Dev Angular builds emit unhashed filenames (main.js), so a rebuilt bundle keeps the
+        // same name; without this the browser serves the stale cached copy. Force revalidation.
+        spaStaticOptions.OnPrepareResponse = ctx =>
+            ctx.Context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+    }
+    app.UseDefaultFiles(new DefaultFilesOptions { RequestPath = "/ui" });
+    app.UseStaticFiles(spaStaticOptions);
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.Use(async (context, next) =>
@@ -139,14 +195,18 @@ app.UseAntiforgery();
 app.MapControllers();
 app.MapHealthChecks("/health/live").AllowAnonymous();
 app.MapHealthChecks("/health/ready").AllowAnonymous();
-app.MapStaticAssets().AllowAnonymous();
-
-var webRootPath = app.Environment.WebRootPath;
-var hasSpa = !string.IsNullOrEmpty(webRootPath) && File.Exists(Path.Combine(webRootPath, "index.html"));
 if (hasSpa)
-    app.MapFallbackToFile("index.html").AllowAnonymous();
+{
+    // Serve the SPA under /ui to match its base href; send the site root there too.
+    app.MapGet("/", () => Results.Redirect("/ui/")).AllowAnonymous();
+    // :nonfile excludes paths with a file extension so requests like /ui/main-*.js fall
+    // through to the static-file middleware instead of being served index.html.
+    app.MapFallbackToFile("/ui/{*path:nonfile}", "index.html").AllowAnonymous();
+}
 else
+{
     app.MapGet("/", () => Results.Text("ArchiveDex API", "text/plain")).AllowAnonymous();
+}
 
 app.Run();
 
