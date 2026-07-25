@@ -70,12 +70,13 @@
 
 ## Decision 7: Two-Stage Card Recognition
 
-**Decision**: A configurable multimodal provider extracts visible observations through strict structured output. Application code then resolves those observations against a pinned local multilingual TCGdex catalog snapshot. The AI is not authoritative for canonical identity, official German naming, or price.
+**Decision**: A configurable multimodal provider first extracts immutable visible observations through strict structured output. A separate text-only web-search stage enriches those observations with an official German name and a current, sourced price. A versioned set-reference file deterministically maps Simplified-Chinese printed code aliases to display names; there is no imported local TCGdex snapshot.
 
-**Rationale**: Image understanding is appropriate for text, visual clues, and condition suggestions, while deterministic catalog resolution is reproducible, correctable, and testable. A local snapshot removes live catalog availability from the 30-second path.
+**Rationale**: Separating image reading from identity research prevents a web result from replacing the original-script name or other visible evidence. Precomputed set names keep common set resolution fast and testable, while the web stage supplies current information that a static catalog cannot provide.
 
 **Alternatives considered**:
-- AI-only identity, translation, and valuation: rejected because plausible output is not a verifiable catalog fact or market quote.
+- One combined image, identity, translation, and valuation prompt: rejected because researched data can contaminate visible fields and makes failures harder to isolate.
+- Imported local multilingual catalog: rejected because ArchiveDex does not maintain such a snapshot; the small versioned set-code reference covers the deterministic data needed in the current workflow.
 - Traditional OCR only: rejected because artwork, set symbols, finish, and condition require visual reasoning, although OCR may remain an additional signal.
 - Hard-code one model name in public contracts: rejected because provider models deprecate; the model is pinned in deployment configuration behind an adapter.
 

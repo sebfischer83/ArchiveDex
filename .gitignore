@@ -8,6 +8,7 @@
 *.log
 .env*
 !.env.example
+.vs/
 .vscode/
 .idea/
 .DS_Store
@@ -15,7 +16,8 @@ Thumbs.db
 *.tmp
 *.swp
 coverage/
-ClientApp/.angular/
+# Angular
+**/.angular/
 ClientApp/src/app/generated/
 # Angular build output mirrored into wwwroot by the SyncAngularToWwwroot target
 src/ArchiveDex.Server/wwwroot/

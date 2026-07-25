@@ -90,6 +90,28 @@ namespace ArchiveDex.Server.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CaptureBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "ExpiresAt");
+
+                    b.ToTable("CaptureBatches");
+                });
+
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CaptureDraft", b =>
                 {
                     b.Property<Guid>("Id")
@@ -98,6 +120,9 @@ namespace ArchiveDex.Server.Migrations
 
                     b.Property<string>("AnalysisProposal")
                         .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("BatchId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("CandidateReferences")
                         .HasColumnType("jsonb");
@@ -154,6 +179,8 @@ namespace ArchiveDex.Server.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BatchId");
+
                     b.HasIndex("ImageAssetId")
                         .IsUnique();
 
@@ -162,6 +189,8 @@ namespace ArchiveDex.Server.Migrations
 
                     b.HasIndex("Status", "UpdatedAt")
                         .HasFilter("\"ProviderCorrelationId\" IS NOT NULL");
+
+                    b.HasIndex("OwnerId", "BatchId", "Status");
 
                     b.HasIndex("OwnerId", "Status", "ExpiresAt");
 
@@ -181,6 +210,10 @@ namespace ArchiveDex.Server.Migrations
 
                     b.Property<Guid?>("CatalogCardReferenceId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("CollectorNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -212,6 +245,9 @@ namespace ArchiveDex.Server.Migrations
 
                     b.Property<Guid>("SetEditionId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("SetTotal")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -289,6 +325,9 @@ namespace ArchiveDex.Server.Migrations
                     b.Property<string>("ValuationProvider")
                         .HasColumnType("text");
 
+                    b.Property<string>("ValuationSourceUrlsJson")
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTime?>("ValuedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -328,6 +367,10 @@ namespace ArchiveDex.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("CollectorNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("CrossLanguageId")
                         .HasColumnType("text");
 
@@ -353,6 +396,9 @@ namespace ArchiveDex.Server.Migrations
 
                     b.Property<string>("PrintedNumber")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SetTotal")
                         .HasColumnType("text");
 
                     b.Property<string>("VariantKey")
@@ -415,6 +461,9 @@ namespace ArchiveDex.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("BatchId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("CaptureId")
                         .HasColumnType("uuid");
 
@@ -436,9 +485,13 @@ namespace ArchiveDex.Server.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BatchId");
+
                     b.HasIndex("CardRecordId");
 
                     b.HasIndex("SpecimenId");
+
+                    b.HasIndex("OwnerId", "BatchId");
 
                     b.HasIndex("OwnerId", "CaptureId")
                         .IsUnique();
@@ -577,6 +630,77 @@ namespace ArchiveDex.Server.Migrations
                     b.ToTable("SetEditions");
                 });
 
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.ValuationRefreshJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CardCreatedBefore")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ConsecutiveFailures")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("FailedCards")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastCardCreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastCardRecordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ProcessedCards")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TotalCards")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UnavailableCards")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UpdatedCards")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" IN ('pending', 'running')");
+
+                    b.HasIndex("OwnerId", "CreatedAt");
+
+                    b.ToTable("ValuationRefreshJobs", t =>
+                        {
+                            t.HasCheckConstraint("CK_ValuationRefreshJob_Counts", "\"TotalCards\" >= 0 AND \"ProcessedCards\" >= 0 AND \"UpdatedCards\" >= 0 AND \"UnavailableCards\" >= 0 AND \"FailedCards\" >= 0");
+
+                            t.HasCheckConstraint("CK_ValuationRefreshJob_Status", "\"Status\" IN ('pending', 'running', 'completed', 'completedWithErrors', 'failed')");
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
                 {
                     b.Property<Guid>("Id")
@@ -707,8 +831,22 @@ namespace ArchiveDex.Server.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CaptureBatch", b =>
+                {
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CaptureDraft", b =>
                 {
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.CaptureBatch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ImageAsset", "ImageAsset")
                         .WithOne()
                         .HasForeignKey("ArchiveDex.Server.Infrastructure.Persistence.CaptureDraft", "ImageAssetId")
@@ -784,6 +922,11 @@ namespace ArchiveDex.Server.Migrations
 
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.FinalizationRecord", b =>
                 {
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.CaptureBatch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.CardRecord", null)
                         .WithMany()
                         .HasForeignKey("CardRecordId")
@@ -833,6 +976,15 @@ namespace ArchiveDex.Server.Migrations
                     b.Navigation("CatalogSetReference");
 
                     b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.ValuationRefreshJob", b =>
+                {
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

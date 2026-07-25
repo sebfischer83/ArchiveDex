@@ -1,6 +1,8 @@
 using ArchiveDex.Server.Features.Authentication;
 using ArchiveDex.Server.Features.Capture;
 using ArchiveDex.Server.Features.Collection;
+using ArchiveDex.Server.Features.DataTransfer;
+using ArchiveDex.Server.Features.Valuation;
 using ArchiveDex.Server.Infrastructure.Images;
 using ArchiveDex.Server.Infrastructure.Persistence;
 using ArchiveDex.Server.Infrastructure.Providers;
@@ -11,13 +13,24 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile("ai-pricing.json", optional: false, reloadOnChange: true);
+builder.Configuration.AddJsonFile("card-set-references.json", optional: false, reloadOnChange: true);
 
-builder.Host.UseSerilog((context, configuration) => configuration.ReadFrom.Configuration(context.Configuration));
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
-builder.Services.AddHttpClient<OpenAiVisionProvider>(client => client.Timeout = TimeSpan.FromSeconds(23));
+builder.Services.Configure<AiPricingOptions>(builder.Configuration.GetSection("AiPricing"));
+builder.Services.Configure<CardSetReferenceOptions>(builder.Configuration.GetSection("CardSetReferences"));
+builder.Services.AddSingleton<ICardSetReferenceLookup, CardSetReferenceLookup>();
+builder.Services.AddSingleton(services => new AiCostEstimator(
+    services.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiPricingOptions>>().Value));
+// Longer timeout than the other providers: the web_search tool adds round-trips + latency.
+builder.Services.AddHttpClient<OpenAiVisionProvider>(client => client.Timeout = TimeSpan.FromSeconds(90));
 builder.Services.AddHttpClient<AnthropicVisionProvider>(client => client.Timeout = TimeSpan.FromSeconds(23));
 builder.Services.AddHttpClient<OpenAiBatchVisionProvider>(client => client.Timeout = TimeSpan.FromSeconds(23));
 builder.Services.AddHttpClient<AnthropicBatchVisionProvider>(client => client.Timeout = TimeSpan.FromSeconds(23));
@@ -42,12 +55,24 @@ builder.Services.AddScoped<IBatchVisualCardAnalyzer>(services =>
         _ => new UnavailableBatchVisionProvider(),
     };
 });
-builder.Services.AddScoped<ICardCatalog, LocalCardCatalog>();
-builder.Services.AddScoped<IMarketValuationProvider, UnavailableMarketProvider>();
+builder.Services.AddScoped<ICardCatalog, StoredCardReferenceCatalog>();
+builder.Services.AddScoped<IMarketValuationProvider>(services =>
+{
+    var provider = services.GetRequiredService<IConfiguration>()["AI:Valuation:Provider"]?.Trim().ToLowerInvariant();
+    return provider switch
+    {
+        "openai" => services.GetRequiredService<OpenAiVisionProvider>(),
+        "fake" when builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing") => new FakeMarketProvider(),
+        _ => new UnavailableMarketProvider(),
+    };
+});
 builder.Services.AddScoped<ImageNormalizationService>();
 builder.Services.AddScoped<CaptureOrchestrationService>();
 builder.Services.AddScoped<CollectionFinalizationService>();
+builder.Services.AddScoped<DataTransferService>();
+builder.Services.AddScoped<ValuationRefreshOrchestrationService>();
 builder.Services.AddHostedService<CaptureProcessingService>();
+builder.Services.AddHostedService<ValuationRefreshProcessingService>();
 
 var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
     ?? throw new InvalidOperationException("ConnectionStrings:PostgreSQL must be configured.");
@@ -132,6 +157,9 @@ await using (var migrationScope = app.Services.CreateAsyncScope())
     var db = migrationScope.ServiceProvider.GetRequiredService<ArchiveDexDbContext>();
     await db.Database.MigrateAsync();
 }
+
+// Provision the configured owner account on startup so a fresh database has a usable login.
+await OwnerProvisioningCommand.ProvisionConfiguredOwnerAsync(app.Services, app.Configuration);
 
 if (args.Contains("migrate", StringComparer.OrdinalIgnoreCase))
 {

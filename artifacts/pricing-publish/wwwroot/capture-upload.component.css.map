@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["angular:styles/component:css;3853af92e5bbe1d065078ddadecd77e0ddba4b3c8f5940d764ebf89c55809ff6;C:/Development/ArchiveDex/src/ArchiveDex.Server/ClientApp/src/app/features/capture/capture-upload.component.ts"],
+  "sourcesContent": [".upload-section{max-width:24rem;margin:1rem 0;display:flex;flex-direction:column;gap:1rem}"],
+  "mappings": ";AAAA,CAAC;AAAe,aAAU;AAAM,UAAO,KAAK;AAAE,WAAQ;AAAK,kBAAe;AAAO,OAAI;AAAI;",
+  "names": []
+}

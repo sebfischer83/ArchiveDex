@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["angular:styles/component:css;08123e239b949b299f1f705d6bb5cb38c1dc574479df36a05081dd2c7fb87ba4;C:/Development/ArchiveDex/src/ArchiveDex.Server/ClientApp/src/app/shared/states.component.ts"],
+  "sourcesContent": [".state{display:flex;justify-content:center;padding:3rem}"],
+  "mappings": ";AAAA,CAAC;AAAM,WAAQ;AAAK,mBAAgB;AAAO,WAAQ;AAAI;",
+  "names": []
+}

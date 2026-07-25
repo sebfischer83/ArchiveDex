@@ -131,6 +131,10 @@ Als Sammlungsnutzer öffne ich einen gruppierten Karteneintrag, um seine Kartend
 - **FR-020**: Nutzer MÜSSEN die Wertschätzung eines einzelnen Kartenexemplars manuell aktualisieren können; eine fehlgeschlagene Aktualisierung DARF die zuletzt erfolgreiche Schätzung nicht entfernen.
 - **FR-021**: Nutzer MÜSSEN ein einzelnes Kartenexemplar nach ausdrücklicher Bestätigung dauerhaft einschließlich seines Bildes löschen können; ein Karteneintrag ohne verbleibende Exemplare MUSS automatisch entfernt werden.
 - **FR-022**: Der bestätigte Zustand eines Kartenexemplars MUSS genau eine der Stufen Near Mint, Lightly Played, Moderately Played, Heavily Played oder Damaged verwenden.
+- **FR-023**: Die Anwendung MUSS die eigentliche Kartennummer und die gedruckte Set-Gesamtzahl getrennt speichern und anzeigen können; Kartennummern oberhalb der Set-Gesamtzahl wie `201/200` MÜSSEN zulässig sein.
+- **FR-024**: Nutzer MÜSSEN gemeinsame Katalogdaten einschließlich Set-Name, Set-Kennung, Kartennummer, Set-Gesamtzahl, Sprache und Variante im Kartendetail bearbeiten können.
+- **FR-025**: Nutzer MÜSSEN eine persistente Aktualisierung der Wertschätzungen aller gespeicherten Karteneinträge starten und deren Fortschritt auch nach Seitenwechsel oder Serverneustart sehen können; einzelne Providerfehler DÜRFEN vorhandene Schätzungen nicht entfernen.
+- **FR-026**: Nutzer MÜSSEN ihre vollständige Sammlung einschließlich Sets, Karten, Exemplaren, Bildern, Zuständen und Wertschätzungen in einem versionierten Format exportieren und wieder importieren können; ein wiederholter Import DARF keine Duplikate erzeugen und DARF vorhandene Benutzerdaten nicht überschreiben.
 
 ### Key Entities
 

@@ -5,6 +5,10 @@
     <UserSecretsId>1d628a48-2b02-4e2c-be5f-7439b62f93cb</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
+    <!-- The dev static-web-assets manifest records absolute Windows host paths, which do not
+         exist inside the Linux debug container, so wwwroot would be served from the wrong place.
+         Disable it and serve the physical (mounted) wwwroot via classic UseStaticFiles. -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
@@ -16,6 +20,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.File" />
     <PackageReference Include="SixLabors.ImageSharp" />
   </ItemGroup>
   <ItemGroup>
@@ -23,6 +28,18 @@
     <InternalsVisibleTo Include="ArchiveDex.Server.IntegrationTests" />
     <InternalsVisibleTo Include="ArchiveDex.Server.ContractTests" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- wwwroot is populated at build time by SyncAngularToWwwroot for local / Fast-mode serving.
+         Exclude it from default Content so publish uses only the explicit PublishAngularClient copy
+         (from obj/angular), avoiding NETSDK1152 "duplicate publish output files". Runtime serving
+         reads the physical wwwroot via UseStaticFiles, which does not depend on Content items. -->
+    <Content Remove="wwwroot\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Update="ai-pricing.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="card-set-references.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <AngularInputs Include="ClientApp/src/**/*;ClientApp/package.json;ClientApp/package-lock.json;ClientApp/angular.json;ClientApp/tsconfig*.json" />
   </ItemGroup>
@@ -35,12 +52,13 @@
           Inputs="@(AngularInputs)"
           Outputs="obj/angular/browser/index.html">
     <Exec Command="npm ci --legacy-peer-deps" WorkingDirectory="ClientApp" Condition="!Exists('ClientApp/node_modules')" />
-    <Exec Command="npm run build -- --output-path=&quot;$(MSBuildProjectDirectory)/obj/angular&quot;" WorkingDirectory="ClientApp" />
+    <Exec Command="npm run build -- --configuration development --output-path=&quot;$(MSBuildProjectDirectory)/obj/angular&quot;" WorkingDirectory="ClientApp" />
   </Target>
 
   <!-- Mirror the built client into wwwroot so it is served at runtime on a plain build
        (VS Fast-mode debug and local dotnet run), not only on publish. -->
-  <Target Name="SyncAngularToWwwroot" AfterTargets="BuildAngularClient" BeforeTargets="Build" Condition="Exists('obj/angular/browser/index.html')">
+  <Target Name="SyncAngularToWwwroot" AfterTargets="BuildAngularClient" BeforeTargets="Build"
+          Condition="Exists('obj/angular/browser/index.html') AND '$(BuildAngularClient)' != 'false'">
     <ItemGroup>
       <_AngularBuilt Include="obj/angular/browser/**/*" />
     </ItemGroup>

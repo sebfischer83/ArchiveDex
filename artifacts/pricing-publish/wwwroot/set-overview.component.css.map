@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["angular:styles/component:css;03c59a0160f05646faecc5bbfe1720632a1ae26da47cf17fdced3b244d0e1584;C:/Development/ArchiveDex/src/ArchiveDex.Server/ClientApp/src/app/features/sets/set-overview.component.ts"],
+  "sourcesContent": [".grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:1rem}.card{text-align:left;cursor:pointer;width:100%}"],
+  "mappings": ";AAAA,CAAC;AAAK,WAAQ;AAAK,yBAAsB,OAAO,SAAS,EAAC,OAAO,KAAK,EAAC;AAAM,OAAI;AAAI;AAAC,CAAC;AAAK,cAAW;AAAK,UAAO;AAAQ,SAAM;AAAI;",
+  "names": []
+}

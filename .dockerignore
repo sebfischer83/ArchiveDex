@@ -11,3 +11,5 @@
 .dockerignore
 *.dcproj
 docker-compose*.yml
+**/dist/
+src/ArchiveDex.Server/wwwroot/

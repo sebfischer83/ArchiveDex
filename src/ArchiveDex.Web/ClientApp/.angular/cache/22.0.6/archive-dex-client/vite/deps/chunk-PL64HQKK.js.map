@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["../../../../../../node_modules/@taiga-ui/cdk/fesm2022/taiga-ui-cdk-directives-item.mjs"],
-  "sourcesContent": ["import * as i0 from '@angular/core';\nimport { Directive } from '@angular/core';\n\n/**\n * Blank directive for queries via `@ContentChildren` / `@ViewChildren` / `querySelector`\n */\nclass TuiItem {\n  static {\n    this.ɵfac = function TuiItem_Factory(__ngFactoryType__) {\n      return new (__ngFactoryType__ || TuiItem)();\n    };\n  }\n  static {\n    this.ɵdir = /* @__PURE__ */i0.ɵɵdefineDirective({\n      type: TuiItem,\n      selectors: [[\"\", \"tuiItem\", \"\"]]\n    });\n  }\n}\n(() => {\n  (typeof ngDevMode === \"undefined\" || ngDevMode) && i0.ɵsetClassMetadata(TuiItem, [{\n    type: Directive,\n    args: [{\n      standalone: true,\n      selector: '[tuiItem]'\n    }]\n  }], null, null);\n})();\n\n/**\n * Generated bundle index. Do not edit.\n */\n\nexport { TuiItem };\n"],
-  "mappings": ";;;;;;;AAMA,IAAM,UAAN,MAAM,SAAQ;AAAA,EACZ,OAAO;AACL,SAAK,OAAO,SAAS,gBAAgB,mBAAmB;AACtD,aAAO,KAAK,qBAAqB,UAAS;AAAA,IAC5C;AAAA,EACF;AAAA,EACA,OAAO;AACL,SAAK,OAAyB,kBAAkB;AAAA,MAC9C,MAAM;AAAA,MACN,WAAW,CAAC,CAAC,IAAI,WAAW,EAAE,CAAC;AAAA,IACjC,CAAC;AAAA,EACH;AACF;AAAA,CACC,MAAM;AACL,GAAC,OAAO,cAAc,eAAe,cAAiB,iBAAkB,SAAS,CAAC;AAAA,IAChF,MAAM;AAAA,IACN,MAAM,CAAC;AAAA,MACL,YAAY;AAAA,MACZ,UAAU;AAAA,IACZ,CAAC;AAAA,EACH,CAAC,GAAG,MAAM,IAAI;AAChB,GAAG;",
-  "names": []
-}

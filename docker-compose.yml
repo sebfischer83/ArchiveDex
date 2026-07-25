@@ -9,16 +9,21 @@ services:
       ConnectionStrings__PostgreSQL: "Host=db;Database=archivedex;Username=archivedex;Password=${DB_PASSWORD:-archivedex-dev-local}"
       DataProtection__Path: "/app/dataprotection"
       Security__RequireHttpsCookies: "false"
+      DataTransfer__MaxArchiveBytes: "${DATA_TRANSFER_MAX_ARCHIVE_BYTES:-42949672960}"
       AI__Provider: "${AI_PROVIDER:-unavailable}"
       AI__OpenAI__ApiKey: "${OPENAI_API_KEY:-}"
+      AI__OpenAI__Model: "${OPENAI_MODEL:-gpt-5.6-luna}"
       AI__Anthropic__ApiKey: "${ANTHROPIC_API_KEY:-}"
+      AI__Anthropic__Model: "${ANTHROPIC_MODEL:-claude-sonnet-4-5}"
+      AI__Valuation__Provider: "${VALUATION_PROVIDER:-openai}"
       Owner__UserName: "${OWNER_USERNAME:-owner}"
-      Owner__Password: "${OWNER_PASSWORD:-owner-dev-local}"
+      Owner__Password: "${OWNER_PASSWORD:-Owner-Dev-2026}"
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - dataprotectionkeys:/app/dataprotection
+      - archivedexlogs:/app/logs
     ports:
       - "8080:8080"
 
@@ -42,3 +47,4 @@ services:
 volumes:
   pgdata18:
   dataprotectionkeys:
+  archivedexlogs:

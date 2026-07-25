@@ -122,8 +122,8 @@ tests/
 ## Provider and Analysis Design
 
 - `IVisualCardAnalyzer` sends a stripped, normalized derivative to one configured generally available multimodal model with strict structured output and provider-side storage disabled where supported.
-- AI extracts only visible evidence: printed name/number, language, set clues, finish clues, image quality, and one of the five condition proposals. It does not invent canonical IDs, official German names, or prices.
-- `ICardCatalog` resolves observations against a pinned local TCGdex multilingual snapshot and supplies canonical identity plus official German naming. Ambiguous candidates require user selection; missing German data is represented explicitly.
+- OpenAI analysis is split into two stages: image-only extraction of immutable visible evidence, followed by a text-only live-web enrichment for the official German name and current valuation. The web stage cannot replace the printed name, number, or language.
+- A versioned Simplified-Chinese set-reference JSON maps printed set-code aliases to precomputed display names. `ICardCatalog` only checks already-confirmed references in ArchiveDex's own database; there is no imported local TCGdex catalog.
 - `IMarketValuationProvider` produces an EUR estimate using condition/language/printing-aware market data when licensing and mappings permit, with a transparent aggregate fallback. No quote is preferable to fabricated precision.
 - Capture analysis is asynchronous and persisted before external calls. UI polling observes `Uploaded → Analyzing → NeedsReview | NeedsNewImage | Failed`; retry is bounded and idempotent.
 - Manual revaluation uses confirmed identity and condition without another vision call. A failed refresh leaves the last successful valuation unchanged.
@@ -131,6 +131,7 @@ tests/
 ## Persistence and Performance Design
 
 - Store normalized full image and thumbnail in a separate PostgreSQL `image_asset` table using `bytea`; metadata queries never select binary columns. This provides atomic finalization/deletion and one consistent backup for v1.
+- Provide a versioned ArchiveDex ZIP transfer format containing collection metadata, normalized images, thumbnails, conditions, and last-successful valuations. Imports stream to bounded temporary storage, validate paths and hashes, merge by collection identity, and remain idempotent without transferring accounts or secrets.
 - Exact duplicate warning uses owner-scoped upload and normalized SHA-256 indexes; hash indexes are non-unique because explicit duplicate override is allowed. Finalization uses a transaction-scoped advisory lock and rechecks duplicate status.
 - Group identity is owner + set-language edition + normalized collector number + printing/finish variant. Names are editable display data, not identity. Condition is specimen-specific.
 - List endpoints use projections, indexes, page size ≤50, and keyset pagination. Expected list complexity is O(log n + page-size).

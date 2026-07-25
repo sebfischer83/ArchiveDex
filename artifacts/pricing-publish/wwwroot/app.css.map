@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["angular:styles/component:css;6098652fc03a246750defb0ae98691d17b3bbf5799c5a7ab1dfd9089995f4be2;C:/Development/ArchiveDex/src/ArchiveDex.Server/ClientApp/src/app/app.ts"],
+  "sourcesContent": ["\n    .app-shell { display: flex; min-height: 100vh; }\n    .sidebar { width: 200px; background: var(--tui-background-base-alt); padding: 1rem; display: flex; flex-direction: column; gap: 0.35rem; }\n    .brand { text-decoration: none; color: var(--tui-text-primary); margin-bottom: 1rem; }\n    .nav-link { justify-content: flex-start; }\n    .nav-link.tui-active { background: var(--tui-background-neutral-1); color: var(--tui-text-primary); }\n    .sign-out { margin-top: auto; }\n    .content { flex: 1; padding: 2rem; }\n    @media (max-width: 640px) { .app-shell { flex-direction: column; } .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; } .sign-out { margin-top: 0; } .content { padding: 1rem; } }\n  "],
+  "mappings": ";AACI,CAAC;AAAY,WAAS;AAAM,cAAY;AAAO;AAC/C,CAAC;AAAU,SAAO;AAAO,cAAY,IAAI;AAA4B,WAAS;AAAM,WAAS;AAAM,kBAAgB;AAAQ,OAAK;AAAS;AACzI,CAAC;AAAQ,mBAAiB;AAAM,SAAO,IAAI;AAAqB,iBAAe;AAAM;AACrF,CAAC;AAAW,mBAAiB;AAAY;AACzC,CADC,QACQ,CAAC;AAAa,cAAY,IAAI;AAA6B,SAAO,IAAI;AAAqB;AACpG,CAAC;AAAW,cAAY;AAAM;AAC9B,CAAC;AAAU,QAAM;AAAG,WAAS;AAAM;AACnC,QAAO,WAAY;AAAS,GAP3B;AAOwC,oBAAgB;AAAQ;AAAE,GANlE;AAM6E,WAAO;AAAM,oBAAgB;AAAK,eAAW;AAAM;AAAE,GAFlI;AAE8I,gBAAY;AAAG;AAAE,GAD/J;AAC0K,aAAS;AAAM;AAAE;",
+  "names": []
+}

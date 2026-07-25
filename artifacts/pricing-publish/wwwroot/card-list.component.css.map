@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["angular:styles/component:css;1d6b2db1eb6d3b25a9ae2111f9114cec6f484e05896f7f4d9d4ae29ac0accf49;C:/Development/ArchiveDex/src/ArchiveDex.Server/ClientApp/src/app/features/cards/card-list.component.ts"],
+  "sourcesContent": [".cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:1rem}.cards button{display:flex;gap:.8rem;align-items:center;text-align:left;width:100%}.cards img{width:64px;height:88px;object-fit:cover;border-radius:.3rem}"],
+  "mappings": ";AAAA,CAAC;AAAM,WAAQ;AAAK,yBAAsB,OAAO,SAAS,EAAC,OAAO,KAAK,EAAC;AAAM,OAAI;AAAI;AAAC,CAAtF,MAA6F;AAAO,WAAQ;AAAK,OAAI;AAAM,eAAY;AAAO,cAAW;AAAK,SAAM;AAAI;AAAC,CAAzK,MAAgL;AAAI,SAAM;AAAK,UAAO;AAAK,cAAW;AAAM,iBAAc;AAAK;",
+  "names": []
+}

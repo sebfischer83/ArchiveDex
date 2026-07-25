@@ -63,7 +63,9 @@ One localized printing/finish reference from the pinned catalog.
 | CrossLanguageId | text | Nullable when no mapping exists |
 | PrintedName | text | Required |
 | PrintedNumber | text | Required, preserved verbatim |
-| NumberNormalized | text | Required conservative normalized value |
+| CollectorNumber | text | Required portion before `/` |
+| SetTotal | text | Nullable portion after `/`; does not limit CollectorNumber |
+| NumberNormalized | text | Required conservative normalized CollectorNumber |
 | VariantKey | text | Required; `standard` default |
 | LanguageCode | text | Required |
 | CatalogVersion | text | Required |
@@ -99,7 +101,9 @@ Groups all owned physical specimens of the same card printing and language.
 | SetEditionId | UUID | Required foreign key |
 | CatalogCardReferenceId | UUID | Nullable for a manually described card |
 | PrintedNumber | text | Required display value |
-| NumberNormalized | text | Required identity value |
+| CollectorNumber | text | Required portion before `/`, e.g. `201` |
+| SetTotal | text | Nullable portion after `/`, e.g. `200` |
+| NumberNormalized | text | Required identity value derived from CollectorNumber only |
 | NumberSortKey | text | Required deterministic natural-sort key |
 | VariantKey | text | Required, e.g. standard, holo, reverse-holo |
 | OriginalName | text | Required confirmed name as printed |
@@ -111,6 +115,7 @@ Groups all owned physical specimens of the same card printing and language.
 **Unique**: `(OwnerId, SetEditionId, NumberNormalized, VariantKey)`.
 
 Exactly one of `GermanName` and `GermanNameUnavailableReason` must be present. Names are editable display data and are not part of identity.
+`CollectorNumber` may be numerically greater than `SetTotal` for secret or special cards, for example `201/200`.
 
 ## CardSpecimen
 
@@ -135,6 +140,10 @@ Represents one physical card beneath a CardRecord.
 | Version | xmin | Optimistic concurrency token |
 
 Valuation amount, currency, provider, method, and timestamps are either all absent or form one complete last-successful valuation. A failed refresh performs no update.
+
+## ValuationRefreshJob
+
+Persists one collection-wide price refresh. A single active job is allowed per owner. The cursor is the last processed card's creation timestamp and UUID, so the worker resumes safely after navigation or a server restart. Counts track processed, updated, unavailable, and failed card records; individual provider failures never clear an existing specimen valuation.
 
 ## ImageAsset
 

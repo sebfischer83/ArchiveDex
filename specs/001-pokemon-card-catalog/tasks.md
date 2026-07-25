@@ -92,7 +92,7 @@
 
 - [x] T037 [P] [US1] Implement the image normalization service: format allowlist, signature validation, pixel/memory limits, orientation, EXIF/GPS stripping, browser-safe re-encode, thumbnail generation, SHA-256 hashing in `src/ArchiveDex.Server/Infrastructure/Images/ImageNormalizationService.cs`
 - [x] T038 [P] [US1] Implement the `IVisualCardAnalyzer` interface and a single configurable provider adapter with strict structured output, bounded retry, and typed error codes in `src/ArchiveDex.Server/Infrastructure/Providers/IVisualCardAnalyzer.cs` and `src/ArchiveDex.Server/Infrastructure/Providers/VisionProviderAdapter.cs`
-- [x] T039 [P] [US1] Implement the `ICardCatalog` interface and TCGdex snapshot importer that resolves observations against the pinned local catalog, supplies official German names, and returns bounded candidate lists in `src/ArchiveDex.Server/Infrastructure/Providers/ICardCatalog.cs` and `src/ArchiveDex.Server/Infrastructure/Providers/TcgdexCatalogProvider.cs`
+- [x] T039 [P] [US1] Implement a versioned Simplified-Chinese set-code reference, reuse already-confirmed ArchiveDex database references as bounded candidates, and enrich official German names through the isolated web-resolution stage in `src/ArchiveDex.Server/Infrastructure/Providers/`
 - [x] T040 [P] [US1] Implement the `IMarketValuationProvider` interface with a CardTrader adapter (if terms approved) and a TCGdex/Cardmarket EUR aggregate fallback, including condition-mapping and confidence tagging in `src/ArchiveDex.Server/Infrastructure/Providers/IMarketValuationProvider.cs` and `src/ArchiveDex.Server/Infrastructure/Providers/MarketValuationProvider.cs`
 - [x] T041 [US1] Implement the capture orchestration service: create draft, persist image, schedule analysis, poll state, enforce the state machine, and handle retry/expiry in `src/ArchiveDex.Server/Features/Capture/CaptureOrchestrationService.cs`
 - [x] T042 [US1] Implement the capture controller: `POST /captures`, `GET /captures/{id}`, `DELETE /captures/{id}`, `POST /captures/{id}/retry` with idempotency, ETags, and RFC Problem Details in `src/ArchiveDex.Server/Features/Capture/CaptureController.cs`
@@ -184,6 +184,8 @@
 - [x] T080 [US4] Implement the `POST /specimens/{id}/valuation` endpoint with idempotency, ETag, and typed provider-outcome response in `src/ArchiveDex.Server/Features/Valuation/ValuationController.cs`
 - [x] T081 [US4] Add valuation-display Angular component showing amount, currency, provider, confidence, timestamps, and disclaimer in `src/ArchiveDex.Server/ClientApp/src/app/features/cards/valuation-display.component.ts`
 - [x] T082 [US4] Bind a manual refresh trigger to the card-detail and specimen-detail Angular screens in `src/ArchiveDex.Server/ClientApp/src/app/features/cards/`
+- [x] T083 [US4] Implement a persisted collection-wide valuation refresh job with progress UI, restart recovery, shared requests per card/condition, and last-successful-value preservation in `src/ArchiveDex.Server/Features/Valuation/`
+- [x] T084 [US4] Implement versioned full-collection ZIP export/import with streamed uploads, image checksums, idempotent merge behavior, API endpoints, and collection UI in `src/ArchiveDex.Server/Features/DataTransfer/`
 
 **Checkpoint**: Valuation refresh works through the UI; a failed refresh shows recovery guidance and retains the last successful value.
 

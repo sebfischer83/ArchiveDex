@@ -9,6 +9,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/capture/capture-upload.component').then(m => m.CaptureUploadComponent),
   },
   {
+    path: 'capture/batch',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/capture/capture-batch-upload.component').then(m => m.CaptureBatchUploadComponent),
+  },
+  {
+    path: 'capture/batch/:batchId',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/capture/capture-batch-review.component').then(m => m.CaptureBatchReviewComponent),
+  },
+  {
     path: 'capture/:captureId',
     canActivate: [authGuard],
     loadComponent: () => import('./features/capture/capture-review.component').then(m => m.CaptureReviewComponent),

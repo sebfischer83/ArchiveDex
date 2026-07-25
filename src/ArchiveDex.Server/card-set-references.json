@@ -1,0 +1,59 @@
+{
+  "CardSetReferences": {
+    "Version": "2026-07-23",
+    "SourceUrl": "https://www.pokipair.com/simplified-chinese-pokemon-set-list/",
+    "RetrievedAt": "2026-07-23T00:00:00Z",
+    "Sets": [
+      { "Code": "CSV9.5C", "Name": "Crystal Gathering", "Language": "zh-cn", "Aliases": ["CSV9.5"] },
+      { "Code": "CSV8C", "Name": "Bright Fantasy", "Language": "zh-cn", "Aliases": ["CSV8"] },
+      { "Code": "CSV7C", "Name": "Blade Awakened", "Language": "zh-cn", "Aliases": ["CSV7"] },
+      { "Code": "CSV6C", "Name": "Paradox Veil", "Language": "zh-cn", "Aliases": ["CSV6"] },
+      { "Code": "CSV5C", "Name": "Dark Crystal Blaze", "Language": "zh-cn", "Aliases": ["CSV5"] },
+      { "Code": "CSV4C", "Name": "Reward Round", "Language": "zh-cn", "Aliases": ["CSV4"] },
+      { "Code": "CSV3C", "Name": "Fearless Terastal", "Language": "zh-cn", "Aliases": ["CSV3"] },
+      { "Code": "CSV2C", "Name": "Miracle Journey", "Language": "zh-cn", "Aliases": ["CSV2"] },
+      { "Code": "CSV1C", "Name": "Eternal Beginnings", "Language": "zh-cn", "Aliases": ["CSV1"] },
+
+      { "Code": "CBB5C", "Name": "Gem Pack Vol. 5", "Language": "zh-cn", "Aliases": ["CBB5"] },
+      { "Code": "CBB4C", "Name": "Gem Pack Vol. 4", "Language": "zh-cn", "Aliases": ["CBB4"] },
+      { "Code": "CBB3C", "Name": "Gem Pack Vol. 3", "Language": "zh-cn", "Aliases": ["CBB3"] },
+      { "Code": "CBB2C", "Name": "Gem Pack Vol. 2", "Language": "zh-cn", "Aliases": ["CBB2"] },
+      { "Code": "CBB1C", "Name": "Gem Pack Vol. 1", "Language": "zh-cn", "Aliases": ["CBB1"] },
+      { "Code": "151C", "Name": "Collect 151", "Language": "zh-cn", "Aliases": ["151"] },
+
+      { "Code": "CS6aC", "Name": "Shadow of Blue Sea - Set A", "Language": "zh-cn", "Aliases": ["CS6A", "CS6AC"] },
+      { "Code": "CS6bC", "Name": "Shadow of Blue Sea - Set B", "Language": "zh-cn", "Aliases": ["CS6B", "CS6BC"] },
+      { "Code": "CS5aC", "Name": "Brave Stars - Set A", "Language": "zh-cn", "Aliases": ["CS5A", "CS5AC"] },
+      { "Code": "CS5bC", "Name": "Brave Stars - Set B", "Language": "zh-cn", "Aliases": ["CS5B", "CS5BC"] },
+      { "Code": "CS4aC", "Name": "Nine Colors Gathering - Set A", "Language": "zh-cn", "Aliases": ["CS4A", "CS4AC"] },
+      { "Code": "CS4bC", "Name": "Nine Colors Gathering - Set B", "Language": "zh-cn", "Aliases": ["CS4B", "CS4BC"] },
+      { "Code": "CS3aC", "Name": "Primordial Arts - Set A", "Language": "zh-cn", "Aliases": ["CS3A", "CS3AC"] },
+      { "Code": "CS3bC", "Name": "Primordial Arts - Set B", "Language": "zh-cn", "Aliases": ["CS3B", "CS3BC"] },
+      { "Code": "CS2aC", "Name": "Vivid Portrayals - Set A", "Language": "zh-cn", "Aliases": ["CS2A", "CS2AC"] },
+      { "Code": "CS2bC", "Name": "Vivid Portrayals - Set B", "Language": "zh-cn", "Aliases": ["CS2B", "CS2BC"] },
+      { "Code": "CS1aC", "Name": "Dynamax Clash - Set A", "Language": "zh-cn", "Aliases": ["CS1A", "CS1AC"] },
+      { "Code": "CS1bC", "Name": "Dynamax Clash - Set B", "Language": "zh-cn", "Aliases": ["CS1B", "CS1BC"] },
+
+      { "Code": "CS6.5C", "Name": "Victory Stars", "Language": "zh-cn", "Aliases": ["CS6.5"] },
+      { "Code": "CS5.5C", "Name": "Shadow of Glory", "Language": "zh-cn", "Aliases": ["CS5.5"] },
+      { "Code": "CS4.5C", "Name": "Final Flame Dance", "Language": "zh-cn", "Aliases": ["CS4.5"] },
+      { "Code": "CS3.5C", "Name": "Scorching Skies", "Language": "zh-cn", "Aliases": ["CS3.5"] },
+      { "Code": "CS2.5C", "Name": "Brilliant Counterattack", "Language": "zh-cn", "Aliases": ["CS2.5"] },
+      { "Code": "CS1.5C", "Name": "Dynamax Tactics", "Language": "zh-cn", "Aliases": ["CS1.5"] },
+
+      { "Code": "CS4DaC", "Name": "Start Deck 100", "Language": "zh-cn", "Aliases": ["CS4DA", "CS4DAC"] },
+      { "Code": "CSVL1C", "Name": "Journey Promo Pack", "Language": "zh-cn", "Aliases": ["CSVL1"] },
+      { "Code": "CSVL2C", "Name": "Journey Promo Pack 2", "Language": "zh-cn", "Aliases": ["CSVL2"] },
+      { "Code": "CSFC", "Name": "Return of the Dragon", "Language": "zh-cn", "Aliases": ["CSF"] },
+
+      { "Code": "CSM1aC", "Name": "Storming Emergence - Set A", "Language": "zh-cn", "Aliases": ["CSM1A"] },
+      { "Code": "CSM1bC", "Name": "Storming Emergence - Set B", "Language": "zh-cn", "Aliases": ["CSM1B"] },
+      { "Code": "CSM1cC", "Name": "Storming Emergence - Set C", "Language": "zh-cn", "Aliases": ["CSM1C"] },
+      { "Code": "CSM2aC", "Name": "Shining Synergy - Set A", "Language": "zh-cn", "Aliases": ["CSM2A"] },
+      { "Code": "CSM2bC", "Name": "Shining Synergy - Set B", "Language": "zh-cn", "Aliases": ["CSM2B"] },
+      { "Code": "CSM2cC", "Name": "Shining Synergy - Set C", "Language": "zh-cn", "Aliases": ["CSM2C"] },
+      { "Code": "CSM2.5C", "Name": "Striking Competition", "Language": "zh-cn", "Aliases": ["CSM2.5"] },
+      { "Code": "CSM1.5C", "Name": "Battle Elite", "Language": "zh-cn", "Aliases": ["CSM1.5"] }
+    ]
+  }
+}

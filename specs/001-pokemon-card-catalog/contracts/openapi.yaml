@@ -312,6 +312,70 @@ paths:
           description: Valuation refresh scheduled
         '409': { $ref: '#/components/responses/Problem' }
         '429': { $ref: '#/components/responses/Problem' }
+  /valuations/refresh-all:
+    post:
+      summary: Start or return the active collection-wide valuation refresh
+      operationId: startValuationRefreshAll
+      responses:
+        '202':
+          description: Persisted refresh job accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValuationRefreshJob' }
+        '503': { $ref: '#/components/responses/Problem' }
+    get:
+      summary: Read the latest collection-wide valuation refresh
+      operationId: getLatestValuationRefresh
+      responses:
+        '200':
+          description: Latest refresh job
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValuationRefreshJob' }
+        '204': { description: No refresh has been started }
+  /valuations/refresh-all/{jobId}:
+    get:
+      summary: Read one collection-wide valuation refresh
+      operationId: getValuationRefresh
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Refresh job
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValuationRefreshJob' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /data-transfer/export:
+    get:
+      summary: Export the complete owner collection as a versioned ArchiveDex ZIP
+      operationId: exportCollection
+      responses:
+        '200':
+          description: Collection archive containing manifest, images, and thumbnails
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+  /data-transfer/import:
+    post:
+      summary: Import and idempotently merge a versioned ArchiveDex ZIP
+      operationId: importCollection
+      requestBody:
+        required: true
+        content:
+          application/zip:
+            schema: { type: string, format: binary }
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataImportResult' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '413': { $ref: '#/components/responses/Problem' }
   /specimens/{specimenId}/image:
     get:
       summary: Read a private specimen image
@@ -443,6 +507,10 @@ components:
           oneOf:
             - $ref: '#/components/schemas/Valuation'
             - type: 'null'
+        aiCost:
+          oneOf:
+            - $ref: '#/components/schemas/AiAnalysisCost'
+            - type: 'null'
         candidates:
           type: array
           maxItems: 10
@@ -455,6 +523,19 @@ components:
         value: { type: [string, 'null'] }
         confidence: { $ref: '#/components/schemas/Confidence' }
         reason: { type: [string, 'null'] }
+    AiAnalysisCost:
+      type: object
+      required: [provider, model, inputTokens, outputTokens, webSearchCalls, estimatedAmount, currency, isBatch, pricingAsOf]
+      properties:
+        provider: { type: string }
+        model: { type: string }
+        inputTokens: { type: integer, format: int64, minimum: 0 }
+        outputTokens: { type: integer, format: int64, minimum: 0 }
+        webSearchCalls: { type: integer, minimum: 0 }
+        estimatedAmount: { type: [number, 'null'], format: decimal, minimum: 0 }
+        currency: { type: string, enum: [USD] }
+        isBatch: { type: boolean }
+        pricingAsOf: { type: string, format: date }
     Confidence:
       type: string
       enum: [high, medium, low]
@@ -498,6 +579,8 @@ components:
         germanName: { type: [string, 'null'], maxLength: 200 }
         germanNameUnavailableReason: { type: [string, 'null'], maxLength: 200 }
         printedNumber: { type: string, minLength: 1, maxLength: 50 }
+        collectorNumber: { type: [string, 'null'], minLength: 1, maxLength: 25, description: Card number before the slash, for example 201 }
+        setTotal: { type: [string, 'null'], maxLength: 25, description: Printed set total after the slash, for example 200 }
         setIdentifier: { type: string, minLength: 1, maxLength: 100 }
         setName: { type: string, minLength: 1, maxLength: 200 }
         language: { type: string, minLength: 2, maxLength: 10 }
@@ -532,9 +615,41 @@ components:
             - type: 'null'
         conditionApplied: { type: [boolean, 'null'] }
         disclaimer: { type: string }
+        sourceUrls:
+          type: array
+          maxItems: 10
+          items: { type: string, format: uri }
+    ValuationRefreshJob:
+      type: object
+      required: [id, status, totalCards, processedCards, updatedCards, unavailableCards, failedCards, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [pending, running, completed, completedWithErrors, failed]
+        totalCards: { type: integer, minimum: 0 }
+        processedCards: { type: integer, minimum: 0 }
+        updatedCards: { type: integer, minimum: 0 }
+        unavailableCards: { type: integer, minimum: 0 }
+        failedCards: { type: integer, minimum: 0 }
+        lastError: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+        startedAt: { type: [string, 'null'], format: date-time }
+        completedAt: { type: [string, 'null'], format: date-time }
+        updatedAt: { type: string, format: date-time }
+    DataImportResult:
+      type: object
+      required: [setsCreated, setsReused, cardsCreated, cardsReused, specimensCreated, specimensSkipped]
+      properties:
+        setsCreated: { type: integer, minimum: 0 }
+        setsReused: { type: integer, minimum: 0 }
+        cardsCreated: { type: integer, minimum: 0 }
+        cardsReused: { type: integer, minimum: 0 }
+        specimensCreated: { type: integer, minimum: 0 }
+        specimensSkipped: { type: integer, minimum: 0 }
     SetSummary:
       type: object
-      required: [id, setIdentifier, setName, language, distinctCardCount, specimenCount]
+      required: [id, setIdentifier, setName, language, distinctCardCount, specimenCount, valuedSpecimenCount, valuationAmountMinor]
       properties:
         id: { type: string, format: uuid }
         setIdentifier: { type: string }
@@ -542,6 +657,8 @@ components:
         language: { type: string }
         distinctCardCount: { type: integer, minimum: 0 }
         specimenCount: { type: integer, minimum: 0 }
+        valuedSpecimenCount: { type: integer, minimum: 0 }
+        valuationAmountMinor: { type: integer, format: int64, minimum: 0, description: Sum of available specimen valuations in EUR cents. }
     SetPage:
       type: object
       required: [items]
@@ -552,14 +669,18 @@ components:
         nextCursor: { type: [string, 'null'] }
     CardSummary:
       type: object
-      required: [id, originalName, printedNumber, variantKey, specimenCount, thumbnailUrl]
+      required: [id, originalName, printedNumber, collectorNumber, variantKey, specimenCount, valuedSpecimenCount, valuationAmountMinor, thumbnailUrl]
       properties:
         id: { type: string, format: uuid }
         originalName: { type: string }
         germanName: { type: [string, 'null'] }
         printedNumber: { type: string }
+        collectorNumber: { type: string }
+        setTotal: { type: [string, 'null'] }
         variantKey: { type: string }
         specimenCount: { type: integer, minimum: 1 }
+        valuedSpecimenCount: { type: integer, minimum: 0 }
+        valuationAmountMinor: { type: integer, format: int64, minimum: 0, description: Sum of available specimen valuations in EUR cents. }
         thumbnailUrl: { type: string, format: uri-reference }
     CardPage:
       type: object
@@ -571,13 +692,15 @@ components:
         nextCursor: { type: [string, 'null'] }
     CardDetail:
       type: object
-      required: [id, originalName, printedNumber, setIdentifier, setName, language, variantKey, specimens, etag]
+      required: [id, originalName, printedNumber, collectorNumber, setIdentifier, setName, language, variantKey, specimens, etag]
       properties:
         id: { type: string, format: uuid }
         originalName: { type: string }
         germanName: { type: [string, 'null'] }
         germanNameUnavailableReason: { type: [string, 'null'] }
         printedNumber: { type: string }
+        collectorNumber: { type: string }
+        setTotal: { type: [string, 'null'] }
         setIdentifier: { type: string }
         setName: { type: string }
         language: { type: string }
@@ -606,6 +729,8 @@ components:
         germanName: { type: [string, 'null'], maxLength: 200 }
         germanNameUnavailableReason: { type: [string, 'null'], maxLength: 200 }
         printedNumber: { type: string, minLength: 1, maxLength: 50 }
+        collectorNumber: { type: [string, 'null'], minLength: 1, maxLength: 25, description: Card number before the slash; may exceed setTotal }
+        setTotal: { type: [string, 'null'], maxLength: 25, description: Printed set total after the slash }
         setIdentifier: { type: string, minLength: 1, maxLength: 100 }
         setName: { type: string, minLength: 1, maxLength: 200 }
         language: { type: string, minLength: 2, maxLength: 10 }

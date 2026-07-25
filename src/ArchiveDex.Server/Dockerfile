@@ -2,9 +2,14 @@
 
 # Diese Stufe wird verwendet, wenn sie von VS im Schnellmodus ausgeführt wird (Standardeinstellung für Debugkonfiguration).
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-# Pre-create the DataProtection key directory owned by the non-root app user so a
-# freshly created named volume mounted here inherits writable ownership.
-RUN mkdir -p /app/dataprotection && chown "$APP_UID:$APP_UID" /app/dataprotection
+# Npgsql tries to load libgssapi_krb5 for GSSAPI auth negotiation; install it to avoid the
+# "Cannot load library libgssapi_krb5.so.2" error. Also pre-create the DataProtection key
+# directory owned by the non-root app user so a fresh named volume inherits writable ownership.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /app/dataprotection /app/logs \
+    && chown "$APP_UID:$APP_UID" /app/dataprotection /app/logs
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
