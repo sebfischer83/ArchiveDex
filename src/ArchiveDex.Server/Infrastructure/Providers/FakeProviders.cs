@@ -2,7 +2,8 @@ namespace ArchiveDex.Server.Infrastructure.Providers
 {
     public class FakeVisionProvider : IVisualCardAnalyzer
     {
-        public Task<AnalysisResult> AnalyzeAsync(byte[] imageBytes, CancellationToken ct = default)
+        public Task<AnalysisResult> AnalyzeAsync(
+            byte[] imageBytes, AnalysisOptions options = default, CancellationToken ct = default)
         {
             return Task.FromResult(new AnalysisResult(
                 "COMPLETED",

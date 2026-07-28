@@ -101,13 +101,12 @@ Expected: the session survives container restart when Data Protection and databa
 
 Expected: analysis reaches `needsReview`, `needsNewImage`, or `failed` within 30 seconds. Finalization stores one specimen with its own private full image and thumbnail beneath the correct grouped card record.
 
-### 3. Duplicate Warning
+### 3. Duplicate Image as Another Specimen
 
 1. Upload the exact same image again.
-2. Attempt finalization without duplicate override.
-3. Confirm the warning and finalize deliberately.
+2. Finalize the capture normally.
 
-Expected: the first finalization attempt returns a duplicate conflict identifying the matching specimen; explicit override stores another physical specimen under the same grouped card record.
+Expected: finalization stores another physical specimen under the same grouped card record without an additional duplicate confirmation.
 
 ### 4. Browse by Set and Language
 

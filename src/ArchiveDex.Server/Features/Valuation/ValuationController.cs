@@ -10,6 +10,7 @@ namespace ArchiveDex.Server.Features.Valuation
     public class ValuationController(
         ArchiveDexDbContext db,
         IMarketValuationProvider market,
+        ValuationRecorder valuations,
         IConfiguration configuration,
         IWebHostEnvironment environment) : ControllerBase
     {
@@ -34,12 +35,99 @@ namespace ArchiveDex.Server.Features.Valuation
                 specimen.CardRecord?.SetEdition?.LanguageCode,
                 specimen.CardRecord?.VariantKey,
                 specimen.Condition,
-                "EUR"), ct);
+                "EUR",
+                specimen.CardRecordId), ct);
 
-            if (ValuationPersistence.Apply(specimen, result, DateTime.UtcNow))
+            if (valuations.Record(specimen, result, DateTime.UtcNow) != ValuationOutcome.Skipped)
                 await db.SaveChangesAsync(ct);
 
             return Accepted();
+        }
+
+        [HttpGet("specimens/{specimenId:guid}/valuation-history")]
+        public async Task<IActionResult> GetValuationHistory(Guid specimenId, CancellationToken ct)
+        {
+            var ownerId = GetOwnerId();
+            if (!await db.CardSpecimens.AnyAsync(x => x.Id == specimenId && x.OwnerId == ownerId, ct))
+                return NotFound();
+
+            // Materialise first: ReadSourceUrls is a client-side helper and cannot be translated to SQL.
+            var rows = await db.SpecimenValuationHistories.AsNoTracking()
+                .Where(x => x.CardSpecimenId == specimenId && x.OwnerId == ownerId)
+                .OrderByDescending(x => x.RecordedAt)
+                .ToListAsync(ct);
+
+            var entries = rows.Select(x => new
+            {
+                x.Id, x.AmountMinor, x.Currency, x.PreviousAmountMinor,
+                x.Provider, x.Method, x.Confidence, x.ConditionApplied,
+                x.Outcome, x.HoldReason, x.ValuedAt, x.MarketDataAsOf, x.RecordedAt,
+                sourceUrls = ReadSourceUrls(x.SourceUrlsJson),
+            });
+
+            return Ok(new { items = entries });
+        }
+
+        /// <summary>Takes over a value the guard held back, or discards it. Both clear the flag.</summary>
+        [HttpPost("specimens/{specimenId:guid}/valuation/review")]
+        public async Task<IActionResult> ResolveReview(
+            Guid specimenId,
+            ResolveValuationReviewRequest request,
+            [FromHeader(Name = "If-Match")] string? ifMatch,
+            CancellationToken ct)
+        {
+            if (request.Decision is not ("accept" or "reject"))
+                return BadRequestProblem("INVALID_DECISION", "Die Entscheidung muss 'accept' oder 'reject' sein.");
+
+            var ownerId = GetOwnerId();
+            var specimen = await db.CardSpecimens
+                .FirstOrDefaultAsync(x => x.Id == specimenId && x.OwnerId == ownerId, ct);
+            if (specimen is null) return NotFound();
+
+            if (!string.IsNullOrWhiteSpace(ifMatch) && ifMatch != $"\"{specimen.Version}\"")
+                return ConflictProblem("STALE_SPECIMEN", "Das Exemplar wurde zwischenzeitlich geändert. Bitte neu laden.");
+
+            if (specimen.ValuationReviewPendingAt is null)
+                return BadRequestProblem("NO_PENDING_VALUATION", "Für dieses Exemplar liegt kein Vorschlag zur Prüfung vor.");
+
+            var pending = await db.SpecimenValuationHistories
+                .Where(x => x.CardSpecimenId == specimenId && x.OwnerId == ownerId
+                    && x.Outcome == SpecimenValuationHistory.OutcomeHeldForReview)
+                .OrderByDescending(x => x.RecordedAt)
+                .FirstOrDefaultAsync(ct);
+            if (pending is null)
+            {
+                // Flag without a matching entry: nothing to take over, so just clear it.
+                specimen.ValuationReviewPendingAt = null;
+                await db.SaveChangesAsync(ct);
+                return NoContent();
+            }
+
+            var now = DateTime.UtcNow;
+            if (request.Decision == "accept")
+            {
+                specimen.ValuationAmountMinor = pending.AmountMinor;
+                specimen.ValuationCurrency = pending.Currency;
+                specimen.ValuedAt = pending.ValuedAt;
+                specimen.MarketDataAsOf = pending.MarketDataAsOf;
+                specimen.ValuationProvider = pending.Provider;
+                specimen.ValuationMethod = pending.Method;
+                specimen.ValuationConfidence = pending.Confidence;
+                specimen.ConditionAppliedToValuation = pending.ConditionApplied;
+                specimen.ValuationSourceUrlsJson = pending.SourceUrlsJson;
+                specimen.UpdatedAt = now;
+                pending.Outcome = SpecimenValuationHistory.OutcomeAccepted;
+            }
+            else
+            {
+                // Rejected proposals stay in the history as evidence, marked for what they are.
+                pending.Outcome = SpecimenValuationHistory.OutcomeRejected;
+                specimen.UpdatedAt = now;
+            }
+
+            specimen.ValuationReviewPendingAt = null;
+            await db.SaveChangesAsync(ct);
+            return NoContent();
         }
 
         [HttpPost("valuations/refresh-all")]
@@ -108,8 +196,15 @@ namespace ArchiveDex.Server.Features.Valuation
             var provider = configuration["AI:Valuation:Provider"]?.Trim().ToLowerInvariant();
             if (provider == "fake")
                 return environment.IsDevelopment() || environment.IsEnvironment("Testing");
-            return provider == "openai"
+            // Cardmarket prices come from uploaded files, so it needs data rather than an API key.
+            if (provider == "cardmarket")
+                return db.CardmarketPrices.Any();
+
+            // Default is tiered: uploaded Cardmarket data alone is enough to run, and so is a
+            // configured web-search key. Only when neither exists is there nothing to ask.
+            var hasWebSearch = provider == "openai"
                 && !string.IsNullOrWhiteSpace(configuration["AI:OpenAI:ApiKey"]);
+            return hasWebSearch || db.CardmarketPrices.Any();
         }
 
         private static object ToResponse(ValuationRefreshJob job) => new
@@ -121,6 +216,7 @@ namespace ArchiveDex.Server.Features.Valuation
             job.UpdatedCards,
             job.UnavailableCards,
             job.FailedCards,
+            job.HeldCards,
             job.LastError,
             job.CreatedAt,
             job.StartedAt,
@@ -133,5 +229,27 @@ namespace ArchiveDex.Server.Features.Valuation
             var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
             return claim is not null && Guid.TryParse(claim, out var id) ? id : Guid.Empty;
         }
+
+        private static string[] ReadSourceUrls(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return [];
+            try { return System.Text.Json.JsonSerializer.Deserialize<string[]>(json) ?? []; }
+            catch (System.Text.Json.JsonException) { return []; }
+        }
+
+        private ObjectResult BadRequestProblem(string code, string detail) =>
+            Problem(code, detail, StatusCodes.Status400BadRequest);
+
+        private ObjectResult ConflictProblem(string code, string detail) =>
+            Problem(code, detail, StatusCodes.Status409Conflict);
+
+        private ObjectResult Problem(string code, string detail, int status)
+        {
+            var problem = new ProblemDetails { Title = code, Status = status, Detail = detail };
+            problem.Extensions["code"] = code;
+            return StatusCode(status, problem);
+        }
     }
+
+    public sealed record ResolveValuationReviewRequest(string Decision);
 }

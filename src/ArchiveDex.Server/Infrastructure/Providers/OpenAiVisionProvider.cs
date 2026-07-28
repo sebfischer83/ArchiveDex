@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using ArchiveDex.Server.Infrastructure.Images;
 
 namespace ArchiveDex.Server.Infrastructure.Providers;
 
@@ -29,7 +30,8 @@ public partial class OpenAiVisionProvider : IVisualCardAnalyzer, IMarketValuatio
             ?? throw new InvalidOperationException("AI:OpenAI:ApiKey not configured");
     }
 
-    public async Task<AnalysisResult> AnalyzeAsync(byte[] imageBytes, CancellationToken ct = default)
+    public async Task<AnalysisResult> AnalyzeAsync(
+        byte[] imageBytes, AnalysisOptions options = default, CancellationToken ct = default)
     {
         var visualBody = await SendAsync(CreateVisualRequest(imageBytes), ct);
         var visualContent = ExtractOutputText(visualBody)
@@ -44,7 +46,8 @@ public partial class OpenAiVisionProvider : IVisualCardAnalyzer, IMarketValuatio
 
         try
         {
-            var webBody = await SendAsync(CreateWebResolutionRequest(observations), ct);
+            var webBody = await SendAsync(
+                CreateWebResolutionRequest(observations, options.SkipMarketPrice), ct);
             var webContent = ExtractOutputText(webBody)
                 ?? throw new InvalidOperationException("OpenAI returned no web resolution content.");
             var resolved = MergeWebResolution(
@@ -110,7 +113,7 @@ public partial class OpenAiVisionProvider : IVisualCardAnalyzer, IMarketValuatio
                 new
                 {
                     type = "input_image",
-                    image_url = $"data:image/jpeg;base64,{Convert.ToBase64String(imageBytes)}",
+                    image_url = $"data:{ImageMediaType.Detect(imageBytes)};base64,{Convert.ToBase64String(imageBytes)}",
                     detail = "high",
                 },
             }},
@@ -129,7 +132,8 @@ public partial class OpenAiVisionProvider : IVisualCardAnalyzer, IMarketValuatio
         store = false,
     };
 
-    private object CreateWebResolutionRequest(ImageObservations observations)
+    private object CreateWebResolutionRequest(
+        ImageObservations observations, bool skipMarketPrice = false)
     {
         var knownSet = _setReferences?.Resolve(observations.SetHint, observations.Language);
         var evidence = JsonSerializer.Serialize(new
@@ -148,7 +152,9 @@ public partial class OpenAiVisionProvider : IVisualCardAnalyzer, IMarketValuatio
         return new
         {
             model = _model,
-            instructions = WebResolutionSystemPrompt,
+            instructions = skipMarketPrice
+                ? WebResolutionWithoutPriceSystemPrompt
+                : WebResolutionSystemPrompt,
             input = new object[]
             {
                 new { role = "user", content = new object[]
@@ -171,7 +177,7 @@ public partial class OpenAiVisionProvider : IVisualCardAnalyzer, IMarketValuatio
                     type = "json_schema",
                     name = "pokemon_card_web_resolution",
                     strict = true,
-                    schema = WebResolutionSchema,
+                    schema = skipMarketPrice ? WebResolutionWithoutPriceSchema : WebResolutionSchema,
                 },
             },
             store = false,
@@ -524,6 +530,25 @@ public partial class OpenAiVisionProvider : IVisualCardAnalyzer, IMarketValuatio
         code. If the exact printing cannot be priced reliably, return null market fields.
         """;
 
+    /// <summary>
+    /// Identity resolution only. Used when a price guide is loaded: researching a price would cost
+    /// output tokens and model time for a number that gets discarded on arrival.
+    /// </summary>
+    internal const string WebResolutionWithoutPriceSystemPrompt = """
+        Resolve already-extracted Pokemon card evidence with live web search and return only the
+        requested enrichment fields. The provided printed name, number and language are immutable.
+
+        Confirm the exact printing by printed name, collector number, set total, language, set code,
+        rarity and finish. A supplied precomputed set code/name is a trusted alias reference unless
+        reliable sources prove a conflict. setCode must contain only the canonical code; setName must
+        contain only the set display name.
+
+        Return the official German Pokemon TCG card name, including suffixes such as V, VMAX or ex.
+        Return null rather than an English name, literal translation or uncertain German name.
+
+        Do not research or report a price. Prices come from a separate catalogue.
+        """;
+
     // Legacy combined prompt used by batch and Anthropic providers.
     internal const string SystemPrompt = """
         Identify one Pokemon trading card from a photo and return JSON matching the requested fields.
@@ -573,6 +598,28 @@ public partial class OpenAiVisionProvider : IVisualCardAnalyzer, IMarketValuatio
             "visibleSetCode", "setConfidence", "rarity", "rarityConfidence", "finish",
             "finishConfidence", "condition", "conditionConfidence", "conditionDefects",
             "conditionLimitations", "qualityIssues",
+        },
+        additionalProperties = false,
+    };
+
+    /// <summary>
+    /// Same resolution task without the market fields, used once a price guide supplies the value.
+    /// Identity still needs the web, so the search itself stays; only the pricing work is dropped.
+    /// </summary>
+    internal static readonly object WebResolutionWithoutPriceSchema = new
+    {
+        type = "object",
+        properties = new
+        {
+            officialGermanName = new { type = new[] { "string", "null" } },
+            officialGermanNameConfidence = ConfidenceSchema,
+            setCode = new { type = new[] { "string", "null" } },
+            setName = new { type = new[] { "string", "null" } },
+            setConfidence = ConfidenceSchema,
+        },
+        required = new[]
+        {
+            "officialGermanName", "officialGermanNameConfidence", "setCode", "setName", "setConfidence",
         },
         additionalProperties = false,
     };

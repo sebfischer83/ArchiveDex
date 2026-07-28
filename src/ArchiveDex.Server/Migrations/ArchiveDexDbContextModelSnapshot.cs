@@ -208,6 +208,15 @@ namespace ArchiveDex.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CardmarketMatchState")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("CardmarketMatchedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CardmarketProductId")
+                        .HasColumnType("integer");
+
                     b.Property<Guid?>("CatalogCardReferenceId")
                         .HasColumnType("uuid");
 
@@ -275,6 +284,8 @@ namespace ArchiveDex.Server.Migrations
 
                     b.ToTable("CardRecords", t =>
                         {
+                            t.HasCheckConstraint("CK_CardRecord_CardmarketMatchState", "\"CardmarketMatchState\" IS NULL OR \"CardmarketMatchState\" IN ('unique', 'narrowSpread', 'aiResolved', 'manual', 'unresolved', 'noCandidate')");
+
                             t.HasCheckConstraint("CK_CardRecord_GermanName", "(\"GermanName\" IS NOT NULL) <> (\"GermanNameUnavailableReason\" IS NOT NULL)");
                         });
                 });
@@ -325,6 +336,9 @@ namespace ArchiveDex.Server.Migrations
                     b.Property<string>("ValuationProvider")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("ValuationReviewPendingAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("ValuationSourceUrlsJson")
                         .HasColumnType("jsonb");
 
@@ -352,6 +366,96 @@ namespace ArchiveDex.Server.Migrations
 
                             t.HasCheckConstraint("CK_CardSpecimen_Valuation", "\"ValuationAmountMinor\" IS NULL OR (\"ValuationAmountMinor\" >= 0 AND \"ValuationCurrency\" = 'EUR' AND \"ValuedAt\" IS NOT NULL AND \"MarketDataAsOf\" IS NOT NULL AND \"ValuationProvider\" IS NOT NULL AND \"ValuationMethod\" IS NOT NULL)");
                         });
+                });
+
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CardmarketImport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("RecordCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("SourceCreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Kind", "ImportedAt");
+
+                    b.ToTable("CardmarketImports", t =>
+                        {
+                            t.HasCheckConstraint("CK_CardmarketImport_Kind", "\"Kind\" IN ('products', 'prices')");
+                        });
+                });
+
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CardmarketPrice", b =>
+                {
+                    b.Property<int>("IdProduct")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("Avg")
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal?>("Avg30")
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal?>("Avg30Holo")
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal?>("Avg7")
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal?>("Avg7Holo")
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal?>("Low")
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal?>("Trend")
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal?>("TrendHolo")
+                        .HasColumnType("numeric(12,2)");
+
+                    b.HasKey("IdProduct");
+
+                    b.ToTable("CardmarketPrices");
+                });
+
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CardmarketProduct", b =>
+                {
+                    b.Property<int>("IdProduct")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("IdCategory")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("IdExpansion")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("IdMetacard")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("IdProduct");
+
+                    b.HasIndex("IdExpansion", "IdMetacard");
+
+                    b.HasIndex("IdExpansion", "Name");
+
+                    b.ToTable("CardmarketProducts");
                 });
 
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CatalogCardReference", b =>
@@ -522,6 +626,18 @@ namespace ArchiveDex.Server.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<float?>("CropConfidence")
+                        .HasColumnType("real");
+
+                    b.Property<byte[]>("CroppedContent")
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("CroppedSha256")
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("CroppedThumbnail")
+                        .HasColumnType("bytea");
+
                     b.Property<Guid?>("DuplicateMatchImageId")
                         .HasColumnType("uuid");
 
@@ -568,6 +684,8 @@ namespace ArchiveDex.Server.Migrations
 
                     b.ToTable("ImageAssets", t =>
                         {
+                            t.HasCheckConstraint("CK_ImageAsset_Crop", "(\"CroppedContent\" IS NULL AND \"CroppedThumbnail\" IS NULL AND \"CroppedSha256\" IS NULL) OR (\"CroppedContent\" IS NOT NULL AND \"CroppedThumbnail\" IS NOT NULL AND octet_length(\"CroppedSha256\") = 32)");
+
                             t.HasCheckConstraint("CK_ImageAsset_Dimensions", "\"Width\" > 0 AND \"Height\" > 0 AND \"Width\"::bigint * \"Height\" <= 30000000");
 
                             t.HasCheckConstraint("CK_ImageAsset_Expiry", "(\"State\" = 'draft' AND \"ExpiresAt\" IS NOT NULL) OR (\"State\" = 'attached' AND \"ExpiresAt\" IS NULL)");
@@ -585,6 +703,9 @@ namespace ArchiveDex.Server.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("CardmarketExpansionId")
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("CatalogSetReferenceId")
                         .HasColumnType("uuid");
@@ -630,6 +751,80 @@ namespace ArchiveDex.Server.Migrations
                     b.ToTable("SetEditions");
                 });
 
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.SpecimenValuationHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("AmountMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("CardSpecimenId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool?>("ConditionApplied")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Confidence")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("HoldReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("MarketDataAsOf")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long?>("PreviousAmountMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SourceUrlsJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("ValuationRefreshJobId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ValuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CardSpecimenId");
+
+                    b.HasIndex("ValuationRefreshJobId");
+
+                    b.HasIndex("OwnerId", "CardSpecimenId", "RecordedAt");
+
+                    b.ToTable("SpecimenValuationHistories", t =>
+                        {
+                            t.HasCheckConstraint("CK_SpecimenValuationHistory_Amount", "\"AmountMinor\" >= 0 AND \"Currency\" = 'EUR'");
+
+                            t.HasCheckConstraint("CK_SpecimenValuationHistory_Outcome", "\"Outcome\" IN ('accepted', 'heldForReview', 'rejected')");
+                        });
+                });
+
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.ValuationRefreshJob", b =>
                 {
                     b.Property<Guid>("Id")
@@ -649,6 +844,9 @@ namespace ArchiveDex.Server.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("FailedCards")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("HeldCards")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("LastCardCreatedAt")
@@ -695,7 +893,7 @@ namespace ArchiveDex.Server.Migrations
 
                     b.ToTable("ValuationRefreshJobs", t =>
                         {
-                            t.HasCheckConstraint("CK_ValuationRefreshJob_Counts", "\"TotalCards\" >= 0 AND \"ProcessedCards\" >= 0 AND \"UpdatedCards\" >= 0 AND \"UnavailableCards\" >= 0 AND \"FailedCards\" >= 0");
+                            t.HasCheckConstraint("CK_ValuationRefreshJob_Counts", "\"TotalCards\" >= 0 AND \"ProcessedCards\" >= 0 AND \"UpdatedCards\" >= 0 AND \"UnavailableCards\" >= 0 AND \"FailedCards\" >= 0 AND \"HeldCards\" >= 0");
 
                             t.HasCheckConstraint("CK_ValuationRefreshJob_Status", "\"Status\" IN ('pending', 'running', 'completed', 'completedWithErrors', 'failed')");
                         });
@@ -978,6 +1176,28 @@ namespace ArchiveDex.Server.Migrations
                     b.Navigation("Owner");
                 });
 
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.SpecimenValuationHistory", b =>
+                {
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.CardSpecimen", "CardSpecimen")
+                        .WithMany("ValuationHistory")
+                        .HasForeignKey("CardSpecimenId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ValuationRefreshJob", null)
+                        .WithMany()
+                        .HasForeignKey("ValuationRefreshJobId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CardSpecimen");
+                });
+
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.ValuationRefreshJob", b =>
                 {
                     b.HasOne("ArchiveDex.Server.Infrastructure.Persistence.ApplicationUser", null)
@@ -1041,6 +1261,11 @@ namespace ArchiveDex.Server.Migrations
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CardRecord", b =>
                 {
                     b.Navigation("Specimens");
+                });
+
+            modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.CardSpecimen", b =>
+                {
+                    b.Navigation("ValuationHistory");
                 });
 
             modelBuilder.Entity("ArchiveDex.Server.Infrastructure.Persistence.SetEdition", b =>

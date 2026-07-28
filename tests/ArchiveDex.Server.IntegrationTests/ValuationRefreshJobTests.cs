@@ -3,6 +3,7 @@ using ArchiveDex.Server.Infrastructure.Persistence;
 using ArchiveDex.Server.Infrastructure.Providers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -68,7 +69,10 @@ public sealed class ValuationRefreshJobTests
         db.ChangeTracker.Clear();
 
         var service = new ValuationRefreshOrchestrationService(
-            db, new FakeMarketProvider(), NullLogger<ValuationRefreshOrchestrationService>.Instance);
+            db,
+            new FakeMarketProvider(),
+            new ValuationRecorder(db, Options.Create(new ValuationGuardOptions())),
+            NullLogger<ValuationRefreshOrchestrationService>.Instance);
         await service.ProcessNextCardAsync(jobId, ct);
         db.ChangeTracker.Clear();
         await service.ProcessNextCardAsync(jobId, ct);

@@ -1,11 +1,15 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { HttpErrorResponse } from '@angular/common/http';
-import { Capture, CaptureService, ReviewCapture, deriveReviewModel } from './capture.service';
+import { Capture, CaptureService, ReviewCapture, SetOverride, deriveReviewModel } from './capture.service';
 import { ZoomableImageComponent } from '../../shared/zoomable-image.component';
-import { TuiButton, TuiTextfield, TuiInputDirective, TuiNotificationDirective } from '@taiga-ui/core';
+import { TuiButton, TuiTextfield, TuiInputDirective } from '@taiga-ui/core';
 
-export interface CaptureSaved { cardRecordId: string | undefined; specimenId: string | undefined; }
+export interface CaptureSaved {
+  cardRecordId: string | undefined;
+  specimenId: string | undefined;
+  /** What was actually submitted, so callers can spot corrections worth reusing. */
+  reviewed: ReviewCapture;
+}
 
 /**
  * Editable review form for a single capture in `needsReview` state. Extracted from
@@ -16,15 +20,30 @@ export interface CaptureSaved { cardRecordId: string | undefined; specimenId: st
 @Component({
   selector: 'app-capture-review-form',
   standalone: true,
-  imports: [FormsModule, ZoomableImageComponent, TuiButton, TuiTextfield, TuiInputDirective, TuiNotificationDirective],
+  imports: [FormsModule, ZoomableImageComponent, TuiButton, TuiTextfield, TuiInputDirective],
   template: `
-    @if (current().duplicate) {
-      <div tuiNotification appearance="warning">
-        <span>Dieses Bild ist bereits in der Sammlung. Beim Speichern ist eine Bestätigung nötig.</span>
-      </div>
-    }
     <div class="review-body">
-      <app-zoomable-image class="capture-image" [src]="current().imageUrl" [thumbnailSrc]="current().thumbnailUrl" alt="Aufgenommene Karte" />
+      <div class="capture-image">
+        @if (current().crop; as crop) {
+          <div class="variant-switch" role="group" aria-label="Bildvariante">
+            <button
+              tuiButton size="s" type="button"
+              [appearance]="model.useCroppedImage ? 'primary' : 'flat'"
+              (click)="model.useCroppedImage = true"
+            >Zugeschnitten</button>
+            <button
+              tuiButton size="s" type="button"
+              [appearance]="model.useCroppedImage ? 'flat' : 'primary'"
+              (click)="model.useCroppedImage = false"
+            >Original</button>
+          </div>
+        }
+        @if (model.useCroppedImage && current().crop; as crop) {
+          <app-zoomable-image [src]="crop.imageUrl" [thumbnailSrc]="crop.thumbnailUrl" alt="Zugeschnittene Karte" />
+        } @else {
+          <app-zoomable-image [src]="current().imageUrl" [thumbnailSrc]="current().thumbnailUrl" alt="Aufgenommene Karte" />
+        }
+      </div>
       <form (ngSubmit)="save()" #reviewForm="ngForm">
         <tui-textfield><label tuiLabel>Name auf der Karte</label><input tuiInput name="originalName" [(ngModel)]="model.originalName" required maxlength="200" /></tui-textfield>
         <tui-textfield><label tuiLabel>Deutscher Name</label><input tuiInput name="germanName" [(ngModel)]="model.germanName" maxlength="200" /></tui-textfield>
@@ -89,7 +108,9 @@ export interface CaptureSaved { cardRecordId: string | undefined; specimenId: st
   styles: [`
     :host{display:block}
     .review-body{display:grid;grid-template-columns:16rem 1fr;gap:1.5rem;align-items:start;margin-top:1rem}
-    .capture-image{width:100%;position:sticky;top:1rem}
+    .capture-image{width:100%;position:sticky;top:1rem;display:grid;gap:.5rem}
+    .capture-image app-zoomable-image{width:100%}
+    .variant-switch{display:flex;gap:.35rem}
     form{display:grid;gap:1.25rem}.pair{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
     @media(max-width:760px){.review-body{grid-template-columns:1fr}.capture-image{max-width:16rem;position:static}}
     .select-field{display:flex;flex-direction:column;gap:.375rem;justify-content:center}
@@ -102,8 +123,10 @@ export interface CaptureSaved { cardRecordId: string | undefined; specimenId: st
     @media(max-width:600px){.pair{grid-template-columns:1fr}}
   `],
 })
-export class CaptureReviewFormComponent {
+export class CaptureReviewFormComponent implements OnInit {
   @Input() submitLabel = 'Bestätigen und speichern';
+  /** Pre-fills the set fields with a correction already made elsewhere in the same batch. */
+  @Input() setOverride: SetOverride | null = null;
   @Output() saved = new EventEmitter<CaptureSaved>();
 
   readonly current = signal<Capture>(null!);
@@ -114,13 +137,23 @@ export class CaptureReviewFormComponent {
     catalogReferenceId: null, originalName: '', germanName: null, germanNameUnavailableReason: null,
     printedNumber: '', collectorNumber: '', setTotal: null,
     setIdentifier: '', setName: '', language: 'en', variantKey: 'standard', condition: 'NM',
+    useCroppedImage: false,
   };
 
   constructor(private readonly service: CaptureService) {}
 
+  private initialized = false;
+
   @Input({ required: true }) set capture(value: Capture) {
     this.current.set(value);
-    if (value.status === 'needsReview') this.populate(value);
+    // Before ngOnInit the sibling inputs may not be bound yet, and populate reads setOverride.
+    if (this.initialized && value.status === 'needsReview') this.populate(value);
+  }
+
+  ngOnInit(): void {
+    this.initialized = true;
+    const capture = this.current();
+    if (capture?.status === 'needsReview') this.populate(capture);
   }
 
   async save(): Promise<void> {
@@ -132,20 +165,14 @@ export class CaptureReviewFormComponent {
     try {
       const reviewed = await this.service.review(before, this.model);
       this.current.set(reviewed);
-      const finalized = await this.service.finalize(reviewed, false);
-      this.saved.emit({ cardRecordId: finalized.body?.cardRecordId, specimenId: finalized.body?.id });
-    } catch (error) {
-      const reviewed = this.current();
-      if (error instanceof HttpErrorResponse && error.status === 409 && error.error?.code === 'DUPLICATE_IMAGE') {
-        if (confirm('Das Bild ist bereits gespeichert. Trotzdem als weiteres Exemplar anlegen?')) {
-          try {
-            const finalized = await this.service.finalize(reviewed, true);
-            this.saved.emit({ cardRecordId: finalized.body?.cardRecordId, specimenId: finalized.body?.id });
-          } catch { this.error.set('Die Karte konnte nicht gespeichert werden.'); }
-        }
-      } else {
-        this.error.set('Die Karte konnte nicht gespeichert werden.');
-      }
+      const finalized = await this.service.finalize(reviewed);
+      this.saved.emit({
+        cardRecordId: finalized.body?.cardRecordId,
+        specimenId: finalized.body?.id,
+        reviewed: { ...this.model },
+      });
+    } catch {
+      this.error.set('Die Karte konnte nicht gespeichert werden.');
     } finally { this.saving.set(false); }
   }
 
@@ -161,6 +188,6 @@ export class CaptureReviewFormComponent {
 
   private populate(capture: Capture): void {
     if (!capture.proposal || this.model.originalName) return;
-    this.model = deriveReviewModel(capture);
+    this.model = deriveReviewModel(capture, this.setOverride);
   }
 }

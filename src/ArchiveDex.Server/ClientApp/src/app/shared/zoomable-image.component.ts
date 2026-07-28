@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, Input, computed, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, Input, computed, signal, viewChild } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { TuiButton } from '@taiga-ui/core';
 
@@ -23,14 +23,19 @@ import { TuiButton } from '@taiga-ui/core';
       <span class="zoom-hint" aria-hidden="true">🔍</span>
     </button>
 
-    @if (isOpen()) {
-      <div
-        class="overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Bild zoomen"
-        (pointerdown)="onBackdropPointerDown($event)"
-      >
+    <!--
+      A native <dialog> opened with showModal() renders in the browser's top layer, which escapes
+      every ancestor stacking context and overflow clip. Taiga's card/surface directives set
+      isolation: isolate, so a plain z-index overlay would be trapped inside the card it sits in.
+    -->
+    <dialog
+      #overlay
+      class="overlay"
+      aria-label="Bild zoomen"
+      (close)="onDialogClose()"
+      (pointerdown)="onBackdropPointerDown($event)"
+    >
+      @if (isOpen()) {
         <div class="toolbar">
           <button tuiButton appearance="secondary" size="s" type="button" (click)="zoomBy(0.8); $event.stopPropagation()" aria-label="Verkleinern">−</button>
           <span class="scale">{{ (scale() * 100) | number:'1.0-0' }}%</span>
@@ -51,8 +56,8 @@ import { TuiButton } from '@taiga-ui/core';
         >
           <img class="full" [src]="src" [alt]="alt" [style.transform]="transform()" draggable="false" />
         </div>
-      </div>
-    }
+      }
+    </dialog>
   `,
   styles: [`
     :host{display:inline-block;line-height:0}
@@ -60,7 +65,11 @@ import { TuiButton } from '@taiga-ui/core';
     .thumb:focus-visible{outline:3px solid var(--tui-border-focus);outline-offset:3px}
     .thumb img{display:block;width:100%;height:100%;object-fit:contain;border-radius:.4rem}
     .zoom-hint{position:absolute;right:.35rem;bottom:.35rem;font-size:.85rem;background:rgba(0,0,0,.55);color:#fff;border-radius:.3rem;padding:.05rem .3rem;line-height:1.2}
-    .overlay{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;background:rgba(0,0,0,.86);touch-action:none;user-select:none}
+    .overlay{position:fixed;inset:0;margin:0;padding:0;border:0;max-inline-size:100vw;max-block-size:100vh;
+      inline-size:100vw;block-size:100vh;flex-direction:column;overflow:hidden;
+      background:rgba(0,0,0,.86);color:#fff;touch-action:none;user-select:none}
+    .overlay[open]{display:flex}
+    .overlay::backdrop{background:rgba(0,0,0,.86)}
     .toolbar{display:flex;align-items:center;gap:.5rem;padding:.75rem;justify-content:center;flex-wrap:wrap}
     .toolbar .scale{color:#fff;min-width:3.5rem;text-align:center;font-variant-numeric:tabular-nums}
     .stage{flex:1;overflow:hidden;display:grid;place-items:center;cursor:zoom-in}
@@ -75,6 +84,7 @@ export class ZoomableImageComponent {
   @Input() alt = '';
 
   private readonly stage = viewChild<ElementRef<HTMLElement>>('stage');
+  private readonly overlay = viewChild<ElementRef<HTMLDialogElement>>('overlay');
   readonly isOpen = signal(false);
   readonly scale = signal(1);
   private readonly tx = signal(0);
@@ -91,11 +101,16 @@ export class ZoomableImageComponent {
   open(): void {
     this.reset();
     this.isOpen.set(true);
+    this.overlay()?.nativeElement.showModal();
   }
 
-  @HostListener('document:keydown.escape')
+  /** Closing the dialog raises its `close` event, which is where the state is reset. */
   close(): void {
-    if (!this.isOpen()) return;
+    this.overlay()?.nativeElement.close();
+  }
+
+  /** Also fires when the browser closes the modal itself, e.g. on Escape. */
+  onDialogClose(): void {
     this.isOpen.set(false);
     this.pointers.clear();
     this.panStart = null;

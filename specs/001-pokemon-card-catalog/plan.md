@@ -132,7 +132,7 @@ tests/
 
 - Store normalized full image and thumbnail in a separate PostgreSQL `image_asset` table using `bytea`; metadata queries never select binary columns. This provides atomic finalization/deletion and one consistent backup for v1.
 - Provide a versioned ArchiveDex ZIP transfer format containing collection metadata, normalized images, thumbnails, conditions, and last-successful valuations. Imports stream to bounded temporary storage, validate paths and hashes, merge by collection identity, and remain idempotent without transferring accounts or secrets.
-- Exact duplicate warning uses owner-scoped upload and normalized SHA-256 indexes; hash indexes are non-unique because explicit duplicate override is allowed. Finalization uses a transaction-scoped advisory lock and rechecks duplicate status.
+- Exact duplicate detection uses owner-scoped upload and normalized SHA-256 indexes; hash indexes are non-unique because uploading the same image again creates another physical specimen. Finalization uses a transaction-scoped advisory lock and rechecks duplicate status while allowing the additional specimen.
 - Group identity is owner + set-language edition + normalized collector number + printing/finish variant. Names are editable display data, not identity. Condition is specimen-specific.
 - List endpoints use projections, indexes, page size ≤50, and keyset pagination. Expected list complexity is O(log n + page-size).
 - Normalized image upload limit is 15 MiB encoded and 30 megapixels; EXIF is stripped and browser-safe derivatives are produced before persistence or provider transmission.

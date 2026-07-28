@@ -1,5 +1,6 @@
 using ArchiveDex.Server.Features.Authentication;
 using ArchiveDex.Server.Features.Capture;
+using ArchiveDex.Server.Features.Cardmarket;
 using ArchiveDex.Server.Features.Collection;
 using ArchiveDex.Server.Features.DataTransfer;
 using ArchiveDex.Server.Features.Valuation;
@@ -56,20 +57,49 @@ builder.Services.AddScoped<IBatchVisualCardAnalyzer>(services =>
     };
 });
 builder.Services.AddScoped<ICardCatalog, StoredCardReferenceCatalog>();
+builder.Services.AddHttpClient<OpenAiCardmarketDisambiguator>(client => client.Timeout = TimeSpan.FromSeconds(45));
+builder.Services.Configure<CardmarketMatchOptions>(builder.Configuration.GetSection("Cardmarket:Matching"));
+builder.Services.AddScoped<ICardmarketDisambiguator>(services =>
+{
+    var disambiguator = services.GetRequiredService<OpenAiCardmarketDisambiguator>();
+    return disambiguator.IsConfigured ? disambiguator : new UnavailableCardmarketDisambiguator();
+});
+builder.Services.AddScoped<CardmarketImportService>();
+builder.Services.AddScoped<CardmarketMatcher>();
+builder.Services.AddScoped<CardmarketValuationProvider>();
+// Cardmarket always goes first because it costs nothing per lookup; the configured AI provider
+// only sees the cards it could not price. Setting AI:Valuation:Provider pins one source instead.
 builder.Services.AddScoped<IMarketValuationProvider>(services =>
 {
-    var provider = services.GetRequiredService<IConfiguration>()["AI:Valuation:Provider"]?.Trim().ToLowerInvariant();
-    return provider switch
+    var configured = services.GetRequiredService<IConfiguration>()["AI:Valuation:Provider"]?.Trim().ToLowerInvariant();
+    var fallback = ResolveConfiguredProvider(services, configured);
+    return configured switch
     {
-        "openai" => services.GetRequiredService<OpenAiVisionProvider>(),
+        "cardmarket" => services.GetRequiredService<CardmarketValuationProvider>(),
+        "fake" => fallback,
+        _ => new TieredMarketValuationProvider(
+            services.GetRequiredService<CardmarketValuationProvider>(),
+            fallback,
+            services.GetRequiredService<ILogger<TieredMarketValuationProvider>>()),
+    };
+
+    IMarketValuationProvider ResolveConfiguredProvider(IServiceProvider scope, string? name) => name switch
+    {
+        "openai" => scope.GetRequiredService<OpenAiVisionProvider>(),
         "fake" when builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing") => new FakeMarketProvider(),
         _ => new UnavailableMarketProvider(),
     };
 });
+builder.Services.Configure<CardDetectionOptions>(builder.Configuration.GetSection("Images:CardDetection"));
+builder.Services.AddScoped<CardDetectionService>();
+builder.Services.AddScoped<ICardCropDetector>(
+    services => services.GetRequiredService<CardDetectionService>());
 builder.Services.AddScoped<ImageNormalizationService>();
 builder.Services.AddScoped<CaptureOrchestrationService>();
 builder.Services.AddScoped<CollectionFinalizationService>();
 builder.Services.AddScoped<DataTransferService>();
+builder.Services.Configure<ValuationGuardOptions>(builder.Configuration.GetSection("Valuation:Guard"));
+builder.Services.AddScoped<ValuationRecorder>();
 builder.Services.AddScoped<ValuationRefreshOrchestrationService>();
 builder.Services.AddHostedService<CaptureProcessingService>();
 builder.Services.AddHostedService<ValuationRefreshProcessingService>();
@@ -150,21 +180,25 @@ builder.Services.AddAuthorizationBuilder()
 
 var app = builder.Build();
 
-// Always apply pending migrations on startup so the schema is current before any
-// hosted service (e.g. CaptureProcessingService) begins querying the database.
-await using (var migrationScope = app.Services.CreateAsyncScope())
-{
-    var db = migrationScope.ServiceProvider.GetRequiredService<ArchiveDexDbContext>();
-    await db.Database.MigrateAsync();
-}
-
-// Provision the configured owner account on startup so a fresh database has a usable login.
-await OwnerProvisioningCommand.ProvisionConfiguredOwnerAsync(app.Services, app.Configuration);
-
 if (args.Contains("migrate", StringComparer.OrdinalIgnoreCase))
 {
     await OwnerProvisioningCommand.MigrateAndProvisionAsync(app.Services, app.Configuration);
     return;
+}
+
+// Apply pending migrations on startup so the schema is current before any hosted service
+// (e.g. CaptureProcessingService) begins querying, and provision the configured owner so a
+// fresh database has a usable login. Skipped under Testing: those hosts are created by
+// WebApplicationFactory to exercise HTTP contracts and must not require a live database.
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    await using (var migrationScope = app.Services.CreateAsyncScope())
+    {
+        var db = migrationScope.ServiceProvider.GetRequiredService<ArchiveDexDbContext>();
+        await db.Database.MigrateAsync();
+    }
+
+    await OwnerProvisioningCommand.ProvisionConfiguredOwnerAsync(app.Services, app.Configuration);
 }
 
 app.MapOpenApi();

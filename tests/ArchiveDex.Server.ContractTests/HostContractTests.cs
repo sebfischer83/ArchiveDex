@@ -5,11 +5,11 @@ using Xunit;
 
 namespace ArchiveDex.Server.ContractTests
 {
-    public sealed class HostContractTests : IClassFixture<WebApplicationFactory<Program>>
+    public sealed class HostContractTests : IClassFixture<TestingHostFactory>
     {
         private readonly HttpClient client;
 
-        public HostContractTests(WebApplicationFactory<Program> factory)
+        public HostContractTests(TestingHostFactory factory)
         {
             client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         }

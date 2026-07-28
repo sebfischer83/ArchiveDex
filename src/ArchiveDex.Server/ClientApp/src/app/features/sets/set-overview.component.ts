@@ -6,6 +6,7 @@ import { LoadingStateComponent, EmptyStateComponent, ErrorStateComponent } from 
 import { Router } from '@angular/router';
 import { TuiButton, TuiTitle } from '@taiga-ui/core';
 import { TuiCardLarge } from '@taiga-ui/layout';
+import { CardmarketPanelComponent } from './cardmarket-panel.component';
 
 interface SetSummary {
   id: string; setName: string; language: string; distinctCardCount: number; specimenCount: number;
@@ -19,6 +20,7 @@ interface ValuationRefreshJob {
   updatedCards: number;
   unavailableCards: number;
   failedCards: number;
+  heldCards: number;
   lastError: string | null;
 }
 interface DataImportResult {
@@ -30,7 +32,10 @@ interface DataImportResult {
 @Component({
   selector: 'app-set-overview',
   standalone: true,
-  imports: [TranslatePipe, LoadingStateComponent, EmptyStateComponent, ErrorStateComponent, TuiButton, TuiTitle, TuiCardLarge],
+  imports: [
+    TranslatePipe, LoadingStateComponent, EmptyStateComponent, ErrorStateComponent,
+    CardmarketPanelComponent, TuiButton, TuiTitle, TuiCardLarge,
+  ],
   template: `
     <div class="toolbar">
       <div>
@@ -43,6 +48,7 @@ interface DataImportResult {
         {{ refreshRunning() ? 'Preise werden aktualisiert …' : 'Alle Preise aktualisieren' }}
       </button>
     </div>
+    <app-cardmarket-panel />
     <section class="data-transfer">
       <div>
         <strong>Datenübertragung</strong>
@@ -68,6 +74,7 @@ interface DataImportResult {
         <progress [max]="job.totalCards || 1" [value]="job.processedCards"></progress>
         <small>
           {{ job.updatedCards }} aktualisiert · {{ job.unavailableCards }} ohne belastbaren Preis
+          @if (job.heldCards) { · {{ job.heldCards }} zu prüfen }
           @if (job.failedCards) { · {{ job.failedCards }} fehlgeschlagen }
         </small>
         @if (job.lastError && job.status === 'failed') { <small class="job-error">{{ job.lastError }}</small> }

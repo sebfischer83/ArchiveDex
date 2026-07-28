@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 using ArchiveDex.Server.Features.Capture;
+using ArchiveDex.Server.Features.Cardmarket;
 using ArchiveDex.Server.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,10 +13,16 @@ public sealed partial class DataTransferService(
     ILogger<DataTransferService> logger)
 {
     internal const string FormatName = "archivedex-collection";
-    internal const int CurrentVersion = 1;
+    /// <summary>
+    /// Version 2 added per-specimen valuation history, version 3 the Cardmarket mapping. Older
+    /// archives still import; the added fields simply stay empty.
+    /// </summary>
+    internal const int CurrentVersion = 3;
+    internal const int MinimumSupportedVersion = 1;
     private const int MaximumSets = 10_000;
     private const int MaximumCards = 100_000;
     private const int MaximumSpecimens = 200_000;
+    private const int MaximumHistoryPerSpecimen = 1_000;
     private const long MaximumManifestBytes = 100L * 1024 * 1024;
     private const long MaximumImageBytes = 15L * 1024 * 1024;
     private const long MaximumThumbnailBytes = 2L * 1024 * 1024;
@@ -30,14 +37,16 @@ public sealed partial class DataTransferService(
             .Where(x => x.OwnerId == ownerId)
             .OrderBy(x => x.CreatedAt)
             .Select(x => new TransferSet(
-                x.Id, x.SetIdentifier, x.Name, x.LanguageCode, x.CreatedAt, x.UpdatedAt))
+                x.Id, x.SetIdentifier, x.Name, x.LanguageCode, x.CreatedAt, x.UpdatedAt,
+                x.CardmarketExpansionId))
             .ToListAsync(ct);
         var cards = await db.CardRecords.AsNoTracking()
             .Where(x => x.OwnerId == ownerId)
             .OrderBy(x => x.CreatedAt)
             .Select(x => new TransferCard(
                 x.Id, x.SetEditionId, x.OriginalName, x.GermanName, x.GermanNameUnavailableReason,
-                x.PrintedNumber, x.CollectorNumber, x.SetTotal, x.VariantKey, x.CreatedAt, x.UpdatedAt))
+                x.PrintedNumber, x.CollectorNumber, x.SetTotal, x.VariantKey, x.CreatedAt, x.UpdatedAt,
+                x.CardmarketProductId, x.CardmarketMatchState, x.CardmarketMatchedAt))
             .ToListAsync(ct);
         var specimenRows = await db.CardSpecimens.AsNoTracking()
             .Where(x => x.OwnerId == ownerId)
@@ -53,6 +62,18 @@ public sealed partial class DataTransferService(
                 x.ImageAsset.UploadSha256, x.ImageAsset.NormalizedSha256,
             })
             .ToListAsync(ct);
+        var historyBySpecimen = (await db.SpecimenValuationHistories.AsNoTracking()
+                .Where(x => x.OwnerId == ownerId)
+                .OrderBy(x => x.RecordedAt)
+                .ToListAsync(ct))
+            .GroupBy(x => x.CardSpecimenId)
+            .ToDictionary(x => x.Key, x => (IReadOnlyList<TransferValuationHistoryEntry>)x
+                .Select(entry => new TransferValuationHistoryEntry(
+                    entry.AmountMinor, entry.Currency, entry.ValuedAt, entry.MarketDataAsOf,
+                    entry.Provider, entry.Method, entry.Confidence, entry.ConditionApplied,
+                    ReadSourceUrls(entry.SourceUrlsJson), entry.Outcome, entry.HoldReason,
+                    entry.PreviousAmountMinor, entry.RecordedAt))
+                .ToList());
         var specimens = specimenRows.Select(x => new TransferSpecimen(
             x.Id, x.CardRecordId, x.ImageAssetId, x.Condition,
             x.ContentType, x.ByteLength, x.Width, x.Height,
@@ -62,7 +83,8 @@ public sealed partial class DataTransferService(
                 x.ValuationAmountMinor, x.ValuationCurrency, x.ValuedAt, x.MarketDataAsOf,
                 x.ValuationProvider, x.ValuationMethod, x.ValuationConfidence,
                 x.ConditionAppliedToValuation, x.ValuationSourceUrlsJson),
-            x.CreatedAt, x.UpdatedAt)).ToList();
+            x.CreatedAt, x.UpdatedAt,
+            historyBySpecimen.GetValueOrDefault(x.Id, []))).ToList();
         var manifest = new CollectionTransferManifest(
             FormatName, CurrentVersion, DateTime.UtcNow, sets, cards, specimens);
 
@@ -140,6 +162,7 @@ public sealed partial class DataTransferService(
                 SetIdentifierNormalized = Normalize(source.SetIdentifier),
                 Name = source.Name.Trim(),
                 LanguageCode = source.Language.Trim().ToLowerInvariant(),
+                CardmarketExpansionId = source.CardmarketExpansionId is > 0 ? source.CardmarketExpansionId : null,
                 CreatedAt = source.CreatedAt,
                 UpdatedAt = now,
             });
@@ -190,6 +213,11 @@ public sealed partial class DataTransferService(
                 NumberNormalized = numberNormalized,
                 NumberSortKey = numberNormalized.PadLeft(50, '0'),
                 VariantKey = variant,
+                // Only a product id makes the match state meaningful; a state without one would
+                // otherwise suppress the next resolution attempt for nothing.
+                CardmarketProductId = source.CardmarketProductId is > 0 ? source.CardmarketProductId : null,
+                CardmarketMatchState = source.CardmarketProductId is > 0 ? source.CardmarketMatchState : null,
+                CardmarketMatchedAt = source.CardmarketProductId is > 0 ? source.CardmarketMatchedAt : null,
                 CreatedAt = source.CreatedAt,
                 UpdatedAt = now,
             });
@@ -253,6 +281,34 @@ public sealed partial class DataTransferService(
             };
             ApplyValuation(specimen, source.Valuation);
             db.CardSpecimens.Add(specimen);
+            foreach (var entry in source.ValuationHistory ?? [])
+            {
+                db.SpecimenValuationHistories.Add(new SpecimenValuationHistory
+                {
+                    Id = Guid.CreateVersion7(),
+                    OwnerId = ownerId,
+                    CardSpecimenId = specimen.Id,
+                    AmountMinor = entry.AmountMinor,
+                    Currency = entry.Currency,
+                    ValuedAt = entry.ValuedAt,
+                    MarketDataAsOf = entry.MarketDataAsOf,
+                    Provider = entry.Provider,
+                    Method = entry.Method,
+                    Confidence = entry.Confidence,
+                    ConditionApplied = entry.ConditionApplied,
+                    SourceUrlsJson = JsonSerializer.Serialize(entry.SourceUrls, JsonOptions),
+                    Outcome = entry.Outcome,
+                    HoldReason = entry.HoldReason,
+                    PreviousAmountMinor = entry.PreviousAmountMinor,
+                    RecordedAt = entry.RecordedAt,
+                });
+            }
+
+            // A held proposal only makes sense while its history entry is present, so the flag is
+            // reconstructed from the imported entries rather than trusted from the archive.
+            if ((source.ValuationHistory ?? []).Any(x => x.Outcome == SpecimenValuationHistory.OutcomeHeldForReview))
+                specimen.ValuationReviewPendingAt = now;
+
             await db.SaveChangesAsync(ct);
             db.ChangeTracker.Clear();
             existingSpecimenIds.Add(source.Id);
@@ -268,7 +324,8 @@ public sealed partial class DataTransferService(
 
     private static void ValidateManifest(CollectionTransferManifest manifest, ZipArchive archive)
     {
-        if (manifest.Format != FormatName || manifest.Version != CurrentVersion)
+        if (manifest.Format != FormatName
+            || manifest.Version is < MinimumSupportedVersion or > CurrentVersion)
             throw new InvalidDataException("Das Archiv verwendet ein nicht unterstütztes ArchiveDex-Format.");
         if (manifest.Sets.Count > MaximumSets || manifest.Cards.Count > MaximumCards
             || manifest.Specimens.Count > MaximumSpecimens)
@@ -290,6 +347,9 @@ public sealed partial class DataTransferService(
                     card.PrintedNumber, card.CollectorNumber, card.SetTotal))
                 || string.IsNullOrWhiteSpace(card.VariantKey) || card.VariantKey.Length > 50)
                 throw new InvalidDataException($"Karte {card.Id} enthält ungültige Daten.");
+            // Mirrors CK_CardRecord_CardmarketMatchState so a bad archive fails here, not on insert.
+            if (card.CardmarketMatchState is { } state && !CardmarketMatchState.All.Contains(state))
+                throw new InvalidDataException($"Karte {card.Id} hat einen unbekannten Cardmarket-Status.");
         }
         foreach (var specimen in manifest.Specimens)
         {
@@ -300,6 +360,20 @@ public sealed partial class DataTransferService(
                 || archive.GetEntry(specimen.FullImagePath) is null
                 || archive.GetEntry(specimen.ThumbnailPath) is null)
                 throw new InvalidDataException($"Exemplar {specimen.Id} enthält ungültige Daten.");
+
+            var history = specimen.ValuationHistory ?? [];
+            if (history.Count > MaximumHistoryPerSpecimen)
+                throw new InvalidDataException($"Exemplar {specimen.Id} hat zu viele Bewertungseinträge.");
+            foreach (var entry in history)
+            {
+                // Mirrors CK_SpecimenValuationHistory_*: a bad archive must fail here, not on insert.
+                if (entry.AmountMinor < 0 || entry.Currency != "EUR"
+                    || string.IsNullOrWhiteSpace(entry.Provider) || string.IsNullOrWhiteSpace(entry.Method)
+                    || entry.Outcome is not (SpecimenValuationHistory.OutcomeAccepted
+                        or SpecimenValuationHistory.OutcomeHeldForReview
+                        or SpecimenValuationHistory.OutcomeRejected))
+                    throw new InvalidDataException($"Exemplar {specimen.Id} enthält einen ungültigen Bewertungseintrag.");
+            }
         }
     }
 

@@ -1,8 +1,17 @@
 namespace ArchiveDex.Server.Infrastructure.Providers
 {
+    /// <param name="SkipMarketPrice">
+    /// Set once a price guide is loaded: the researched number would be discarded anyway, so asking
+    /// for it only costs tokens and model time. Identity resolution keeps its web access either way.
+    /// Phrased as an opt-out so <c>default</c> means the long-standing behaviour — a record struct
+    /// zeroes its fields, so a positively phrased flag would silently default to off.
+    /// </param>
+    public readonly record struct AnalysisOptions(bool SkipMarketPrice = false);
+
     public interface IVisualCardAnalyzer
     {
-        Task<AnalysisResult> AnalyzeAsync(byte[] imageBytes, CancellationToken ct = default);
+        Task<AnalysisResult> AnalyzeAsync(
+            byte[] imageBytes, AnalysisOptions options = default, CancellationToken ct = default);
     }
 
     public interface IBatchVisualCardAnalyzer
@@ -58,12 +67,17 @@ namespace ArchiveDex.Server.Infrastructure.Providers
         List<CatalogCandidate> Candidates,
         string? ErrorCode);
 
+    /// <param name="CardRecordId">
+    /// Set for cards already in the collection. Catalogue-backed providers need it to look up and
+    /// cache their own product mapping; web-search providers ignore it.
+    /// </param>
     public record ValuationRequest(
         string? CatalogCardId, string? CatalogSetId,
         string? PrintedName, string? PrintedNumber,
         string? SetIdentifier, string? SetName,
         string? Language, string? Finish,
-        string Condition, string Currency);
+        string Condition, string Currency,
+        Guid? CardRecordId = null);
 
     public record ValuationResult(
         string Status,

@@ -5,8 +5,13 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 # Npgsql tries to load libgssapi_krb5 for GSSAPI auth negotiation; install it to avoid the
 # "Cannot load library libgssapi_krb5.so.2" error. Also pre-create the DataProtection key
 # directory owned by the non-root app user so a fresh named volume inherits writable ownership.
+# OpenCvSharpExtern links against the GTK stack because the shipped build includes OpenCV's highgui
+# module. Nothing here ever opens a window, but the loader still needs every dependency present, so
+# the whole set has to be installed. Determined with `ldd` against the shipped .so, not guessed;
+# leaving any of them out fails the load with a DllNotFoundException naming the next one.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+       libfreetype6 libharfbuzz0b libgtk-3-0 libdrm2 libatomic1 libgomp1 \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app/dataprotection /app/logs \
     && chown "$APP_UID:$APP_UID" /app/dataprotection /app/logs

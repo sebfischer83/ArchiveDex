@@ -4,11 +4,11 @@ using Xunit;
 
 namespace ArchiveDex.E2E
 {
-    public sealed class ApplicationSmokeTests : IClassFixture<WebApplicationFactory<Program>>
+    public sealed class ApplicationSmokeTests : IClassFixture<TestingHostFactory>
     {
         private readonly HttpClient client;
 
-        public ApplicationSmokeTests(WebApplicationFactory<Program> factory)
+        public ApplicationSmokeTests(TestingHostFactory factory)
         {
             client = factory.CreateClient();
         }

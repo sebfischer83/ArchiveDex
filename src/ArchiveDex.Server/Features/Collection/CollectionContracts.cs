@@ -13,7 +13,8 @@ namespace ArchiveDex.Server.Features.Collection
         string Language,
         string VariantKey,
         string? CollectorNumber = null,
-        string? SetTotal = null)
+        string? SetTotal = null,
+        IReadOnlyList<UpdateSpecimenValuationRequest>? SpecimenValuations = null)
     {
         public ReviewCaptureRequest ToReviewRequest() => new(
             CatalogReferenceId,
@@ -29,4 +30,9 @@ namespace ArchiveDex.Server.Features.Collection
             CollectorNumber,
             SetTotal);
     }
+
+    public sealed record UpdateSpecimenValuationRequest(
+        Guid SpecimenId,
+        long? AmountMinor,
+        string Etag);
 }

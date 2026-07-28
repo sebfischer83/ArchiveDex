@@ -13,11 +13,18 @@ namespace ArchiveDex.Server.Infrastructure.Persistence
         public DbSet<CaptureDraft> CaptureDrafts => Set<CaptureDraft>();
         public DbSet<CatalogSetReference> CatalogSetReferences => Set<CatalogSetReference>();
         public DbSet<CatalogCardReference> CatalogCardReferences => Set<CatalogCardReference>();
+        public DbSet<CardmarketProduct> CardmarketProducts => Set<CardmarketProduct>();
+        public DbSet<CardmarketPrice> CardmarketPrices => Set<CardmarketPrice>();
+        public DbSet<CardmarketImport> CardmarketImports => Set<CardmarketImport>();
         public DbSet<SetEdition> SetEditions => Set<SetEdition>();
         public DbSet<CardRecord> CardRecords => Set<CardRecord>();
         public DbSet<CardSpecimen> CardSpecimens => Set<CardSpecimen>();
+        public DbSet<SpecimenValuationHistory> SpecimenValuationHistories => Set<SpecimenValuationHistory>();
         public DbSet<ValuationRefreshJob> ValuationRefreshJobs => Set<ValuationRefreshJob>();
         public DbSet<FinalizationRecord> FinalizationRecords => Set<FinalizationRecord>();
+
+        private static readonly string[] CardmarketMoneyColumns =
+            ["Avg30", "Avg30Holo", "Avg7", "Avg7Holo", "Trend", "TrendHolo", "Avg", "Low"];
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -28,6 +35,9 @@ namespace ArchiveDex.Server.Infrastructure.Persistence
                 e.HasKey(x => x.Id);
                 e.Property(x => x.Content).HasColumnType("bytea");
                 e.Property(x => x.Thumbnail).HasColumnType("bytea");
+                e.Property(x => x.CroppedContent).HasColumnType("bytea");
+                e.Property(x => x.CroppedThumbnail).HasColumnType("bytea");
+                e.Property(x => x.CroppedSha256).HasColumnType("bytea");
                 e.HasIndex(x => new { x.OwnerId, x.UploadSha256 }).HasFilter("\"State\" = 'attached'");
                 e.HasIndex(x => new { x.OwnerId, x.NormalizedSha256 }).HasFilter("\"State\" = 'attached'");
                 e.ToTable(table =>
@@ -36,6 +46,11 @@ namespace ArchiveDex.Server.Infrastructure.Persistence
                     table.HasCheckConstraint("CK_ImageAsset_UploadSha256", "octet_length(\"UploadSha256\") = 32");
                     table.HasCheckConstraint("CK_ImageAsset_NormalizedSha256", "octet_length(\"NormalizedSha256\") = 32");
                     table.HasCheckConstraint("CK_ImageAsset_Dimensions", "\"Width\" > 0 AND \"Height\" > 0 AND \"Width\"::bigint * \"Height\" <= 30000000");
+                    // A crop is all-or-nothing: content, thumbnail and hash exist together or not at all.
+                    table.HasCheckConstraint("CK_ImageAsset_Crop",
+                        "(\"CroppedContent\" IS NULL AND \"CroppedThumbnail\" IS NULL AND \"CroppedSha256\" IS NULL)"
+                        + " OR (\"CroppedContent\" IS NOT NULL AND \"CroppedThumbnail\" IS NOT NULL"
+                        + " AND octet_length(\"CroppedSha256\") = 32)");
                     table.HasCheckConstraint("CK_ImageAsset_Expiry", "(\"State\" = 'draft' AND \"ExpiresAt\" IS NOT NULL) OR (\"State\" = 'attached' AND \"ExpiresAt\" IS NULL)");
                 });
                 e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.OwnerId).OnDelete(DeleteBehavior.Cascade);
@@ -85,6 +100,31 @@ namespace ArchiveDex.Server.Infrastructure.Persistence
                 e.HasOne(x => x.CatalogSetReference).WithMany().HasForeignKey(x => x.CatalogSetReferenceId).OnDelete(DeleteBehavior.Cascade);
             });
 
+            builder.Entity<CardmarketProduct>(e =>
+            {
+                e.HasKey(x => x.IdProduct);
+                e.Property(x => x.IdProduct).ValueGeneratedNever();
+                // Every lookup starts from the expansion a set maps to.
+                e.HasIndex(x => new { x.IdExpansion, x.IdMetacard });
+                e.HasIndex(x => new { x.IdExpansion, x.Name });
+            });
+
+            builder.Entity<CardmarketPrice>(e =>
+            {
+                e.HasKey(x => x.IdProduct);
+                e.Property(x => x.IdProduct).ValueGeneratedNever();
+                foreach (var money in CardmarketMoneyColumns)
+                    e.Property<decimal?>(money).HasColumnType("numeric(12,2)");
+            });
+
+            builder.Entity<CardmarketImport>(e =>
+            {
+                e.HasKey(x => x.Id);
+                e.HasIndex(x => new { x.Kind, x.ImportedAt });
+                e.ToTable(table => table.HasCheckConstraint(
+                    "CK_CardmarketImport_Kind", "\"Kind\" IN ('products', 'prices')"));
+            });
+
             builder.Entity<SetEdition>(e =>
             {
                 e.HasKey(x => x.Id);
@@ -106,6 +146,11 @@ namespace ArchiveDex.Server.Infrastructure.Persistence
                 e.Property(x => x.Version).IsRowVersion();
             });
 
+            builder.Entity<CardRecord>(e => e.ToTable(table => table.HasCheckConstraint(
+                "CK_CardRecord_CardmarketMatchState",
+                "\"CardmarketMatchState\" IS NULL OR \"CardmarketMatchState\" IN "
+                + "('unique', 'narrowSpread', 'aiResolved', 'manual', 'unresolved', 'noCandidate')")));
+
             builder.Entity<CardSpecimen>(e =>
             {
                 e.HasKey(x => x.Id);
@@ -123,6 +168,26 @@ namespace ArchiveDex.Server.Infrastructure.Persistence
                 e.Property(x => x.Version).IsRowVersion();
             });
 
+            builder.Entity<SpecimenValuationHistory>(e =>
+            {
+                e.HasKey(x => x.Id);
+                e.Property(x => x.SourceUrlsJson).HasColumnType("jsonb");
+                e.HasIndex(x => new { x.OwnerId, x.CardSpecimenId, x.RecordedAt });
+                e.HasIndex(x => x.ValuationRefreshJobId);
+                e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.OwnerId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(x => x.CardSpecimen).WithMany(x => x.ValuationHistory)
+                    .HasForeignKey(x => x.CardSpecimenId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<ValuationRefreshJob>().WithMany()
+                    .HasForeignKey(x => x.ValuationRefreshJobId).OnDelete(DeleteBehavior.SetNull);
+                e.ToTable(table =>
+                {
+                    table.HasCheckConstraint("CK_SpecimenValuationHistory_Outcome",
+                        "\"Outcome\" IN ('accepted', 'heldForReview', 'rejected')");
+                    table.HasCheckConstraint("CK_SpecimenValuationHistory_Amount",
+                        "\"AmountMinor\" >= 0 AND \"Currency\" = 'EUR'");
+                });
+            });
+
             builder.Entity<ValuationRefreshJob>(e =>
             {
                 e.HasKey(x => x.Id);
@@ -136,7 +201,7 @@ namespace ArchiveDex.Server.Infrastructure.Persistence
                     table.HasCheckConstraint("CK_ValuationRefreshJob_Status",
                         "\"Status\" IN ('pending', 'running', 'completed', 'completedWithErrors', 'failed')");
                     table.HasCheckConstraint("CK_ValuationRefreshJob_Counts",
-                        "\"TotalCards\" >= 0 AND \"ProcessedCards\" >= 0 AND \"UpdatedCards\" >= 0 AND \"UnavailableCards\" >= 0 AND \"FailedCards\" >= 0");
+                        "\"TotalCards\" >= 0 AND \"ProcessedCards\" >= 0 AND \"UpdatedCards\" >= 0 AND \"UnavailableCards\" >= 0 AND \"FailedCards\" >= 0 AND \"HeldCards\" >= 0");
                 });
             });
 

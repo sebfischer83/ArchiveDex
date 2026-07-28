@@ -84,6 +84,8 @@ namespace ArchiveDex.Server.Features.Capture
                 {
                     x.Id, x.Status, x.AnalysisProposal,
                     x.ErrorCode, x.ErrorDetail, x.ErrorRetryable, x.Version,
+                    // Projected as a flag, not as bytes: the list must not pull image blobs.
+                    HasCrop = x.ImageAsset!.CroppedContent != null,
                 })
                 .ToListAsync(ct);
             var finalized = await db.FinalizationRecords.AsNoTracking()
@@ -106,6 +108,7 @@ namespace ArchiveDex.Server.Features.Capture
                     captureId = x.Id,
                     status = x.Status,
                     thumbnailUrl = $"/api/v1/captures/{x.Id}/image?size=thumbnail",
+                    hasCrop = x.HasCrop,
                     etag = ETag(x.Version),
                     name = summary?.Name,
                     printedNumber = summary?.PrintedNumber,

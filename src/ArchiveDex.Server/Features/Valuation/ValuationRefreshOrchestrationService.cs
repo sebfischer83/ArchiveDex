@@ -7,6 +7,7 @@ namespace ArchiveDex.Server.Features.Valuation;
 public sealed partial class ValuationRefreshOrchestrationService(
     ArchiveDexDbContext db,
     IMarketValuationProvider market,
+    ValuationRecorder valuations,
     ILogger<ValuationRefreshOrchestrationService> logger)
 {
     public async Task ProcessNextCardAsync(Guid jobId, CancellationToken ct)
@@ -49,7 +50,7 @@ public sealed partial class ValuationRefreshOrchestrationService(
             .FirstOrDefaultAsync(x => x.Id == cursor.Id && x.OwnerId == job.OwnerId, ct);
         if (card is null)
         {
-            Advance(job, cursor.Id, cursor.CreatedAt, updated: false, unavailable: true, failed: false, null, now);
+            Advance(job, cursor.Id, cursor.CreatedAt, updated: false, unavailable: true, failed: false, held: false, null, now);
             await db.SaveChangesAsync(ct);
             return;
         }
@@ -57,6 +58,7 @@ public sealed partial class ValuationRefreshOrchestrationService(
         var updated = false;
         var unavailable = false;
         var failed = false;
+        var held = false;
         string? lastError = null;
 
         foreach (var conditionGroup in card.Specimens.GroupBy(x => x.Condition))
@@ -73,13 +75,23 @@ public sealed partial class ValuationRefreshOrchestrationService(
                     card.SetEdition?.LanguageCode,
                     card.VariantKey,
                     conditionGroup.Key,
-                    "EUR"), ct);
+                    "EUR",
+                    card.Id), ct);
 
                 var valuationApplied = false;
+                var valuationHeld = false;
                 foreach (var specimen in conditionGroup)
-                    valuationApplied |= ValuationPersistence.Apply(specimen, result, DateTime.UtcNow);
+                {
+                    switch (valuations.Record(specimen, result, DateTime.UtcNow, job.Id))
+                    {
+                        case ValuationOutcome.Accepted: valuationApplied = true; break;
+                        case ValuationOutcome.HeldForReview: valuationHeld = true; break;
+                    }
+                }
+
                 updated |= valuationApplied;
-                unavailable |= !valuationApplied;
+                held |= valuationHeld;
+                unavailable |= !valuationApplied && !valuationHeld;
             }
             catch (OperationCanceledException)
             {
@@ -93,7 +105,7 @@ public sealed partial class ValuationRefreshOrchestrationService(
             }
         }
 
-        Advance(job, card.Id, card.CreatedAt, updated, unavailable && !updated && !failed, failed, lastError, DateTime.UtcNow);
+        Advance(job, card.Id, card.CreatedAt, updated, unavailable && !updated && !failed, failed, held, lastError, DateTime.UtcNow);
         await db.SaveChangesAsync(ct);
     }
 
@@ -104,6 +116,7 @@ public sealed partial class ValuationRefreshOrchestrationService(
         bool updated,
         bool unavailable,
         bool failed,
+        bool held,
         string? error,
         DateTime now)
     {
@@ -113,6 +126,7 @@ public sealed partial class ValuationRefreshOrchestrationService(
         if (updated) job.UpdatedCards++;
         if (unavailable) job.UnavailableCards++;
         if (failed) job.FailedCards++;
+        if (held) job.HeldCards++;
         job.ConsecutiveFailures = failed ? job.ConsecutiveFailures + 1 : 0;
         job.LastError = error ?? job.LastError;
         job.UpdatedAt = now;

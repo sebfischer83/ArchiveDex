@@ -66,7 +66,12 @@ namespace ArchiveDex.Server.Features.Capture
         string VariantKey,
         string Condition,
         string? CollectorNumber = null,
-        string? SetTotal = null);
+        string? SetTotal = null,
+        /// <summary>
+        /// Whether the detected cut-out becomes the stored image. Defaults to true because a crop is
+        /// only offered when one was found; it is ignored when none exists.
+        /// </summary>
+        bool UseCroppedImage = true);
 
     public record FinalizeCaptureRequest(bool AllowDuplicate = false);
 

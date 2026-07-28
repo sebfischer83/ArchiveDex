@@ -22,6 +22,11 @@
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.File" />
     <PackageReference Include="SixLabors.ImageSharp" />
+    <!-- Card detection. Both native runtimes are referenced so the same build runs on a Windows
+         dev machine and in the Linux container without a RID-specific publish. -->
+    <PackageReference Include="OpenCvSharp4" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" />
+    <PackageReference Include="OpenCvSharp4.official.runtime.linux-x64" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ArchiveDex.Server.UnitTests" />

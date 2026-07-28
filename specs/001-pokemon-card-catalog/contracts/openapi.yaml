@@ -312,6 +312,52 @@ paths:
           description: Valuation refresh scheduled
         '409': { $ref: '#/components/responses/Problem' }
         '429': { $ref: '#/components/responses/Problem' }
+  /specimens/{specimenId}/valuation-history:
+    get:
+      summary: Read every recorded valuation attempt for a specimen, newest first
+      operationId: getValuationHistory
+      parameters:
+        - name: specimenId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Valuation history
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ValuationHistoryEntry' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /specimens/{specimenId}/valuation/review:
+    post:
+      summary: Accept or reject a valuation the plausibility guard held back
+      operationId: resolveValuationReview
+      parameters:
+        - name: specimenId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [accept, reject] }
+      responses:
+        '204': { description: Proposal resolved }
+        '400': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
   /valuations/refresh-all:
     post:
       summary: Start or return the active collection-wide valuation refresh
@@ -621,7 +667,7 @@ components:
           items: { type: string, format: uri }
     ValuationRefreshJob:
       type: object
-      required: [id, status, totalCards, processedCards, updatedCards, unavailableCards, failedCards, createdAt, updatedAt]
+      required: [id, status, totalCards, processedCards, updatedCards, unavailableCards, failedCards, heldCards, createdAt, updatedAt]
       properties:
         id: { type: string, format: uuid }
         status:
@@ -632,6 +678,7 @@ components:
         updatedCards: { type: integer, minimum: 0 }
         unavailableCards: { type: integer, minimum: 0 }
         failedCards: { type: integer, minimum: 0 }
+        heldCards: { type: integer, minimum: 0, description: Cards whose new value the guard held back for review. Prices come from the uploaded Cardmarket files where available, and fall back to the configured AI provider otherwise }
         lastError: { type: [string, 'null'] }
         createdAt: { type: string, format: date-time }
         startedAt: { type: [string, 'null'], format: date-time }
@@ -718,8 +765,43 @@ components:
         imageUrl: { type: string, format: uri-reference }
         thumbnailUrl: { type: string, format: uri-reference }
         valuation: { $ref: '#/components/schemas/Valuation' }
+        reviewPending:
+          oneOf:
+            - { $ref: '#/components/schemas/ValuationReviewPending' }
+            - { type: 'null' }
+          description: Present when the plausibility guard held a new value back for a decision.
         createdAt: { type: string, format: date-time }
         etag: { type: string }
+    ValuationReviewPending:
+      type: object
+      required: [amountMinor, previousAmountMinor, reason, recordedAt]
+      properties:
+        amountMinor: { type: integer, format: int64, minimum: 0, description: Proposed value, not yet applied }
+        previousAmountMinor: { type: [integer, 'null'], format: int64, minimum: 0 }
+        reason: { type: [string, 'null'] }
+        provider: { type: [string, 'null'] }
+        method: { type: [string, 'null'] }
+        confidence: { type: [string, 'null'] }
+        sourceUrls: { type: array, items: { type: string, format: uri } }
+        recordedAt: { type: string, format: date-time }
+    ValuationHistoryEntry:
+      type: object
+      required: [id, amountMinor, currency, provider, method, outcome, valuedAt, marketDataAsOf, recordedAt]
+      properties:
+        id: { type: string, format: uuid }
+        amountMinor: { type: integer, format: int64, minimum: 0 }
+        currency: { type: string, enum: [EUR] }
+        previousAmountMinor: { type: [integer, 'null'], format: int64, minimum: 0 }
+        provider: { type: string }
+        method: { type: string }
+        confidence: { type: [string, 'null'] }
+        conditionApplied: { type: [boolean, 'null'] }
+        outcome: { type: string, enum: [accepted, heldForReview, rejected] }
+        holdReason: { type: [string, 'null'] }
+        sourceUrls: { type: array, items: { type: string, format: uri } }
+        valuedAt: { type: string, format: date-time }
+        marketDataAsOf: { type: string, format: date-time }
+        recordedAt: { type: string, format: date-time }
     UpdateCardRequest:
       type: object
       required: [originalName, printedNumber, setIdentifier, setName, language, variantKey]
@@ -735,6 +817,18 @@ components:
         setName: { type: string, minLength: 1, maxLength: 200 }
         language: { type: string, minLength: 2, maxLength: 10 }
         variantKey: { type: string, minLength: 1, maxLength: 50 }
+        specimenValuations:
+          type: array
+          description: Only changed specimen values need to be sent. A null amount removes the valuation.
+          items:
+            $ref: '#/components/schemas/UpdateSpecimenValuationRequest'
+    UpdateSpecimenValuationRequest:
+      type: object
+      required: [specimenId, amountMinor, etag]
+      properties:
+        specimenId: { type: string, format: uuid }
+        amountMinor: { type: [integer, 'null'], format: int64, minimum: 0, description: Manually entered EUR cents, or null to clear the valuation. }
+        etag: { type: string }
     UpdateSpecimenRequest:
       type: object
       required: [condition]

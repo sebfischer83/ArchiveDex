@@ -3,8 +3,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { from, mergeMap } from 'rxjs';
-import { BatchItem, BatchSummary, Capture, CaptureService } from './capture.service';
-import { CaptureReviewFormComponent } from './capture-review-form.component';
+import { BatchItem, BatchSummary, Capture, CaptureService, SetOverride, detectSetOverride } from './capture.service';
+import { CaptureReviewFormComponent, CaptureSaved } from './capture-review-form.component';
 import { ZoomableImageComponent } from '../../shared/zoomable-image.component';
 import { ErrorStateComponent, LoadingStateComponent } from '../../shared/states.component';
 import { TuiButton, TuiTitle, TuiLoader } from '@taiga-ui/core';
@@ -50,6 +50,45 @@ const ACCEPT_ALL_CONCURRENCY = 3;
             <button tuiButton size="s" appearance="flat" type="button" (click)="discard()">Batch verwerfen</button>
           </div>
         </div>
+
+        @if (croppedCount() > 0) {
+          <div class="crop-choice" role="group" aria-label="Bildvariante für den Batch">
+            <span>
+              Bei {{ croppedCount() }} von {{ s.counts.needsReview }} Karten wurde ein Zuschnitt erkannt.
+            </span>
+            <div class="crop-choice-actions">
+              <button tuiButton size="s" type="button"
+                [appearance]="cropPreference() ? 'primary' : 'flat'"
+                (click)="setCropPreference(true)">Zugeschnitten speichern</button>
+              <button tuiButton size="s" type="button"
+                [appearance]="cropPreference() ? 'flat' : 'primary'"
+                (click)="setCropPreference(false)">Original speichern</button>
+            </div>
+          </div>
+        }
+        @if (pendingOverride(); as pending) {
+          <div class="set-offer" role="status">
+            <div>
+              <strong>Set korrigiert auf „{{ pending.setName }}"</strong>
+              <span>
+                {{ pending.setIdentifier }} · {{ pending.language }} — auf die übrigen
+                {{ s.counts.needsReview }} zu prüfenden Karten übernehmen?
+              </span>
+            </div>
+            <div class="set-offer-actions">
+              <button tuiButton size="s" appearance="primary" type="button" (click)="applyOverride()">Übernehmen</button>
+              <button tuiButton size="s" appearance="flat" type="button" (click)="dismissOverride()">Nur diese Karte</button>
+            </div>
+          </div>
+        }
+        @if (setOverride(); as active) {
+          <div class="set-active" role="status">
+            <span>
+              Set für diesen Batch: <strong>{{ active.setName }}</strong> ({{ active.setIdentifier }} · {{ active.language }})
+            </span>
+            <button tuiButton size="s" appearance="flat" type="button" (click)="clearOverride()">Aufheben</button>
+          </div>
+        }
 
         @if (s.items.length === 0) {
           @if (s.finalized > 0) {
@@ -112,7 +151,12 @@ const ACCEPT_ALL_CONCURRENCY = 3;
 
               @if (isExpanded(item.captureId)) {
                 @if (fullCapture(item.captureId); as capture) {
-                  <app-capture-review-form [capture]="capture" submitLabel="Speichern" (saved)="onSaved(item)" />
+                  <app-capture-review-form
+                    [setOverride]="setOverride()"
+                    [capture]="capture"
+                    submitLabel="Speichern"
+                    (saved)="onSaved(item, capture, $event)"
+                  />
                 } @else {
                   <app-loading-state />
                 }
@@ -132,6 +176,19 @@ const ACCEPT_ALL_CONCURRENCY = 3;
     .counts .total{margin-inline-start:auto;color:var(--tui-text-tertiary)}
     .actions{display:flex;flex-wrap:wrap;gap:.5rem}
     .done-note{color:var(--tui-text-secondary)}
+    .set-offer{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;justify-content:space-between;
+      padding:.75rem 1rem;border-radius:var(--tui-radius-l);
+      background:var(--tui-background-neutral-1);border:1px solid var(--tui-border-focus)}
+    .set-offer>div:first-child{display:flex;flex-direction:column;gap:.15rem;min-width:0}
+    .set-offer span{color:var(--tui-text-secondary);font-size:.875rem}
+    .set-offer-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+    .crop-choice{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;justify-content:space-between;
+      padding:.5rem .75rem;border-radius:var(--tui-radius-l);background:var(--tui-background-neutral-1);
+      color:var(--tui-text-secondary);font-size:.875rem}
+    .crop-choice-actions{display:flex;gap:.35rem;flex-wrap:wrap}
+    .set-active{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between;
+      padding:.4rem .75rem;border-radius:var(--tui-radius-l);background:var(--tui-background-neutral-1);
+      color:var(--tui-text-secondary);font-size:.875rem}
     .items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.75rem}
     .item{border:1px solid var(--tui-border-normal);border-radius:var(--tui-radius-l);padding:.75rem}
     .item.expanded{border-color:var(--tui-border-focus)}
@@ -160,6 +217,22 @@ export class CaptureBatchReviewComponent implements OnInit {
   private readonly fullCaptures = signal<ReadonlyMap<string, Capture>>(new Map());
   private readonly itemErrors = signal<ReadonlyMap<string, string>>(new Map());
 
+  /**
+   * A set correction the reviewer just made, offered for reuse. Applying it is an explicit click:
+   * a batch may legitimately hold cards from several sets, so it must never happen silently.
+   */
+  readonly pendingOverride = signal<SetOverride | null>(null);
+  /** Correction currently applied to every remaining card of this batch. */
+  readonly setOverride = signal<SetOverride | null>(null);
+
+  /**
+   * Which image variant bulk actions store for this batch. Defaults to the cut-out, since one is
+   * only offered where a card was actually detected. Cards without a crop are unaffected.
+   */
+  readonly cropPreference = signal(true);
+  readonly croppedCount = computed(() =>
+    (this.summary()?.items ?? []).filter(x => x.status === 'needsReview' && x.hasCrop).length);
+
   readonly processing = computed(() => {
     const c = this.summary()?.counts;
     return c ? c.uploaded + c.analyzing : 0;
@@ -172,6 +245,11 @@ export class CaptureBatchReviewComponent implements OnInit {
     if (!id) { this.error.set('Batch-ID fehlt.'); this.loading.set(false); return; }
     this.batchId = id;
     this.service.rememberActiveBatch(id);
+    this.restoreOverride();
+    try {
+      const stored = globalThis.localStorage?.getItem(`archivedex.batch.${id}.crop`);
+      if (stored !== null && stored !== undefined) this.cropPreference.set(stored === 'true');
+    } catch { /* Storage can be unavailable in restricted browser contexts. */ }
     this.service.pollBatch(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: summary => { this.summary.set(summary); this.loading.set(false); },
       error: err => {
@@ -210,16 +288,9 @@ export class CaptureBatchReviewComponent implements OnInit {
     this.setBusy(item.captureId, true);
     this.setItemError(item.captureId, '');
     try {
-      await this.service.acceptProposed(item.captureId);
-    } catch (err) {
-      if (err instanceof HttpErrorResponse && err.status === 409 && err.error?.code === 'DUPLICATE_IMAGE') {
-        if (confirm(`„${item.name || 'Diese Karte'}" ist bereits gespeichert. Trotzdem als weiteres Exemplar anlegen?`)) {
-          try { await this.service.acceptProposed(item.captureId, true); }
-          catch { this.setItemError(item.captureId, 'Konnte nicht gespeichert werden.'); }
-        }
-      } else {
-        this.setItemError(item.captureId, 'Konnte nicht gespeichert werden.');
-      }
+      await this.service.acceptProposed(item.captureId, this.setOverride(), this.cropPreference());
+    } catch {
+      this.setItemError(item.captureId, 'Konnte nicht gespeichert werden.');
     } finally {
       this.setBusy(item.captureId, false);
     }
@@ -244,9 +315,38 @@ export class CaptureBatchReviewComponent implements OnInit {
     finally { this.setBusy(item.captureId, false); }
   }
 
-  onSaved(item: BatchItem): void {
+  onSaved(item: BatchItem, capture: Capture, saved: CaptureSaved): void {
     this.mutateSet(this.expandedIds, s => s.delete(item.captureId));
     this.mutateMap(this.fullCaptures, m => m.delete(item.captureId));
+
+    // Offer the correction for the rest of the batch, unless it is already what we are applying.
+    const correction = detectSetOverride(capture, saved.reviewed);
+    if (correction && !this.sameSet(correction, this.setOverride()))
+      this.pendingOverride.set(correction);
+  }
+
+  setCropPreference(useCrop: boolean): void {
+    this.cropPreference.set(useCrop);
+    try {
+      globalThis.localStorage?.setItem(`archivedex.batch.${this.batchId}.crop`, String(useCrop));
+    } catch { /* Storage can be unavailable in restricted browser contexts. */ }
+  }
+
+  applyOverride(): void {
+    const pending = this.pendingOverride();
+    if (!pending) return;
+    this.setOverride.set(pending);
+    this.pendingOverride.set(null);
+    this.persistOverride(pending);
+  }
+
+  dismissOverride(): void {
+    this.pendingOverride.set(null);
+  }
+
+  clearOverride(): void {
+    this.setOverride.set(null);
+    this.persistOverride(null);
   }
 
   acceptAll(): void {
@@ -265,16 +365,12 @@ export class CaptureBatchReviewComponent implements OnInit {
     });
   }
 
-  /** Accept without prompting; duplicates/failures are flagged inline for manual handling. */
+  /** Accept without prompting; exact duplicate images become additional specimens. */
   private async acceptQuiet(item: BatchItem): Promise<void> {
     try {
-      await this.service.acceptProposed(item.captureId);
-    } catch (err) {
-      if (err instanceof HttpErrorResponse && err.status === 409 && err.error?.code === 'DUPLICATE_IMAGE') {
-        this.setItemError(item.captureId, 'Bereits vorhanden – bitte manuell entscheiden.');
-      } else {
-        this.setItemError(item.captureId, 'Konnte nicht gespeichert werden.');
-      }
+      await this.service.acceptProposed(item.captureId, this.setOverride(), this.cropPreference());
+    } catch {
+      this.setItemError(item.captureId, 'Konnte nicht gespeichert werden.');
     } finally {
       this.setBusy(item.captureId, false);
     }
@@ -290,6 +386,30 @@ export class CaptureBatchReviewComponent implements OnInit {
   finish(): void {
     this.service.clearActiveBatch(this.batchId);
     void this.router.navigate(['/sets']);
+  }
+
+  private sameSet(a: SetOverride, b: SetOverride | null): boolean {
+    return b !== null
+      && a.setIdentifier === b.setIdentifier
+      && a.setName === b.setName
+      && a.language === b.language;
+  }
+
+  /** Reviewing a batch spans many minutes, so the choice has to survive a reload. */
+  private get overrideStorageKey(): string { return `archivedex.batch.${this.batchId}.setOverride`; }
+
+  private persistOverride(value: SetOverride | null): void {
+    try {
+      if (value) globalThis.localStorage?.setItem(this.overrideStorageKey, JSON.stringify(value));
+      else globalThis.localStorage?.removeItem(this.overrideStorageKey);
+    } catch { /* Storage can be unavailable in restricted browser contexts. */ }
+  }
+
+  private restoreOverride(): void {
+    try {
+      const raw = globalThis.localStorage?.getItem(this.overrideStorageKey);
+      if (raw) this.setOverride.set(JSON.parse(raw) as SetOverride);
+    } catch { /* A corrupt entry simply means no override. */ }
   }
 
   private setBusy(id: string, busy: boolean): void {

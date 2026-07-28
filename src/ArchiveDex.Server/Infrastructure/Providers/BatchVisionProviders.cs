@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using ArchiveDex.Server.Infrastructure.Images;
 
 namespace ArchiveDex.Server.Infrastructure.Providers
 {
@@ -200,7 +201,7 @@ namespace ArchiveDex.Server.Infrastructure.Providers
                 new { role = "user", content = new object[]
                 {
                     new { type = "text", text = "Analyze this Pokemon card image." },
-                    new { type = "image_url", image_url = new { url = $"data:image/jpeg;base64,{Convert.ToBase64String(imageBytes)}", detail = "high" } }
+                    new { type = "image_url", image_url = new { url = $"data:{ImageMediaType.Detect(imageBytes)};base64,{Convert.ToBase64String(imageBytes)}", detail = "high" } }
                 }}
             },
             response_format = new { type = "json_schema", json_schema = OpenAiVisionProvider.Schema },

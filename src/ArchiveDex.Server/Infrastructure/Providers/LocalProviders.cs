@@ -42,7 +42,8 @@ namespace ArchiveDex.Server.Infrastructure.Providers
 
     public sealed class UnavailableVisionProvider : IVisualCardAnalyzer
     {
-        public Task<AnalysisResult> AnalyzeAsync(byte[] imageBytes, CancellationToken ct = default) =>
+        public Task<AnalysisResult> AnalyzeAsync(
+            byte[] imageBytes, AnalysisOptions options = default, CancellationToken ct = default) =>
             Task.FromResult(new AnalysisResult("failed", null, "VISION_PROVIDER_UNAVAILABLE",
                 "Die Bildanalyse ist nicht konfiguriert."));
     }

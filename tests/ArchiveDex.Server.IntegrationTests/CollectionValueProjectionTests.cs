@@ -1,9 +1,11 @@
 using System.Security.Claims;
 using System.Text.Json;
 using ArchiveDex.Server.Features.Collection;
+using ArchiveDex.Server.Features.Valuation;
 using ArchiveDex.Server.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -13,7 +15,7 @@ namespace ArchiveDex.Server.IntegrationTests;
 public sealed class CollectionValueProjectionTests
 {
     [Fact]
-    public async Task SetAndCardListsSumAvailableSpecimenValues()
+    public async Task SetAndCardListsSumAvailableAndManualSpecimenValues()
     {
         var ct = TestContext.Current.CancellationToken;
         await using var postgres = new PostgreSqlBuilder("postgres:18.4-bookworm").Build();
@@ -45,9 +47,12 @@ public sealed class CollectionValueProjectionTests
             CreatedAt = now, UpdatedAt = now,
         });
 
+        var specimenIds = new List<Guid>();
         for (var index = 0; index < 2; index++)
         {
             var imageId = Guid.CreateVersion7();
+            var specimenId = Guid.CreateVersion7();
+            specimenIds.Add(specimenId);
             var hash = new byte[32];
             hash[0] = (byte)(index + 1);
             db.ImageAssets.Add(new ImageAsset
@@ -58,7 +63,7 @@ public sealed class CollectionValueProjectionTests
             });
             db.CardSpecimens.Add(new CardSpecimen
             {
-                Id = Guid.CreateVersion7(), OwnerId = ownerId, CardRecordId = cardId,
+                Id = specimenId, OwnerId = ownerId, CardRecordId = cardId,
                 ImageAssetId = imageId, Condition = "NM",
                 ValuationAmountMinor = index == 0 ? 1_250 : null,
                 ValuationCurrency = index == 0 ? "EUR" : null,
@@ -72,7 +77,8 @@ public sealed class CollectionValueProjectionTests
         await db.SaveChangesAsync(ct);
         db.ChangeTracker.Clear();
 
-        var controller = new CollectionController(db)
+        var controller = new CollectionController(
+            db, new ValuationRecorder(db, Options.Create(new ValuationGuardOptions())))
         {
             ControllerContext = new ControllerContext
             {
@@ -97,5 +103,43 @@ public sealed class CollectionValueProjectionTests
         Assert.Equal(2, card.GetProperty("specimenCount").GetInt32());
         Assert.Equal(1, card.GetProperty("valuedSpecimenCount").GetInt32());
         Assert.Equal(1_250, card.GetProperty("valuationAmountMinor").GetInt64());
+
+        var storedCard = await db.CardRecords.AsNoTracking().SingleAsync(x => x.Id == cardId, ct);
+        var unvaluedSpecimen = await db.CardSpecimens.AsNoTracking()
+            .SingleAsync(x => x.Id == specimenIds[1], ct);
+        var update = new UpdateCardRequest(
+            null,
+            "Bombirdier ex",
+            null,
+            "Nicht im Katalog verfügbar",
+            "112/128",
+            "CSV6C",
+            "Paradox Veil",
+            "zh-cn",
+            "holo (rr)",
+            "112",
+            "128",
+            [new UpdateSpecimenValuationRequest(
+                unvaluedSpecimen.Id,
+                999,
+                $"\"{unvaluedSpecimen.Version}\"")]);
+
+        var updateResult = await controller.UpdateCard(
+            cardId, update, $"\"{storedCard.Version}\"", ct);
+
+        Assert.IsType<OkObjectResult>(updateResult);
+        db.ChangeTracker.Clear();
+        var manuallyValued = await db.CardSpecimens.AsNoTracking()
+            .SingleAsync(x => x.Id == unvaluedSpecimen.Id, ct);
+        Assert.Equal(999, manuallyValued.ValuationAmountMinor);
+        Assert.Equal("EUR", manuallyValued.ValuationCurrency);
+        Assert.Equal("manual", manuallyValued.ValuationProvider);
+        Assert.Equal("owner-entered", manuallyValued.ValuationMethod);
+
+        var updatedCardsResult = Assert.IsType<OkObjectResult>(await controller.ListCards(setId, ct));
+        using var updatedCardsJson = JsonDocument.Parse(JsonSerializer.Serialize(updatedCardsResult.Value));
+        var updatedCard = updatedCardsJson.RootElement.GetProperty("items")[0];
+        Assert.Equal(2, updatedCard.GetProperty("valuedSpecimenCount").GetInt32());
+        Assert.Equal(2_249, updatedCard.GetProperty("valuationAmountMinor").GetInt64());
     }
 }

@@ -16,6 +16,8 @@ export interface BatchItem {
   captureId: string;
   status: CaptureStatus;
   thumbnailUrl: string;
+  /** A deskewed cut-out was detected for this capture and can be stored instead of the photo. */
+  hasCrop: boolean;
   etag: string;
   name: string | null;
   printedNumber: string | null;

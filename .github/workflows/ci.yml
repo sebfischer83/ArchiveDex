@@ -12,6 +12,11 @@ jobs:
       DB_PASSWORD: ci-only-database-password
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reject JPEG metadata in Git history
+        shell: pwsh
+        run: ./scripts/Test-JpegMetadata.ps1 -AllHistory
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x

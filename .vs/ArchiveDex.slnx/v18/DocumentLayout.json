@@ -3,12 +3,12 @@
   "WorkspaceRootPath": "C:\\Development\\ArchiveDex\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{943DD339-1AE0-93CE-8B5F-48BBD22D6341}|src\\ArchiveDex.Server\\ArchiveDex.Server.csproj|c:\\development\\archivedex\\src\\archivedex.server\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{943DD339-1AE0-93CE-8B5F-48BBD22D6341}|src\\ArchiveDex.Server\\ArchiveDex.Server.csproj|solutionrelative:src\\archivedex.server\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{81DDED9D-158B-E303-5F62-77A2896D2A5A}|docker-compose.dcproj|c:\\development\\archivedex\\.env||{8B382828-6202-11D1-8870-0000F87579D2}",
       "RelativeMoniker": "D:0:0:{81DDED9D-158B-E303-5F62-77A2896D2A5A}|docker-compose.dcproj|solutionrelative:.env||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{943DD339-1AE0-93CE-8B5F-48BBD22D6341}|src\\ArchiveDex.Server\\ArchiveDex.Server.csproj|c:\\development\\archivedex\\src\\archivedex.server\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{943DD339-1AE0-93CE-8B5F-48BBD22D6341}|src\\ArchiveDex.Server\\ArchiveDex.Server.csproj|solutionrelative:src\\archivedex.server\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{81DDED9D-158B-E303-5F62-77A2896D2A5A}|docker-compose.dcproj|c:\\development\\archivedex\\docker-compose.yml||{06C066C6-04A2-4E5D-8202-439FD4234EF1}",
@@ -45,7 +45,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 7,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -53,13 +53,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": ".env",
               "DocumentMoniker": "C:\\Development\\ArchiveDex\\.env",
               "RelativeDocumentMoniker": ".env",
               "ToolTip": "C:\\Development\\ArchiveDex\\.env",
               "RelativeToolTip": ".env",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAYAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAASAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
               "WhenOpened": "2026-07-24T14:25:51.725Z",
               "EditorCaption": ""
@@ -74,8 +74,7 @@
               "RelativeToolTip": "docker-compose.yml",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAACAAAAAfAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003775|",
-              "WhenOpened": "2026-07-24T14:23:27.608Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-07-24T14:23:27.608Z"
             },
             {
               "$type": "Document",
@@ -87,8 +86,7 @@
               "RelativeToolTip": "src\\ArchiveDex.Server\\Infrastructure\\Providers\\AnthropicVisionProvider.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-07-24T13:46:33.918Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-07-24T13:46:33.918Z"
             },
             {
               "$type": "Document",
@@ -100,8 +98,7 @@
               "RelativeToolTip": "src\\ArchiveDex.Server\\Infrastructure\\Providers\\BatchVisionProviders.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAApAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-07-23T18:10:03.67Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-07-23T18:10:03.67Z"
             },
             {
               "$type": "Document",
@@ -113,8 +110,7 @@
               "RelativeToolTip": "src\\ArchiveDex.Server\\appsettings.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-07-22T18:37:13.027Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-07-22T18:37:13.027Z"
             },
             {
               "$type": "Document",
@@ -126,18 +122,17 @@
               "RelativeToolTip": "src\\ArchiveDex.Server\\Infrastructure\\Providers\\OpenAiVisionProvider.cs",
               "ViewState": "AgIAAMgCAAAAAAAAAIAzwNkCAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-07-22T18:29:39.913Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-07-22T18:29:39.913Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Development\\ArchiveDex\\src\\ArchiveDex.Server\\Program.cs",
               "RelativeDocumentMoniker": "src\\ArchiveDex.Server\\Program.cs",
               "ToolTip": "C:\\Development\\ArchiveDex\\src\\ArchiveDex.Server\\Program.cs",
               "RelativeToolTip": "src\\ArchiveDex.Server\\Program.cs",
-              "ViewState": "AgIAANgAAAAAAAAAAAAtwO8AAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAPIAAAAAAAAAAAAtwBABAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-07-22T18:29:21.654Z",
               "EditorCaption": ""
@@ -152,8 +147,7 @@
               "RelativeToolTip": "..\\..\\Users\\Sebastian\\AppData\\Roaming\\Microsoft\\UserSecrets\\1d628a48-2b02-4e2c-be5f-7439b62f93cb\\secrets.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-07-22T18:25:42.046Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-07-22T18:25:42.046Z"
             },
             {
               "$type": "Document",
@@ -165,8 +159,7 @@
               "RelativeToolTip": "src\\ArchiveDex.Server\\Infrastructure\\Providers\\LocalProviders.cs",
               "ViewState": "AgIAAAIAAAAAAAAAAAAowBcAAABaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-07-22T18:25:14.153Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-07-22T18:25:14.153Z"
             }
           ]
         }

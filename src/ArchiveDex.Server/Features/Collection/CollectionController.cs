@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ArchiveDex.Server.Features.Capture;
+using ArchiveDex.Server.Features.Valuation;
 using ArchiveDex.Server.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +9,10 @@ namespace ArchiveDex.Server.Features.Collection
 {
     [ApiController]
     [Route("api/v1")]
-    public class CollectionController(ArchiveDexDbContext db) : ControllerBase
+    public partial class CollectionController(
+        ArchiveDexDbContext db,
+        ValuationRecorder valuations,
+        ILogger<CollectionController>? logger = null) : ControllerBase
     {
         [HttpGet("sets")]
         public async Task<IActionResult> ListSets(CancellationToken ct)
@@ -64,6 +68,22 @@ namespace ArchiveDex.Server.Features.Collection
 
             if (card is null) return NotFound();
 
+            // Only specimens whose value the guard held back need the extra lookup; the proposed
+            // amount is not duplicated onto the specimen, it lives in the history.
+            var pendingIds = card.Specimens
+                .Where(x => x.ValuationReviewPendingAt is not null)
+                .Select(x => x.Id)
+                .ToList();
+            var pendingBySpecimen = pendingIds.Count == 0
+                ? []
+                : (await db.SpecimenValuationHistories.AsNoTracking()
+                    .Where(x => pendingIds.Contains(x.CardSpecimenId) && x.OwnerId == ownerId
+                        && x.Outcome == SpecimenValuationHistory.OutcomeHeldForReview)
+                    .OrderByDescending(x => x.RecordedAt)
+                    .ToListAsync(ct))
+                    .GroupBy(x => x.CardSpecimenId)
+                    .ToDictionary(x => x.Key, x => x.First());
+
             return Ok(new
             {
                 card.Id, catalogReferenceId = card.CatalogCardReferenceId,
@@ -86,6 +106,17 @@ namespace ArchiveDex.Server.Features.Collection
                         sourceUrls = ReadSourceUrls(s.ValuationSourceUrlsJson),
                         disclaimer = "Unverbindliche Schätzung.",
                     } : new { status = "unavailable" } as object,
+                    reviewPending = pendingBySpecimen.TryGetValue(s.Id, out var pending) ? new
+                    {
+                        amountMinor = pending.AmountMinor,
+                        previousAmountMinor = pending.PreviousAmountMinor,
+                        reason = pending.HoldReason,
+                        provider = pending.Provider,
+                        method = pending.Method,
+                        confidence = pending.Confidence,
+                        sourceUrls = ReadSourceUrls(pending.SourceUrlsJson),
+                        recordedAt = pending.RecordedAt,
+                    } : null,
                     createdAt = s.CreatedAt,
                     etag = $"\"{s.Version}\"",
                 }),
@@ -109,6 +140,21 @@ namespace ArchiveDex.Server.Features.Collection
 
             if (ifMatch != $"\"{card.Version}\"")
                 return ConflictProblem("STALE_WRITE", "Die Karte wurde zwischenzeitlich geändert. Bitte neu laden.");
+
+            var valuationEdits = request.SpecimenValuations ?? [];
+            if (valuationEdits.GroupBy(x => x.SpecimenId).Any(x => x.Count() > 1))
+                return BadRequestProblem("INVALID_SPECIMEN_VALUATIONS", "Jedes Exemplar darf nur einmal bewertet werden.");
+
+            var specimensById = card.Specimens.ToDictionary(x => x.Id);
+            foreach (var edit in valuationEdits)
+            {
+                if (!specimensById.TryGetValue(edit.SpecimenId, out var specimen))
+                    return BadRequestProblem("INVALID_SPECIMEN", "Das zu bewertende Exemplar gehört nicht zu dieser Karte.");
+                if (edit.AmountMinor < 0)
+                    return BadRequestProblem("INVALID_VALUATION", "Der manuelle Wert darf nicht negativ sein.");
+                if (edit.Etag != $"\"{specimen.Version}\"")
+                    return ConflictProblem("STALE_SPECIMEN", "Ein Exemplar wurde zwischenzeitlich geändert. Bitte neu laden.");
+            }
 
             var normalizedReview = CaptureValidation.Normalize(request.ToReviewRequest());
             var errors = CaptureValidation.Validate(normalizedReview);
@@ -136,6 +182,9 @@ namespace ArchiveDex.Server.Features.Collection
             var variant = normalizedReview.VariantKey.Trim().ToLowerInvariant();
             var now = DateTime.UtcNow;
             var oldSetId = card.SetEditionId;
+
+            foreach (var edit in valuationEdits)
+                valuations.RecordManual(specimensById[edit.SpecimenId], edit.AmountMinor, now);
 
             await using var transaction = await db.Database.BeginTransactionAsync(ct);
             var targetSet = await db.SetEditions.FirstOrDefaultAsync(x =>
@@ -204,6 +253,14 @@ namespace ArchiveDex.Server.Features.Collection
             }
 
             await transaction.CommitAsync(ct);
+            if (valuationEdits.Count > 0 && logger is not null)
+            {
+                LogManualValuationsUpdated(
+                    logger,
+                    resultCard.Id,
+                    valuationEdits.Count(x => x.AmountMinor is not null),
+                    valuationEdits.Count(x => x.AmountMinor is null));
+            }
             return await GetCard(resultCard.Id, ct);
         }
 
@@ -316,5 +373,14 @@ namespace ArchiveDex.Server.Features.Collection
 
         private static string? NullIfWhiteSpace(string? value) =>
             string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        [LoggerMessage(
+            LogLevel.Information,
+            "Manual specimen valuations updated for card {CardRecordId}: {SetCount} set, {ClearedCount} cleared")]
+        private static partial void LogManualValuationsUpdated(
+            ILogger logger,
+            Guid cardRecordId,
+            int setCount,
+            int clearedCount);
     }
 }

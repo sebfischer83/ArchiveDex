@@ -56,17 +56,34 @@ namespace ArchiveDex.Server.Features.Capture
         }
 
         [HttpGet("captures/{id:guid}/image")]
-        public async Task<IActionResult> GetImage(Guid id, [FromQuery] string size = "thumbnail", CancellationToken ct = default)
+        public async Task<IActionResult> GetImage(
+            Guid id,
+            [FromQuery] string size = "thumbnail",
+            [FromQuery] string variant = "original",
+            CancellationToken ct = default)
         {
             if (size is not ("thumbnail" or "full"))
                 return ApiProblem("INVALID_IMAGE_SIZE", "Size muss thumbnail oder full sein.");
+            if (variant is not ("original" or "cropped"))
+                return ApiProblem("INVALID_IMAGE_VARIANT", "Variant muss original oder cropped sein.");
 
             var draft = await db.CaptureDrafts.AsNoTracking().Include(x => x.ImageAsset)
                 .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == GetOwnerId(), ct);
             if (draft?.ImageAsset is null)
                 return ApiProblem("NOT_FOUND", "Capture-Bild wurde nicht gefunden.", StatusCodes.Status404NotFound);
 
-            var bytes = size == "full" ? draft.ImageAsset.Content : draft.ImageAsset.Thumbnail;
+            var image = draft.ImageAsset;
+            var wantsCrop = variant == "cropped";
+            if (wantsCrop && image.CroppedContent is null)
+                return ApiProblem("NO_CROP", "Für diese Aufnahme wurde keine Karte erkannt.", StatusCodes.Status404NotFound);
+
+            var bytes = (wantsCrop, size) switch
+            {
+                (true, "full") => image.CroppedContent!,
+                (true, _) => image.CroppedThumbnail!,
+                (false, "full") => image.Content,
+                _ => image.Thumbnail,
+            };
             Response.Headers.CacheControl = "private";
             Response.Headers.XContentTypeOptions = "nosniff";
             return File(bytes, draft.ImageAsset.ContentType);
@@ -223,6 +240,13 @@ namespace ArchiveDex.Server.Features.Capture
                 status = draft.Status,
                 imageUrl = $"/api/v1/captures/{draft.Id}/image?size=full",
                 thumbnailUrl = $"/api/v1/captures/{draft.Id}/image?size=thumbnail",
+                // Present only while the capture is a draft; finalizing keeps one image and drops this.
+                crop = draft.ImageAsset?.CroppedContent is null ? null : new
+                {
+                    imageUrl = $"/api/v1/captures/{draft.Id}/image?size=full&variant=cropped",
+                    thumbnailUrl = $"/api/v1/captures/{draft.Id}/image?size=thumbnail&variant=cropped",
+                    confidence = draft.ImageAsset.CropConfidence,
+                },
                 proposal,
                 duplicate = duplicateSpecimenId is null ? null : new { matchingSpecimenId = duplicateSpecimenId, exactMatch = true },
                 error = draft.ErrorCode is null ? null : new

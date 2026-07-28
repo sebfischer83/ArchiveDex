@@ -7,6 +7,9 @@ namespace ArchiveDex.Server.Features.Valuation;
 
 internal static class ValuationPersistence
 {
+    internal const string ManualProvider = "manual";
+    internal const string ManualMethod = "owner-entered";
+
     internal static bool Apply(CardSpecimen specimen, ValuationResult? result, DateTime now)
     {
         if (result is not { Status: "AVAILABLE", AmountMinor: not null })
@@ -23,5 +26,21 @@ internal static class ValuationPersistence
         specimen.ValuationSourceUrlsJson = JsonSerializer.Serialize(result.SourceUrls ?? [], CaptureJson.Options);
         specimen.UpdatedAt = now;
         return true;
+    }
+
+    internal static void ApplyManual(CardSpecimen specimen, long? amountMinor, DateTime now)
+    {
+        specimen.ValuationAmountMinor = amountMinor;
+        specimen.ValuationCurrency = amountMinor is null ? null : "EUR";
+        specimen.ValuedAt = amountMinor is null ? null : now;
+        specimen.MarketDataAsOf = amountMinor is null ? null : now;
+        specimen.ValuationProvider = amountMinor is null ? null : ManualProvider;
+        specimen.ValuationMethod = amountMinor is null ? null : ManualMethod;
+        specimen.ValuationConfidence = null;
+        specimen.ConditionAppliedToValuation = amountMinor is null ? null : true;
+        specimen.ValuationSourceUrlsJson = amountMinor is null
+            ? null
+            : JsonSerializer.Serialize(Array.Empty<string>(), CaptureJson.Options);
+        specimen.UpdatedAt = now;
     }
 }

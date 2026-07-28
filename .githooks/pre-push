@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eu
+
+if command -v pwsh >/dev/null 2>&1; then
+  powershell_command=pwsh
+elif command -v powershell.exe >/dev/null 2>&1; then
+  powershell_command=powershell.exe
+else
+  echo "JPEG metadata guard: PowerShell is required." >&2
+  exit 1
+fi
+
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$local_sha" = "$zero" ]; then
+    continue
+  fi
+
+  if [ "$remote_sha" = "$zero" ]; then
+    revision_range=$local_sha
+  else
+    revision_range=$remote_sha..$local_sha
+  fi
+
+  "$powershell_command" -NoProfile -ExecutionPolicy Bypass -File scripts/Test-JpegMetadata.ps1 -RevisionRange "$revision_range"
+done

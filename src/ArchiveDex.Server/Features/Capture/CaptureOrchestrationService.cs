@@ -51,6 +51,10 @@ namespace ArchiveDex.Server.Features.Capture
                 Height = normalized.Height,
                 UploadSha256 = normalized.UploadSha256,
                 NormalizedSha256 = normalized.NormalizedSha256,
+                CroppedContent = normalized.Crop?.Content,
+                CroppedThumbnail = normalized.Crop?.Thumbnail,
+                CroppedSha256 = normalized.Crop?.Sha256,
+                CropConfidence = normalized.Crop?.Confidence,
                 DuplicateMatchImageId = duplicateImageId,
                 CreatedAt = now,
                 ExpiresAt = now.AddDays(7),
@@ -112,8 +116,11 @@ namespace ArchiveDex.Server.Features.Capture
 
             try
             {
+                // With a price guide loaded the researched price is discarded on arrival, so the
+                // analysis is told not to look one up. The web search for identity still runs.
+                var hasPriceGuide = await db.CardmarketPrices.AnyAsync(ct);
                 var analysis = input.ProviderCorrelationId is null
-                    ? await analyzer.AnalyzeAsync(input.Image, ct)
+                    ? await analyzer.AnalyzeAsync(input.Image, new AnalysisOptions(hasPriceGuide), ct)
                     : await GetBatchAnalysisAsync(input.ProviderCorrelationId, draftId, ct);
                 if (analysis is null)
                     return;
@@ -140,8 +147,12 @@ namespace ArchiveDex.Server.Features.Capture
                         };
                     }
                     var catalogResult = await catalog.ResolveAsync(observations, ct);
-                    var valuation = analysis.Valuation;
-                    if (valuation is not { AmountMinor: not null })
+
+                    // With a price guide loaded, a capture-time estimate is worse than no estimate:
+                    // Cardmarket cannot answer yet (the card record does not exist until finalize),
+                    // so anything here is a web-search guess that the next price run overwrites.
+                    var valuation = hasPriceGuide ? null : analysis.Valuation;
+                    if (!hasPriceGuide && valuation is not { AmountMinor: not null })
                     {
                         try
                         {

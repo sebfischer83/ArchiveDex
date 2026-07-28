@@ -193,6 +193,60 @@ namespace ArchiveDex.Server.UnitTests
         }
 
         [Fact]
+        public async Task SkippingTheMarketPriceDropsThePricingWorkButKeepsTheIdentitySearch()
+        {
+            const string visualContent = """
+                {
+                  "isPokemonCard": true, "cardCount": 1,
+                  "printedName": "下石鸟ex", "printedNameConfidence": "HIGH",
+                  "collectorNumber": "112", "setTotal": "128", "numberConfidence": "HIGH",
+                  "language": "zh-cn", "languageConfidence": "HIGH",
+                  "visibleSetCode": "CSV6", "setConfidence": "HIGH",
+                  "rarity": "RR", "rarityConfidence": "HIGH",
+                  "finish": "holo", "finishConfidence": "HIGH",
+                  "condition": "NM", "conditionConfidence": "LOW",
+                  "conditionDefects": "none visible",
+                  "conditionLimitations": "back not visible",
+                  "qualityIssues": "sleeve glare"
+                }
+                """;
+            // The price-free schema, so the model cannot return market fields even if asked.
+            const string webContent = """
+                {
+                  "officialGermanName": "Adebom ex", "officialGermanNameConfidence": "HIGH",
+                  "setCode": "CSV6", "setName": "Paradox Veil", "setConfidence": "HIGH"
+                }
+                """;
+            var handler = new StubHandler(
+                Response(visualContent, 100, 10, false),
+                Response(webContent, 50, 5, true));
+            var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["AI:OpenAI:ApiKey"] = "test-key",
+                    ["AI:OpenAI:Model"] = "gpt-5.6-luna",
+                }).Build();
+            var provider = new OpenAiVisionProvider(
+                new HttpClient(handler), configuration, new AiCostEstimator(new AiPricingOptions()),
+                CreateSetLookup());
+
+            var result = await provider.AnalyzeAsync(
+                "RIFF\0\0\0\0WEBP"u8.ToArray(),
+                new AnalysisOptions(SkipMarketPrice: true),
+                TestContext.Current.CancellationToken);
+
+            // Identity still needs the web, so the search stays; only the pricing fields are gone.
+            Assert.Contains("web_search", handler.Bodies[1]);
+            Assert.DoesNotContain("marketPriceEurMinor", handler.Bodies[1]);
+            Assert.DoesNotContain("Estimate current raw-card value", handler.Bodies[1]);
+            Assert.Contains("Do not research or report a price", handler.Bodies[1]);
+
+            // The identity enrichment still lands, and no valuation is invented.
+            Assert.Equal("Adebom ex", result.Observations!.OfficialGermanName);
+            Assert.Null(result.Valuation);
+        }
+
+        [Fact]
         public async Task DirectOpenAiAnalysisKeepsImageAndWebStagesSeparate()
         {
             const string visualContent = """
@@ -235,10 +289,12 @@ namespace ArchiveDex.Server.UnitTests
                 new HttpClient(handler), configuration, new AiCostEstimator(new AiPricingOptions()),
                 CreateSetLookup());
 
-            var result = await provider.AnalyzeAsync([1, 2, 3], TestContext.Current.CancellationToken);
+            var result = await provider.AnalyzeAsync(
+                "RIFF\0\0\0\0WEBP"u8.ToArray(), default, TestContext.Current.CancellationToken);
 
             Assert.Equal(2, handler.Bodies.Count);
             Assert.Contains("input_image", handler.Bodies[0]);
+            Assert.Contains("data:image/webp;base64,", handler.Bodies[0]);
             Assert.DoesNotContain("web_search", handler.Bodies[0]);
             Assert.DoesNotContain("input_image", handler.Bodies[1]);
             Assert.Contains("web_search", handler.Bodies[1]);
@@ -306,6 +362,53 @@ namespace ArchiveDex.Server.UnitTests
             Assert.False(applied);
             Assert.Equal(1234, specimen.ValuationAmountMinor);
             Assert.Equal(new DateTime(2026, 7, 20, 0, 0, 0, DateTimeKind.Utc), specimen.ValuedAt);
+        }
+
+        [Fact]
+        public void ManualValuationSetsRequiredPersistenceFields()
+        {
+            var now = new DateTime(2026, 7, 25, 12, 0, 0, DateTimeKind.Utc);
+            var specimen = new CardSpecimen { Condition = "LP" };
+
+            ValuationPersistence.ApplyManual(specimen, 1_299, now);
+
+            Assert.Equal(1_299, specimen.ValuationAmountMinor);
+            Assert.Equal("EUR", specimen.ValuationCurrency);
+            Assert.Equal(now, specimen.ValuedAt);
+            Assert.Equal(now, specimen.MarketDataAsOf);
+            Assert.Equal(ValuationPersistence.ManualProvider, specimen.ValuationProvider);
+            Assert.Equal(ValuationPersistence.ManualMethod, specimen.ValuationMethod);
+            Assert.True(specimen.ConditionAppliedToValuation);
+            Assert.Equal("[]", specimen.ValuationSourceUrlsJson);
+        }
+
+        [Fact]
+        public void EmptyManualValuationClearsExistingValueAndProvenance()
+        {
+            var specimen = new CardSpecimen
+            {
+                ValuationAmountMinor = 1_299,
+                ValuationCurrency = "EUR",
+                ValuedAt = DateTime.UtcNow,
+                MarketDataAsOf = DateTime.UtcNow,
+                ValuationProvider = "provider",
+                ValuationMethod = "method",
+                ValuationConfidence = "MEDIUM",
+                ConditionAppliedToValuation = true,
+                ValuationSourceUrlsJson = "[\"https://example.com\"]",
+            };
+
+            ValuationPersistence.ApplyManual(specimen, null, DateTime.UtcNow);
+
+            Assert.Null(specimen.ValuationAmountMinor);
+            Assert.Null(specimen.ValuationCurrency);
+            Assert.Null(specimen.ValuedAt);
+            Assert.Null(specimen.MarketDataAsOf);
+            Assert.Null(specimen.ValuationProvider);
+            Assert.Null(specimen.ValuationMethod);
+            Assert.Null(specimen.ValuationConfidence);
+            Assert.Null(specimen.ConditionAppliedToValuation);
+            Assert.Null(specimen.ValuationSourceUrlsJson);
         }
 
         private static string Response(string outputText, int inputTokens, int outputTokens, bool withWebSearch)

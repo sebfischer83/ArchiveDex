@@ -21,8 +21,13 @@ COPY --from=client-builder /client/dist/archive-dex-client src/ArchiveDex.Server
 RUN dotnet publish src/ArchiveDex.Server/ArchiveDex.Server.csproj -c Release -o /out -a $TARGETARCH --self-contained false --no-restore -p:BuildAngularClient=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.10-noble
+# OpenCvSharpExtern links against the GTK stack because the shipped build includes OpenCV's highgui
+# module. Nothing here ever opens a window, but the loader still needs every dependency present, so
+# the whole set has to be installed. Determined with `ldd` against the shipped .so, not guessed;
+# leaving any of them out fails the load with a DllNotFoundException naming the next one.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
+       libfreetype6 libharfbuzz0b libgtk-3-0 libdrm2 libatomic1 libgomp1 \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app/dataprotection \
     && chown "$APP_UID:$APP_UID" /app/dataprotection

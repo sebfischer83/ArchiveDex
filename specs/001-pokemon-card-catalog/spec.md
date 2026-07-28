@@ -54,7 +54,7 @@ Als Sammlungsnutzer prüfe und korrigiere ich das Analyseergebnis, bevor ich das
 4. **Given** der Nutzer den Zustand bestätigt oder korrigiert, **When** er eine Zustandsstufe auswählt, **Then** kann er ausschließlich Near Mint, Lightly Played, Moderately Played, Heavily Played oder Damaged wählen.
 5. **Given** Pflichtangaben fehlen, **When** der Nutzer speichern möchte, **Then** verhindert die Anwendung die Speicherung und benennt die zu ergänzenden Felder.
 6. **Given** eine Speicherung schlägt fehl, **When** die Anwendung den Fehler meldet, **Then** bleiben Bild und bereits bestätigte Eingaben für einen erneuten Versuch erhalten.
-7. **Given** dasselbe Bild wurde bereits gespeichert, **When** es erneut hochgeladen wird, **Then** warnt die Anwendung vor einem möglichen Duplikat und verlangt eine bewusste Entscheidung.
+7. **Given** dasselbe Bild wurde bereits gespeichert, **When** es erneut hochgeladen und gespeichert wird, **Then** legt die Anwendung es ohne zusätzliche Duplikatbestätigung als weiteres Exemplar derselben Kartenvariante an.
 8. **Given** ein weiteres physisches Exemplar derselben Kartenvariante mit einem eigenen Bild, **When** der Nutzer es speichert, **Then** erscheint es als zusätzliches Exemplar unter demselben gruppierten Karteneintrag.
 
 ---
@@ -117,7 +117,7 @@ Als Sammlungsnutzer öffne ich einen gruppierten Karteneintrag, um seine Kartend
 - **FR-006**: Die Anwendung MUSS vor dem Speichern prüfen, dass Originalname, deutsche Bezeichnung oder deren begründete Nichtverfügbarkeit, Kartennummer, Set-Kennung, Set-Name, Kartensprache und sichtbarer Zustand vollständig bestätigt sind.
 - **FR-007**: Die Anwendung MUSS jede Kartenvariante als gruppierten Karteneintrag führen und jedes hochgeladene physische Exemplar darunter mit eigenem Bild, bestätigtem Zustand, optionaler Wertschätzung, Währung und Bewertungszeitpunkt dauerhaft speichern.
 - **FR-008**: Eine Wertschätzung MUSS als unverbindliche Schätzung gekennzeichnet sein; fehlt eine belastbare Schätzung, MUSS die Anwendung dies anzeigen, ohne einen Betrag zu erfinden.
-- **FR-009**: Die Anwendung MUSS mögliche doppelte Bild-Uploads erkennen, den Nutzer warnen und eine bewusste Entscheidung vor einer erneuten Speicherung verlangen.
+- **FR-009**: Die Anwendung MUSS mögliche doppelte Bild-Uploads erkennen und ein erneut gespeichertes Bild automatisch als weiteres physisches Exemplar derselben Kartenvariante anlegen.
 - **FR-010**: Nutzer MÜSSEN eine Übersicht aller Set-und-Sprach-Kombinationen sehen können, aus denen sie mindestens eine Karte besitzen.
 - **FR-011**: Jeder Eintrag der Set-Übersicht MUSS Set-Kennung, Set-Name, Kartensprache sowie die Anzahl unterschiedlicher Karteneinträge und physischer Exemplare anzeigen.
 - **FR-012**: Nutzer MÜSSEN einen Set-Eintrag auswählen und ausschließlich ihre Karten aus diesem Set in der ausgewählten Sprache ansehen können.

@@ -32,8 +32,15 @@ export interface AnalysisProposal {
   } | null;
   candidates: CatalogCandidate[];
 }
+/** Deskewed cut-out offered alongside the photo; absent when no card was detected. */
+export interface CaptureCrop {
+  imageUrl: string;
+  thumbnailUrl: string;
+  confidence: number | null;
+}
 export interface Capture {
   id: string; status: CaptureStatus; imageUrl: string; thumbnailUrl: string;
+  crop: CaptureCrop | null;
   proposal: AnalysisProposal | null;
   duplicate: { matchingSpecimenId: string; exactMatch: boolean } | null;
   error: { code: string; detail: string; retryable: boolean } | null;
@@ -43,6 +50,8 @@ export interface ReviewCapture {
   catalogReferenceId: string | null; originalName: string; germanName: string | null;
   germanNameUnavailableReason: string | null; printedNumber: string; collectorNumber: string; setTotal: string | null; setIdentifier: string;
   setName: string; language: string; variantKey: string; condition: string;
+  /** Store the cut-out rather than the full photo. Ignored when no crop exists. */
+  useCroppedImage: boolean;
 }
 export interface FinalizedSpecimen { id: string; cardRecordId: string; }
 
@@ -108,11 +117,22 @@ export class CaptureService {
     }));
   }
 
-  /** One-click accept: confirms the AI proposal unchanged and finalizes the capture. */
-  async acceptProposed(id: string, allowDuplicate = false): Promise<HttpResponse<FinalizedSpecimen>> {
+  /**
+   * One-click accept: confirms the AI proposal and finalizes the capture. A `setOverride` replaces
+   * the proposed set, so a correction made on one card of a batch is not silently undone here.
+   */
+  async acceptProposed(
+    id: string,
+    setOverride?: SetOverride | null,
+    cropPreference?: boolean | null,
+  ): Promise<HttpResponse<FinalizedSpecimen>> {
     const capture = await this.getCapture(id);
-    const reviewed = await this.review(capture, deriveReviewModel(capture));
-    return this.finalize(reviewed, allowDuplicate);
+    const model = deriveReviewModel(capture, setOverride);
+    // A batch-wide choice wins, but only where a crop actually exists to choose.
+    if (cropPreference !== null && cropPreference !== undefined)
+      model.useCroppedImage = cropPreference && capture.crop !== null;
+    const reviewed = await this.review(capture, model);
+    return this.finalize(reviewed);
   }
 
   rememberActiveBatch(id: string): void {
@@ -165,11 +185,11 @@ export class CaptureService {
     }));
   }
 
-  finalize(capture: Capture, allowDuplicate: boolean): Promise<HttpResponse<FinalizedSpecimen>> {
+  finalize(capture: Capture): Promise<HttpResponse<FinalizedSpecimen>> {
     const idempotencyKey = this.finalizationKeys.get(capture.id) ?? crypto.randomUUID();
     this.finalizationKeys.set(capture.id, idempotencyKey);
     return firstValueFrom(this.http.post<FinalizedSpecimen>(`/api/v1/captures/${capture.id}/finalize`,
-      { allowDuplicate }, {
+      { allowDuplicate: true }, {
         headers: new HttpHeaders({
           'If-Match': capture.etag,
           'Idempotency-Key': idempotencyKey,
@@ -196,8 +216,18 @@ export class CaptureService {
   }
 }
 
+/**
+ * Set data the reviewer corrected on one card of a batch. The AI often mislabels every card of a
+ * shoot the same way, so the correction is carried to the remaining ones instead of being retyped.
+ */
+export interface SetOverride {
+  setIdentifier: string;
+  setName: string;
+  language: string;
+}
+
 /** Builds a ReviewCapture from a capture's AI proposal (used for populate + one-click accept). */
-export function deriveReviewModel(capture: Capture): ReviewCapture {
+export function deriveReviewModel(capture: Capture, setOverride?: SetOverride | null): ReviewCapture {
   const proposal = capture.proposal;
   const candidate = proposal?.candidates[0];
   const printed = candidate?.printedNumber ?? proposal?.printedNumber.value ?? '';
@@ -213,10 +243,27 @@ export function deriveReviewModel(capture: Capture): ReviewCapture {
     printedNumber: printed,
     collectorNumber,
     setTotal,
-    setIdentifier: candidate?.setIdentifier ?? proposal?.setIdentifier.value ?? '',
-    setName: candidate?.setName ?? proposal?.setName.value ?? '',
-    language: candidate?.language ?? proposal?.language.value ?? 'en',
+    setIdentifier: setOverride?.setIdentifier ?? candidate?.setIdentifier ?? proposal?.setIdentifier.value ?? '',
+    setName: setOverride?.setName ?? candidate?.setName ?? proposal?.setName.value ?? '',
+    language: setOverride?.language ?? candidate?.language ?? proposal?.language.value ?? 'en',
     variantKey: candidate?.variantKey ?? proposal?.variantKey.value ?? 'standard',
     condition: proposal?.condition.grade ?? 'NM',
+    // Prefer the cut-out whenever one was detected; the reviewer can still switch back.
+    useCroppedImage: capture.crop !== null,
   };
+}
+
+/** The set fields a reviewer changed relative to the AI proposal, or null when they kept them. */
+export function detectSetOverride(capture: Capture, reviewed: ReviewCapture): SetOverride | null {
+  const proposed = deriveReviewModel(capture);
+  const changed = proposed.setIdentifier !== reviewed.setIdentifier
+    || proposed.setName !== reviewed.setName
+    || proposed.language !== reviewed.language;
+  return changed
+    ? {
+        setIdentifier: reviewed.setIdentifier,
+        setName: reviewed.setName,
+        language: reviewed.language,
+      }
+    : null;
 }

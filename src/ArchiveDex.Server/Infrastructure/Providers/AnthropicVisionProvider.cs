@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ArchiveDex.Server.Infrastructure.Images;
 
 namespace ArchiveDex.Server.Infrastructure.Providers
 {
@@ -11,7 +12,8 @@ namespace ArchiveDex.Server.Infrastructure.Providers
             ?? throw new InvalidOperationException("AI:Anthropic:ApiKey not configured");
         private readonly string _model = config["AI:Anthropic:Model"] ?? "claude-sonnet-4-5";
 
-        public async Task<AnalysisResult> AnalyzeAsync(byte[] imageBytes, CancellationToken ct = default)
+        public async Task<AnalysisResult> AnalyzeAsync(
+            byte[] imageBytes, AnalysisOptions options = default, CancellationToken ct = default)
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages");
             request.Headers.Add("x-api-key", _apiKey);
@@ -35,7 +37,7 @@ namespace ArchiveDex.Server.Infrastructure.Providers
                 new { role = "user", content = new object[]
                 {
                     new { type = "text", text = "Analyze this Pokemon card image. Return only the requested JSON object." },
-                    new { type = "image", source = new { type = "base64", media_type = "image/jpeg", data = Convert.ToBase64String(imageBytes) } }
+                    new { type = "image", source = new { type = "base64", media_type = ImageMediaType.Detect(imageBytes), data = Convert.ToBase64String(imageBytes) } }
                 }}
             },
             output_config = new

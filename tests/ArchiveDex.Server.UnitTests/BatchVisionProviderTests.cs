@@ -8,6 +8,8 @@ namespace ArchiveDex.Server.UnitTests
 {
     public sealed class BatchVisionProviderTests
     {
+        private static readonly byte[] WebpImage = "RIFF\0\0\0\0WEBP"u8.ToArray();
+
         [Fact]
         public async Task AnthropicProcessesSynchronousMessage()
         {
@@ -24,7 +26,7 @@ namespace ArchiveDex.Server.UnitTests
             var provider = new AnthropicVisionProvider(
                 new HttpClient(handler), Configuration("AI:Anthropic:ApiKey", "test-key"), CostEstimator());
 
-            var result = await provider.AnalyzeAsync([1, 2, 3], TestContext.Current.CancellationToken);
+            var result = await provider.AnalyzeAsync(WebpImage, default, TestContext.Current.CancellationToken);
 
             Assert.Equal("Pikachu", result.Observations!.PrintedName);
             var request = Assert.Single(handler.Requests);
@@ -32,6 +34,7 @@ namespace ArchiveDex.Server.UnitTests
             Assert.Contains("\"max_tokens\":4000", request.Body);
             Assert.Contains("\"output_config\"", request.Body);
             Assert.Contains("\"type\":\"json_schema\"", request.Body);
+            Assert.Contains("\"media_type\":\"image/webp\"", request.Body);
         }
 
         [Fact]
@@ -43,7 +46,7 @@ namespace ArchiveDex.Server.UnitTests
             var provider = new OpenAiBatchVisionProvider(
                 new HttpClient(handler), Configuration("AI:OpenAI:ApiKey", "test-key"), CostEstimator());
 
-            var batchId = await provider.SubmitAsync([1, 2, 3], TestContext.Current.CancellationToken);
+            var batchId = await provider.SubmitAsync(WebpImage, TestContext.Current.CancellationToken);
 
             Assert.Equal("batch_123", batchId);
             Assert.Collection(handler.Requests,
@@ -55,6 +58,7 @@ namespace ArchiveDex.Server.UnitTests
                     Assert.Contains("\r\n\r\nbatch\r\n", request.Body);
                     Assert.Contains("\"url\":\"/v1/chat/completions\"", request.Body);
                     Assert.Contains("\"max_completion_tokens\":4000", request.Body);
+                    Assert.Contains("data:image/webp;base64,", request.Body);
                     Assert.DoesNotContain("\"max_tokens\"", request.Body);
                     Assert.DoesNotContain("\"temperature\"", request.Body);
                 },
